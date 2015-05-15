@@ -2,7 +2,7 @@
 
 import matplotlib
 import pandas
-from data import *
+from data import HistoricalCSV
 
 class Strategy(object):
     """
