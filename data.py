@@ -9,17 +9,17 @@ class HistoricalCSV(object):
         self.latest_bars = []
         self.continue_backtest = True
         
-        self.df = None
+        df = None
         if filetype == 'ohlc':
-            self.df = self._load_csv_ohlc(csv_dir,filename)
+            df = self._load_csv_ohlc(csv_dir,filename)
         elif filetype == 'tick':
-            self.df = self._load_csv_tick(csv_dir,filename,interval)
+            df = self._load_csv_tick(csv_dir,filename,interval)
         else:
             raise ValueError
         
-        self.df = self.df[date_from:] if date_from else self.df
-        self.df = self.df[:date_to] if date_to else self.df
-        self.df = self.df.iterrows()
+        df = df[date_from:] if date_from else df
+        df = df[:date_to] if date_to else df
+        self.bars = df.iterrows()
 
     @staticmethod
     def _load_csv_tick(csv_dir, filename, interval):
@@ -50,6 +50,7 @@ class HistoricalCSV(object):
             index_col=0, 
             names=['datetime', 'open', 'high', 'low', 'close', 'volume']
         )
+        df.index = pd.to_datetime(df.index,format='%Y-%m-%d %H:%M:%S')
         return df
 
     def get_latest_bars(self, N=1):
@@ -57,7 +58,7 @@ class HistoricalCSV(object):
 
     def update_bars(self):
         try:
-            new_row = self.df.next() #df.iterows
+            new_row = self.bars.next() #df.iterows
             bar = tuple([
                 new_row[0], #datetime
                 new_row[1][0], #open
