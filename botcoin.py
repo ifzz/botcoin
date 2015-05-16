@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import matplotlib
 import pandas
+import datetime
 from data import HistoricalCSV
 
 class Strategy(object):
@@ -17,4 +17,16 @@ class Portfolio(object):
 
 
 if __name__ == '__main__':
-    pass
+    
+    data = HistoricalCSV(
+        '/home/lteixeira/Projects/botcoin/data/',
+        'btceUSD_5Min.csv',
+        'ohlc',
+        date_from='2015-01-02',
+    )
+    
+    while data.continue_backtest:
+        data.update_bars()
+
+
+    print '# Done'

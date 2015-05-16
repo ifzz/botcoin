@@ -1,4 +1,4 @@
-data/*
+*.pyc
 venv/*
 env/*
-*.pyc
+data/btceUSD.csv
