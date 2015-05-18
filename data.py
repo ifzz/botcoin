@@ -1,11 +1,14 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import pandas as pd
 import os
+from datetime import datetime
 
 class HistoricalCSV(object):
 
     def __init__(self, csv_dir, filename, filetype, interval='', date_from='', date_to=''):
         
+        temp_datetime = datetime.now()
+
         df = None
         if filetype == 'ohlc':
             df = self._load_csv_ohlc(csv_dir,filename)
@@ -16,7 +19,8 @@ class HistoricalCSV(object):
         
         df = df[date_from:] if date_from else df
         df = df[:date_to] if date_to else df
-        self.df = df #Just in case it will be needed in the future
+
+        self.load_time = datetime.now()-temp_datetime
 
         self.bars = df.iterrows()
         self.latest_bars = []
@@ -64,7 +68,7 @@ class HistoricalCSV(object):
 
     def update_bars(self):
         try:
-            new_row = next(self.bars) #df.iterows
+            new_row = self.bars.next() #df.iterows
             bar = tuple([
                 new_row[0].strftime("%Y-%m-%d %H:%M:%S"), #datetime
                 new_row[1][0], #open
