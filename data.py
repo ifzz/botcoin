@@ -20,6 +20,7 @@ class HistoricalCSV(object):
         df = df[date_from:] if date_from else df
         df = df[:date_to] if date_to else df
         self.bars = df.iterrows()
+        self.df = df #Just in case it will be needed in the future
 
     @staticmethod
     def _load_csv_tick(csv_dir, filename, interval):
@@ -53,14 +54,11 @@ class HistoricalCSV(object):
         df.index = pd.to_datetime(df.index,format='%Y-%m-%d %H:%M:%S')
         return df
 
-    def get_latest_bars(self, N=1):
-        return self.latest_bars[-N:]
-
     def update_bars(self):
         try:
             new_row = self.bars.next() #df.iterows
             bar = tuple([
-                new_row[0], #datetime
+                new_row[0].strftime("%Y-%m-%d %H:%M:%S"), #datetime
                 new_row[1][0], #open
                 new_row[1][1], #high
                 new_row[1][2], #low
@@ -71,4 +69,36 @@ class HistoricalCSV(object):
             self.continue_backtest = False
         else:
             self.latest_bars.append(bar)
-        #self.events.put(MarketEvent())
+
+    def get_latest_bars(self, N=1):
+        return self.latest_bars[-N:]
+
+def openp(latest_bars):
+    if latest_bars:
+        return [i[1] for i in latest_bars]
+    else:
+        raise ValueError
+        
+def highp(latest_bars):
+    if latest_bars:
+        return [i[2] for i in latest_bars]
+    else:
+        raise ValueError
+
+def lowp(latest_bars):
+    if latest_bars:
+        return [i[3] for i in latest_bars]
+    else:
+        raise ValueError
+
+def closep(latest_bars):
+    if latest_bars:
+        return [i[4] for i in latest_bars]
+    else:
+        raise ValueError
+
+def vol(latest_bars):
+    if latest_bars:
+        return [i[5] for i in latest_bars]
+    else:
+        raise ValueError
