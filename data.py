@@ -1,13 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import pandas as pd
 import os
 
 class HistoricalCSV(object):
 
     def __init__(self, csv_dir, filename, filetype, interval='', date_from='', date_to=''):
-        
-        self.latest_bars = []
-        self.continue_backtest = True
         
         df = None
         if filetype == 'ohlc':
@@ -19,8 +16,12 @@ class HistoricalCSV(object):
         
         df = df[date_from:] if date_from else df
         df = df[:date_to] if date_to else df
-        self.bars = df.iterrows()
         self.df = df #Just in case it will be needed in the future
+
+        self.bars = df.iterrows()
+        self.latest_bars = []
+        self.continue_backtest = True
+        
 
     @staticmethod
     def _load_csv_tick(csv_dir, filename, interval):
@@ -51,12 +52,19 @@ class HistoricalCSV(object):
             index_col=0, 
             names=['datetime', 'open', 'high', 'low', 'close', 'volume']
         )
-        df.index = pd.to_datetime(df.index,format='%Y-%m-%d %H:%M:%S')
+
+        try:
+            #Tries to index with %Y-%m-%d %H:%M:%S format
+            df.index = pd.to_datetime(df.index,format='%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            #On ValueError try again with %Y-%m-%d
+            df.index = pd.to_datetime(df.index,format='%Y-%m-%d')
+        
         return df
 
     def update_bars(self):
         try:
-            new_row = self.bars.next() #df.iterows
+            new_row = next(self.bars) #df.iterows
             bar = tuple([
                 new_row[0].strftime("%Y-%m-%d %H:%M:%S"), #datetime
                 new_row[1][0], #open
@@ -78,7 +86,7 @@ def openp(latest_bars):
         return [i[1] for i in latest_bars]
     else:
         raise ValueError
-        
+
 def highp(latest_bars):
     if latest_bars:
         return [i[2] for i in latest_bars]

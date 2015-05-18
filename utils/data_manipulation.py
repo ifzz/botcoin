@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import pandas as pd
 import os
 
@@ -9,8 +9,8 @@ def read_tick_csv(filename):
     """
     df = pd.io.parsers.read_csv(
         os.path.expanduser(filename),
-        header=0, 
-        index_col=0, 
+        header=0,
+        index_col=0,
         names=['timestamp', 'price', 'volume']
     )
     df.index = pd.to_datetime((df.index.values*1e9).astype(int))
@@ -44,8 +44,4 @@ def break_tick_data_into_ohlc(folder, filename, output):
 
 if __name__ == '__main__':
     pass
-    break_tick_data_into_ohlc('/home/lteixeira/Projects/botcoin/data/','btceUSD.csv','btceUSD')
-    
-
-
     

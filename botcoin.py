@@ -1,31 +1,43 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+import os
+import sys
+import time
 import pandas
 from datetime import timedelta, datetime
 from data import openp, highp, lowp, closep, vol
 from data import HistoricalCSV
-import os
 
-if __name__ == '__main__':
+
+csv_dir = os.path.dirname(os.path.realpath(__file__)) + '/data/'
+filename = 'btceUSD_5Min.csv'
+filetype = 'ohlc'
+date_to = datetime.now()
+date_from = datetime.now() - timedelta(weeks=10)
+
+
+def backtest():
+    global csv_dir, filename, filetype, date_to, date_from
     
-    csv_dir = os.path.dirname(os.path.realpath(__file__)) + '/data/'
+    time_started = datetime.now()
 
-    date_to = datetime.now()
-    date_from = datetime.now() - timedelta(weeks=10)
-
-    data = HistoricalCSV(
-        csv_dir,
-        'btceUSD_5Min.csv',
-        'ohlc',
-        date_from = date_from,
-        date_to = date_to,
-    )
+    #Load CSV file
+    data = HistoricalCSV(csv_dir, filename, filetype, date_from = date_from, date_to = date_to)
     
-    #Start backtesting
+    time_backtest = datetime.now()
+
+    #Start backtest
     while data.continue_backtest:
         data.update_bars()
 
         latest_bars =  data.get_latest_bars(20)
-    
-    
 
-    print '# Done backtesting'
+
+    print('# Data load took',str(time_backtest-time_started))
+    print('# Backtest took',str(datetime.now()-time_backtest))
+    print('# Done')
+
+if __name__ == '__main__':
+    try:
+        backtest()
+    except KeyboardInterrupt as e:
+        sys.exit('# Execution interrupted')
