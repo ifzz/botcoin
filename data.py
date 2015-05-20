@@ -22,8 +22,8 @@ class HistoricalCSV(object):
 
         self.load_time = datetime.now()-temp_datetime
 
-        self.bars = df.iterrows()
-        self.latest_bars = []
+        self._bars = df.iterrows()
+        self._latest_bars = []
         self.continue_backtest = True
         
 
@@ -52,8 +52,8 @@ class HistoricalCSV(object):
     def _load_csv_ohlc(csv_dir, filename):
         df = pd.io.parsers.read_csv(
             os.path.expanduser(csv_dir+filename),
-            header=0, 
-            index_col=0, 
+            header=0,
+            index_col=0,
             names=['datetime', 'open', 'high', 'low', 'close', 'volume']
         )
 
@@ -68,7 +68,8 @@ class HistoricalCSV(object):
 
     def update_bars(self):
         try:
-            new_row = self.bars.next() #df.iterows
+            new_row = next(self._bars) #df.iterows
+            
             bar = tuple([
                 new_row[0].strftime("%Y-%m-%d %H:%M:%S"), #datetime
                 new_row[1][0], #open
@@ -77,40 +78,39 @@ class HistoricalCSV(object):
                 new_row[1][3], #close
                 new_row[1][4], #volume
             ])
+            
+            self._latest_bars.append(bar)
         except StopIteration:
-            self.continue_backtest = False
-        else:
-            self.latest_bars.append(bar)
+            self.continue_backtest = False            
 
     def get_latest_bars(self, N=1):
-        return self.latest_bars[-N:]
+        """
+        Returns Bars object containing latest N bars from self._latest_bars
+        """
+        return Bars(self._latest_bars[-N:])
 
-def openp(latest_bars):
-    if latest_bars:
-        return [i[1] for i in latest_bars]
-    else:
-        raise ValueError
+class Bars(object):
 
-def highp(latest_bars):
-    if latest_bars:
-        return [i[2] for i in latest_bars]
-    else:
-        raise ValueError
+    def __init__(self,latest_bars):
+        if latest_bars:
+            self._latest_bars = latest_bars
+        else:
+            raise ValueError
 
-def lowp(latest_bars):
-    if latest_bars:
-        return [i[3] for i in latest_bars]
-    else:
-        raise ValueError
+    def datetime(self):
+        return [i[0] for i in self._latest_bars]       
 
-def closep(latest_bars):
-    if latest_bars:
-        return [i[4] for i in latest_bars]
-    else:
-        raise ValueError
+    def open(self):
+        return [i[1] for i in self._latest_bars]
 
-def vol(latest_bars):
-    if latest_bars:
-        return [i[5] for i in latest_bars]
-    else:
-        raise ValueError
+    def high(self):
+        return [i[2] for i in self._latest_bars]
+
+    def low(self):
+        return [i[3] for i in self._latest_bars]
+
+    def close(self):
+        return [i[4] for i in self._latest_bars]
+
+    def vol(self):
+        return [i[5] for i in self._latest_bars]

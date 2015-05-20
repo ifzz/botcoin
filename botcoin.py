@@ -4,7 +4,6 @@ import sys
 import time
 import pandas
 from datetime import timedelta, datetime
-from data import openp, highp, lowp, closep, vol
 from data import HistoricalCSV
 
 
@@ -22,14 +21,14 @@ def backtest():
     data = HistoricalCSV(csv_dir, filename, filetype, date_from = date_from, date_to = date_to)
     print '# Data load took',data.load_time
 
-
-
     time_backtest = datetime.now()
     #Start backtest
     while data.continue_backtest:
         data.update_bars()
 
         latest_bars =  data.get_latest_bars(20)
+    print latest_bars.datetime()
+    print latest_bars.close()
 
 
     print '# Backtest took',str(datetime.now()-time_backtest)
