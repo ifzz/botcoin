@@ -2,10 +2,12 @@
 import pandas as pd
 import os
 from datetime import datetime
+from event import MarketEvent
+
 
 class HistoricalCSV(object):
 
-    def __init__(self, csv_dir, filename, filetype, interval='', date_from='', date_to=''):
+    def __init__(self, events, csv_dir, filename, filetype, interval='', date_from='', date_to=''):
         
         temp_datetime = datetime.now()
 
@@ -24,14 +26,14 @@ class HistoricalCSV(object):
 
         self._bars = df.iterrows()
         self._latest_bars = []
-        self.continue_backtest = True
+        self.events = events
+        self.continue_execution = True
         
-
     @staticmethod
     def _load_csv_tick(csv_dir, filename, interval):
         
         interval = interval or '1d'
-
+        
         df = pd.io.parsers.read_csv(
             os.path.expanduser(csv_dir+filename),
             header=0, 
@@ -71,7 +73,7 @@ class HistoricalCSV(object):
             new_row = next(self._bars) #df.iterows
             
             bar = tuple([
-                new_row[0].strftime("%Y-%m-%d %H:%M:%S"), #datetime
+                new_row[0],#.strftime("%Y-%m-%d %H:%M:%S"), #datetime
                 new_row[1][0], #open
                 new_row[1][1], #high
                 new_row[1][2], #low
@@ -81,13 +83,15 @@ class HistoricalCSV(object):
             
             self._latest_bars.append(bar)
         except StopIteration:
-            self.continue_backtest = False            
+            self.continue_execution = False
+        self.events.put(MarketEvent())       
 
     def get_latest_bars(self, N=1):
         """
         Returns Bars object containing latest N bars from self._latest_bars
         """
         return Bars(self._latest_bars[-N:])
+
 
 class Bars(object):
 
@@ -97,8 +101,12 @@ class Bars(object):
         else:
             raise ValueError
 
+    def __len__(self):
+        return len(self._latest_bars)
+        
     def datetime(self):
-        return [i[0] for i in self._latest_bars]       
+        #TODO check offset so daily data doesn't have %H:%M:%S
+        return [i[0].strftime("%Y-%m-%d %H:%M:%S") for i in self._latest_bars]       
 
     def open(self):
         return [i[1] for i in self._latest_bars]
@@ -114,3 +122,9 @@ class Bars(object):
 
     def vol(self):
         return [i[5] for i in self._latest_bars]
+
+    def get_all_prices(self):
+        return self.open(), self.high(), self.low(), self.close()
+
+    def get_all(self):
+        return self.datetime(), self.open(), self.high(), self.low(), self.close(), self.vol()

@@ -6,15 +6,15 @@ class RandomBuyForAnInterval(object):
     Buys the asset every 1-n candles, and holds it for an entire candle
 
     data -- data object containing bars
-    position -- current position held (LONG, SHORT or None)
+    position -- current position held (LONG, SHORT or EXIT)
     """
-    def __init__(self,data,n):
+    def __init__(self,events,data):
         self.data = data
+        self.events = events
         self.position = None
-        self.n = n
 
     def calculate_signals(self):
-        if self.position == None:
+        if self.position == 'EXIT':
             pass
         elif self.position == 'LONG':
             #Send order signal to exit position
