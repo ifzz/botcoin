@@ -6,22 +6,21 @@ import pandas
 from datetime import timedelta, datetime
 import Queue
 
-from data import HistoricalCSV
-from event import *
-
+from src.data import HistoricalCSV
+from src.strategy import RandomBuyForAnInterval
 
 csv_dir = os.path.dirname(os.path.realpath(__file__)) + '/data/'
-filename = 'btceUSD_1h.csv'
+filename = 'btceUSD_5Min.csv'
 filetype = 'ohlc'
 date_to = datetime.now()
 date_from = datetime.now() - timedelta(weeks=10)
 
-def backtest(data, portofolio, strategy, execution):
+def backtest(events, data, portofolio, strategy, execution):
 
     #Start backtest
     while data.continue_execution:
-        
-        data.update_bars()
+
+        events.put(data.update_bars())
 
         while True:
             try:
@@ -29,14 +28,20 @@ def backtest(data, portofolio, strategy, execution):
             except Queue.Empty:
                 break
 
+            new_event = None
+
             if event.type == 'MARKET':
-                strategy.calculate_signals()
+                new_event = strategy.calculate_signals()
             elif event.type == 'SIGNAL':
                 pass
             elif event.type == 'ORDER':
                 pass
             elif event.type == 'FILL':
                 pass
+
+            if new_event:
+                print new_event.type,data.get_latest_bars().datetime()
+            #put new_event to events if new_event
 
 def main():
     """Instantiate data, portfolio, strategy and execution classes."""
@@ -45,10 +50,11 @@ def main():
     events = Queue.Queue()
 
     print '# Starting data load'
-    data = HistoricalCSV(events, csv_dir, filename, filetype, date_from = date_from, date_to = date_to)
+    data = HistoricalCSV(csv_dir, filename, filetype, date_from = date_from, date_to = date_to)
 
+    
+    strategy = RandomBuyForAnInterval(data)
     portfolio = None
-    strategy = None
     execution = None
 
     time_backtest = datetime.now()

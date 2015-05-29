@@ -7,7 +7,7 @@ from event import MarketEvent
 
 class HistoricalCSV(object):
 
-    def __init__(self, events, csv_dir, filename, filetype, interval='', date_from='', date_to=''):
+    def __init__(self, csv_dir, filename, filetype, interval='', date_from='', date_to=''):
         
         temp_datetime = datetime.now()
 
@@ -26,7 +26,7 @@ class HistoricalCSV(object):
 
         self._bars = df.iterrows()
         self._latest_bars = []
-        self.events = events
+        #Will almost remain true in live trading
         self.continue_execution = True
         
     @staticmethod
@@ -84,7 +84,7 @@ class HistoricalCSV(object):
             self._latest_bars.append(bar)
         except StopIteration:
             self.continue_execution = False
-        self.events.put(MarketEvent())       
+        return MarketEvent()
 
     def get_latest_bars(self, N=1):
         """

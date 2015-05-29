@@ -1,5 +1,5 @@
 *.pyc
 venv/*
-env/*
+venv3/*
 __pycache__
 data/btceUSD.csv

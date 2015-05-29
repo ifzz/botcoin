@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import pandas as pd
+from event import SignalEvent
 
 class RandomBuyForAnInterval(object):
     """
@@ -8,14 +8,14 @@ class RandomBuyForAnInterval(object):
     data -- data object containing bars
     position -- current position held (LONG, SHORT or EXIT)
     """
-    def __init__(self,events,data):
+    def __init__(self,data):
         self.data = data
-        self.events = events
         self.position = None
 
     def calculate_signals(self):
-        if self.position == 'EXIT':
-            pass
+        if not self.position:
+            self.position = 'LONG'
+            return SignalEvent('btc','LONG')
         elif self.position == 'LONG':
             #Send order signal to exit position
             pass

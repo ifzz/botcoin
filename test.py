@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import unittest
 import os
-from data import *
+from src.data import HistoricalCSV
 
 class HistoricalOhlcDataTestCase(unittest.TestCase):
     """Tests for data.py with ohlc historical data."""
@@ -31,7 +31,7 @@ class HistoricalOhlcDataTestCase(unittest.TestCase):
         Can the application screw the order when retrieving latest_bars?
         Obviously will fail if the data is wrong.
         """
-        while self.data.continue_backtest:
+        while self.data.continue_execution:
             self.data.update_bars()
         bars = self.data.get_latest_bars(100)
         openp, highp, lowp, closep = bars.get_all_prices()
