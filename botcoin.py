@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import os
+from datetime import timedelta, datetime
+import queue
 import sys
 import time
+
 import pandas
-from datetime import timedelta, datetime
-import Queue
 
 from src.data import HistoricalCSV
 from src.strategy import RandomBuyForAnInterval
@@ -25,7 +26,7 @@ def backtest(events, data, portofolio, strategy, execution):
         while True:
             try:
                 event = events.get(False)
-            except Queue.Empty:
+            except queue.Empty:
                 break
 
             new_event = None
@@ -40,16 +41,16 @@ def backtest(events, data, portofolio, strategy, execution):
                 pass
 
             if new_event:
-                print new_event.type,data.get_latest_bars().datetime()
+                print(new_event.type,data.get_latest_bars().datetime())
             #put new_event to events if new_event
 
 def main():
     """Instantiate data, portfolio, strategy and execution classes."""
     
     global csv_dir, filename, filetype, data_to, data_from
-    events = Queue.Queue()
+    events = queue.Queue()
 
-    print '# Starting data load'
+    print('# Starting data load')
     data = HistoricalCSV(csv_dir, filename, filetype, date_from = date_from, date_to = date_to)
 
     
@@ -58,12 +59,12 @@ def main():
     execution = None
 
     time_backtest = datetime.now()
-    print '# Starting backtest'
+    print('# Starting backtest')
     backtest(events, data, portfolio, strategy, execution)
     
-    print '# Data load took',data.load_time    
-    print '# Backtest took',str(datetime.now()-time_backtest)
-    print '# Done'
+    print('# Data load took',data.load_time)
+    print('# Backtest took',str(datetime.now()-time_backtest))
+    print('# Done')
 
 
 if __name__ == '__main__':

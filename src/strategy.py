@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from event import SignalEvent
+
+from src.event import SignalEvent
 
 class RandomBuyForAnInterval(object):
     """

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
+    
 import pandas as pd
 import os
 from datetime import datetime
-from event import MarketEvent
-
+from src.event import MarketEvent
 
 class HistoricalCSV(object):
 
