@@ -4,7 +4,7 @@ class Event(object):
     pass
 
 
-class MarketEvent(Event):
+class DataEvent(Event):
     """
     Handles the event of receiving a new market update with 
     corresponding bars.
@@ -14,7 +14,7 @@ class MarketEvent(Event):
         """
         Initialises the MarketEvent.
         """
-        self.type = 'MARKET'
+        self.type = 'DATA'
 
 
 class SignalEvent(Event):
@@ -31,7 +31,7 @@ class SignalEvent(Event):
         datetime - The timestamp at which the signal was generated.
         signal_type - 'LONG' or 'SHORT'.
         """
-    
+
         self.type = 'SIGNAL'
         self.symbol = symbol
         self.signal_type = signal_type

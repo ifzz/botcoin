@@ -1,9 +1,11 @@
 #!/usr/bin/env python
     
-import pandas as pd
-import os
 from datetime import datetime
-from src.event import MarketEvent
+import logging
+import os
+import pandas as pd
+
+from src.event import DataEvent
 
 class HistoricalCSV(object):
 
@@ -12,28 +14,32 @@ class HistoricalCSV(object):
         temp_datetime = datetime.now()
 
         df = None
+        logging.info('Starting data load')
         if filetype == 'ohlc':
             df = self._load_csv_ohlc(csv_dir,filename)
         elif filetype == 'tick':
             df = self._load_csv_tick(csv_dir,filename,interval)
         else:
             raise ValueError
-        
+
         df = df[date_from:] if date_from else df
         df = df[:date_to] if date_to else df
+        # Just in case
+        self.df = df
 
         self.load_time = datetime.now()-temp_datetime
 
         self._bars = df.iterrows()
         self._latest_bars = []
-        #Will almost remain true in live trading
+
+        # Will always remain true in live trading
         self.continue_execution = True
         
     @staticmethod
     def _load_csv_tick(csv_dir, filename, interval):
         
         interval = interval or '1d'
-        
+
         df = pd.io.parsers.read_csv(
             os.path.expanduser(csv_dir+filename),
             header=0, 
@@ -52,6 +58,7 @@ class HistoricalCSV(object):
 
     @staticmethod
     def _load_csv_ohlc(csv_dir, filename):
+        
         df = pd.io.parsers.read_csv(
             os.path.expanduser(csv_dir+filename),
             header=0,
@@ -66,6 +73,13 @@ class HistoricalCSV(object):
             #On ValueError try again with %Y-%m-%d
             df.index = pd.to_datetime(df.index,format='%Y-%m-%d')
         
+        # Fills NaN with 0 in volume column
+        df['volume'] = df['volume'].fillna(0)
+
+        # Pads prices forward for NaN cells on price columns
+        for col in ['open', 'high', 'low', 'close']:
+            df[col] = df[col].ffill()
+
         return df
 
     def update_bars(self):
@@ -84,7 +98,7 @@ class HistoricalCSV(object):
             self._latest_bars.append(bar)
         except StopIteration:
             self.continue_execution = False
-        return MarketEvent()
+        return DataEvent()
 
     def get_latest_bars(self, N=1):
         """
