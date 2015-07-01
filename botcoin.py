@@ -6,22 +6,19 @@ import logging
 import sys
 import time
 
-import pandas
-
 from src.data import HistoricalCSV
 from src.strategy import RandomBuyStrategy
-from src.portfolio import OnePositionPortfolio
+from src.portfolio import Portfolio
 from src.trade import Backtest
 
 
 def main():
-    """Instantiate data, portfolio, strategy and execution classes."""
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--params', nargs='+', required=False, help='strategy parameters')
     parser.add_argument('-v', '--verbose', action='count', default=0, help='verbose info (-vv for debug)')
     parser.add_argument('-d', '--directory', required=False, nargs='?', help='alternative data directory')
     parser.add_argument('-f', '--filename', required=False, nargs='?', help='csv filename for historical data')
-    
+
     args = parser.parse_args()
 
     # Strategy parameters
@@ -34,7 +31,8 @@ def main():
     # Hardcoded ohlc file type, ticker not supported yet
     filetype = 'ohlc'
     date_to = datetime.now()
-    date_from = datetime.now() - timedelta(weeks=10)
+    date_from = datetime.strptime("2015-01-01", '%Y-%m-%d') 
+    #date_from = datetime.now() - timedelta(weeks=10)
 
     # Logging level
     if args.verbose == 1:
@@ -44,19 +42,14 @@ def main():
 
 
     data = HistoricalCSV(csv_dir, filename, filetype, date_from = date_from, date_to = date_to)
-    
-    strategy = RandomBuyStrategy(params[0],params[1])
 
-    portfolio = OnePositionPortfolio()
+    strategy = RandomBuyStrategy(data, params[0],params[1])
 
-    
-    logging.debug('# Starting backtest from ' + str(date_from) + ' to ' + str(date_to))
-    
-    backtest = Backtest(data, portfolio, [strategy], date_from, date_to)
+    portfolio = Portfolio(data, date_from, strategies=[strategy])
+
+    backtest = Backtest(data, portfolio, date_from, date_to)
+
     backtest.start()
-    
-    logging.debug('# Data load took ' + str(data.load_time))
-    logging.debug('# Backtest took ' + str(backtest.run_time))
 
 if __name__ == '__main__':
     try:

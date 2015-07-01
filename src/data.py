@@ -5,7 +5,7 @@ import logging
 import os
 import pandas as pd
 
-from src.event import DataEvent
+from src.event import MarketEvent
 
 class HistoricalCSV(object):
 
@@ -28,6 +28,7 @@ class HistoricalCSV(object):
         self.df = df
 
         self.load_time = datetime.now()-temp_datetime
+        #logging.debug('# Data load took ' + str(self.load_time))
 
         self._bars = df.iterrows()
         self._latest_bars = []
@@ -98,7 +99,7 @@ class HistoricalCSV(object):
             self._latest_bars.append(bar)
         except StopIteration:
             self.continue_execution = False
-        return DataEvent()
+        return MarketEvent()
 
     def get_latest_bars(self, N=1):
         """

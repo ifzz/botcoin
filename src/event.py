@@ -4,34 +4,26 @@ class Event(object):
     pass
 
 
-class DataEvent(Event):
+class MarketEvent(Event):
     """
     Handles the event of receiving a new market update with 
     corresponding bars.
     """
 
     def __init__(self):
-        """
-        Initialises the MarketEvent.
-        """
-        self.type = 'DATA'
+        self.type = 'MARKET'
 
 
 class SignalEvent(Event):
     """
-    Handles the event of sending a Signal from a Strategy object.
-    This is received by a Portfolio object and acted upon.
+    Handles the event of a new Strategy generated signal.
+    Exchanged directly between Portfolio and its strategies.
+    Parameters
+        datetime - The timestamp at which the signal was generated.
+        signal_type - 'LONG' or 'SHORT'.
     """
     
     def __init__(self, symbol, signal_type):
-        """
-        Initialises the SignalEvent.
-
-        Parameters:
-        datetime - The timestamp at which the signal was generated.
-        signal_type - 'LONG' or 'SHORT'.
-        """
-
         self.type = 'SIGNAL'
         self.symbol = symbol
         self.signal_type = signal_type

@@ -1,55 +1,48 @@
 #!/usr/bin/env python
 from datetime import datetime
+import logging
 import queue
-
 
 class Trade(object):
     pass
 
 class Backtest(Trade):
-    def __init__(self, data, portfolio, strategies, date_from=None, date_to=None):
-        if not strategies: # need to check if is iterable of strategies
-            raise ValueError
-
+    def __init__(self, data, portfolio, date_from=None, date_to=None):
         self.data = data
-        self.portfolio = portfolio
-        self.strategies = strategies        
-        self.events = queue.Queue()
-
         self.date_from = date_from
         self.date_to = date_to
+        # Holds events to/from external sources e.g. market, execution, broker, etc
+        self.external_events_queue = queue.Queue()
+        # Portfolio that contains strategies within itself
+        self.portfolio = portfolio.set_external_queue(self.external_events_queue)
 
     def start(self):
+        logging.info('# Starting backtest from ' + str(self.date_from) + ' to ' + str(self.date_to))
         time_started = datetime.now()
 
         while self.data.continue_execution:
 
-            self.events.put(self.data.update_bars())
+            # update_bars can only be called here!
+            self.external_events_queue.put(self.data.update_bars())
 
             while True:
                 try:
-                    event = self.events.get(False)
+                    event = self.external_events_queue.get(False)
                 except queue.Empty:
                     break
 
-                new_event = None
-
-                if event.type == 'DATA':
-                    for strategy in self.strategies:
-                        new_event = strategy.generate_signals(self.data.get_latest_bars())
-                        self.events.put(new_event) if new_event else None
-                
-                elif event.type == 'SIGNAL':
-                    self.portfolio.generate_orders(event, self.data.get_latest_bars())
+                if event.type == 'MARKET':
+                    self.portfolio.consume_market_event(event)
 
                 elif event.type == 'ORDER':
-                    pass
+                    pass # Not used in backtesting
 
                 elif event.type == 'FILL':
-                    pass
+                    pass # Not used in backtetsting
+
+                else:
+                    raise TypeError
 
         print(self.portfolio.performance())
 
-
-        time_ended = datetime.now()
-        self.run_time = time_ended - time_started
+        self.run_time = datetime.now() - time_started

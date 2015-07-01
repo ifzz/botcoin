@@ -14,7 +14,7 @@ class HistoricalOhlcDataTestCase(unittest.TestCase):
             'ohlc',
         )
         #Get a few bars just in case
-        for _ in xrange(0,1000):
+        for _ in range(0,1000):
             cls.data.update_bars()
 
     def test_csv_file_load(self):
@@ -35,7 +35,7 @@ class HistoricalOhlcDataTestCase(unittest.TestCase):
             self.data.update_bars()
         bars = self.data.get_latest_bars(100)
         openp, highp, lowp, closep = bars.get_all_prices()
-        for i in xrange(0,(len(bars)-1)):
+        for i in range(0,(len(bars)-1)):
             #High price must be >= all other prices
             self.assertTrue(highp >= lowp)
             self.assertTrue(highp >= openp)
@@ -47,7 +47,7 @@ class HistoricalOhlcDataTestCase(unittest.TestCase):
     def test_datetime_is_str(self):
         """Just to make sure datetime is always a string in latest bars"""
         datetimes = self.data.get_latest_bars(100).datetime()
-        for i in xrange(0,len(datetimes)-1):
+        for i in range(0,len(datetimes)-1):
             self.assertTrue(type(datetimes[i]) is str)
 
 
@@ -61,7 +61,7 @@ class HistoricalTickDataTestCase(HistoricalOhlcDataTestCase):
             'tick',
         )
         #Get a few bars
-        for _ in xrange(0,1000):
+        for _ in range(0,1000):
             self.data.update_bars()
 
 if __name__ == '__main__':
