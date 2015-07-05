@@ -51,7 +51,7 @@ class Portfolio(object):
         all_holdings -- 
         strategies -- 
     """
-    def __init__(self, data, date_from, initial_capital=100000.0, strategies=()):
+    def __init__(self, data, date_from, strategy, initial_capital=100000.0):
         if not isinstance(data, HistoricalCSV) or not isinstance(date_from, datetime.datetime):
             raise TypeError
         if not strategies:
@@ -60,7 +60,7 @@ class Portfolio(object):
         self.data = data
         self.date_from = date_from
         self.initial_capital = initial_capital
-        self.strategies = strategies
+        self.strategy = strategy
 
         self.all_positions = []
         self.all_holdings = []
@@ -78,22 +78,21 @@ class Portfolio(object):
         if not event.type == 'MARKET':
             raise TypeError
 
-        self.consume_signal_events(self.generate_signals())
+        self.consume_signal_events(self.strategy.generate_signals())
 
-    def generate_signals(self):
-        # 2 stage to remove Nones from list (added by strategies that return no signal)
-        signals = [s for s in [strategy.generate_signals() for strategy in self.strategies] if s]
-        return signals
+    # def generate_signals(self):
+    #     # 2 stage to remove Nones from list (added by strategies that return no signal)
+    #     return [s for s in [strategy.generate_signals() for strategy in self.strategies] if s]
 
     def consume_signal_events(self, signals):
         [self.generate_orders(signal) for signal in signals]
 
-    def generate_orders(self, event):
-        if event.signal_type == 'LONG':
-            self.buy_price = self.data.get_latest_bars().close()[0]
+    def generate_orders(self, signal):
+        if signal.signal_type == 'LONG':
+            self.buy_price = self.data.get_latest_bars(signal.symbol).close()[0]
 
-        elif event.signal_type == 'EXIT':
-            self.sell_price = self.data.get_latest_bars().close()[0]
+        elif signal.signal_type == 'EXIT':
+            self.sell_price = self.data.get_latest_bars(signal.symbol).close()[0]
         
             self.results.append(self.sell_price-self.buy_price)
 

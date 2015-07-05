@@ -27,9 +27,7 @@ def main():
     # Data directory
     csv_dir = os.path.expanduser(args.directory) if args.directory else os.path.dirname(os.path.realpath(__file__)) + '/data/'
     # CSV filename
-    filename = args.filename or 'btceUSD_5Min.csv'
-    # Hardcoded ohlc file type, ticker not supported yet
-    filetype = 'ohlc'
+    filename = args.filename or ['btceUSD_5Min.csv']
     date_to = datetime.now()
     date_from = datetime.strptime("2015-01-01", '%Y-%m-%d') 
     #date_from = datetime.now() - timedelta(weeks=10)
@@ -41,11 +39,11 @@ def main():
         logging.basicConfig(level=10)
 
 
-    data = HistoricalCSV(csv_dir, filename, filetype, date_from = date_from, date_to = date_to)
+    data = HistoricalCSV(csv_dir, filename, date_from = date_from, date_to = date_to)
 
     strategy = RandomBuyStrategy(data, params[0],params[1])
 
-    portfolio = Portfolio(data, date_from, strategies=[strategy])
+    portfolio = Portfolio(data, date_from, strategy=strategy)
 
     backtest = Backtest(data, portfolio, date_from, date_to)
 
