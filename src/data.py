@@ -19,7 +19,9 @@ class HistoricalCSV(object):
 
         for s in symbol_list:
             self.symbol_data[s] = {}
-            df = self._load_csv(csv_dir, s, date_from, date_to, filetype, interval)
+            filename = s + '.csv'
+            df = self._load_csv(csv_dir, filename, date_from, date_to, filetype, interval)
+            #self.symbol_data[s]['_df'] = df
             self.symbol_data[s]['_bars'] = df.iterrows()
             self.symbol_data[s]['_latest_bars'] = []
 
@@ -106,11 +108,12 @@ class HistoricalCSV(object):
                 ])
 
                 self.symbol_data[s]['_latest_bars'].append(bar)
+
+                return MarketEvent()
             except StopIteration:
                 # TODO atm if one data file ends, backtesting will stop
                 self.continue_execution = False
 
-        return MarketEvent()
 
     def get_latest_bars(self, symbol, N=1):
         """
@@ -127,41 +130,27 @@ class Bars(object):
 
         self._latest_bars = latest_bars
 
-        #TODO check offset so daily data doesn't have %H:%M:%S
-        self.datetime = [i[0].strftime("%Y-%m-%d %H:%M:%S") for i in self.latest_bars]
+        #TODO check offset so daily data doesn't have %H:%M:%S - .strftime("%Y-%m-%d %H:%M:%S")
+        self.datetime = [i[0] for i in self._latest_bars]
+        self.last_datetime = self._latest_bars[-1][0]
 
         self.open = [i[1] for i in self._latest_bars]
         self.last_open = self._latest_bars[-1][1]
+
         self.high = [i[2] for i in self._latest_bars]
         self.last_high = self._latest_bars[-1][2]
+
         self.low = [i[3] for i in self._latest_bars]
         self.last_low = self._latest_bars[-1][3]
+
         self.close = [i[4] for i in self._latest_bars]
         self.last_close = self._latest_bars[-1][4]
+
         self.vol = [i[5] for i in self._latest_bars]
         self.last_vol = self._latest_bars[-1][5]
 
     def __len__(self):
         return len(self._latest_bars)
-
-    # def datetime(self):
-    #     #TODO check offset so daily data doesn't have %H:%M:%S
-    #     return [i[0].strftime("%Y-%m-%d %H:%M:%S") for i in self._latest_bars]       
-
-    # def open(self):
-    #     return [i[1] for i in self._latest_bars]
-
-    # def high(self):
-    #     return [i[2] for i in self._latest_bars]
-
-    # def low(self):
-    #     return [i[3] for i in self._latest_bars]
-
-    # def close(self):
-    #     return [i[4] for i in self._latest_bars]
-
-    # def vol(self):
-    #     return [i[5] for i in self._latest_bars]
 
     def get_all_prices(self):
         return self.open, self.high, self.low, self.close

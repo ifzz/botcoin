@@ -17,13 +17,11 @@ class Backtest(Trade):
         self.portfolio = portfolio.set_external_queue(self.external_events_queue)
 
     def start(self):
-        logging.info('# Starting backtest from ' + str(self.date_from) + ' to ' + str(self.date_to))
         time_started = datetime.now()
 
         while self.data.continue_execution:
 
-            # update_bars can only be called here!
-            self.external_events_queue.put(self.data.update_bars())
+            self.get_new_bar()
 
             while True:
                 try:
@@ -46,3 +44,9 @@ class Backtest(Trade):
         print(self.portfolio.performance())
 
         self.run_time = datetime.now() - time_started
+
+    def get_new_bar(self):
+        # update_bars can only be called here!    
+        new_bar = self.data.update_bars()
+        if new_bar:
+            self.external_events_queue.put(new_bar)

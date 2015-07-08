@@ -9,18 +9,25 @@ class Strategy(object):
         position -- current position held (LONG, SHORT or EXIT)
     """
     def __init__(self, data):
-        self.position = None
         self.data = data
+        self.symbol_list = self.data.symbol_list
 
-    def go_long(self):
-        logging.debug('LONG signal from strategy ' + self.__class__.__name__ + ' close price is ' + str(self.data.get_latest_bars(self.symbol).close[0])) #TODO CHECK THIS SHIT close[0] is not really the last one is it?
-        self.position = 'LONG'
-        return SignalEvent('btc','LONG')
+        self.positions = {symbol: None for symbol in self.symbol_list}
 
-    def exit(self):
-        logging.debug('EXIT signal from strategy ' + self.__class__.__name__ + ' close price is ' + str(self.data.get_latest_bars(self.symbol).close[0])) #TODO CHECK THIS SHIT
-        self.position = ''
-        return SignalEvent('btc','EXIT')
+    def buy(self, symbol):
+        # logging.debug('LONG signal for ' + symbol + ' close price is ' + str(self.data.get_latest_bars(symbol).last_close)) #TODO CHECK THIS SHIT close[0] is not really the last one is it?
+        self.positions[symbol] = 'LONG'
+        return SignalEvent(symbol,'LONG')
+
+    def short(self, symbol):
+        # logging.debug('SHORT signal for ' + symbol + ' close price is ' + str(self.data.get_latest_bars(symbol).last_close)) #TODO CHECK THIS SHIT close[0] is not really the last one is it?
+        self.positions[symbol] = 'SHORT'
+        return SignalEvent(symbol,'SHORT')
+
+    def exit(self, symbol):
+        # logging.debug('EXIT signal for ' + symbol + ' close price is ' + str(self.data.get_latest_bars(symbol).last_close)) #TODO CHECK THIS SHIT
+        self.positions[symbol] = ''
+        return SignalEvent(symbol,'EXIT')
 
 class RandomBuyStrategy(Strategy):
     """
@@ -29,7 +36,7 @@ class RandomBuyStrategy(Strategy):
     position -- current position held (LONG, SHORT or EXIT)
     """
     def __init__(self, data, interval=10, hold=10):
-        Strategy.__init__(self, symbol, data)
+        Strategy.__init__(self, data)
         self.interval = interval
         self.hold = hold
         self._reset_interval()
@@ -41,14 +48,16 @@ class RandomBuyStrategy(Strategy):
         self.floating_interval = self.hold
 
     def generate_signals(self):
-        if self.floating_interval == 0:
-            if not self.position:
-                self._reset_hold()
-                return self.go_long()
+        signals = []
+        for s in self.symbol_list:
+            if self.floating_interval == 0:
+                if not self.positions[s]:
+                    self._reset_hold()
+                    signals.append(self.buy(s))
 
-            elif self.position == 'LONG':
-                self._reset_interval()
-                return self.exit()
-
-        else:
-            self.floating_interval -= 1
+                elif self.positions[s] == 'LONG':
+                    self._reset_interval()
+                    signals.append(self.exit(s))
+            else:
+                self.floating_interval -= 1
+        return signals
