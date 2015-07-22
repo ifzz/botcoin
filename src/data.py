@@ -1,19 +1,25 @@
-#!/usr/bin/env python
-    
 from datetime import datetime
 import logging
 import os
 import pandas as pd
 
-from src.event import MarketEvent
+from .event import MarketEvent
 
-class HistoricalCSV(object):
+class MarketData(object):
+    def update_bars(self):
+        logging.critical('This method needs to be implemented by your subclass!')
+    
+    def bars(self, symbol, N=1):
+        logging.critical('This method needs to be implemented by your subclass!')
+
+
+class HistoricalCSV(MarketData):
 
     def __init__(self, csv_dir, symbol_list, date_from='', date_to='', filetype='ohlc', interval=''):
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
-
+        comb_index = None
         self.symbol_list = symbol_list
         self.symbol_data = {}
 
@@ -21,11 +27,33 @@ class HistoricalCSV(object):
             self.symbol_data[s] = {}
             filename = s + '.csv'
             df = self._load_csv(csv_dir, filename, date_from, date_to, filetype, interval)
-            #self.symbol_data[s]['_df'] = df
-            self.symbol_data[s]['_bars'] = df.iterrows()
-            self.symbol_data[s]['_latest_bars'] = []
+            
+            # Original dataframe from csv
+            self.symbol_data[s]['df'] = df
+            
+            # Calculating average delta between each row
+            delta_df = pd.DataFrame({'date':df.index})
+            delta_df['delta'] = (delta_df['date'] - delta_df['date'].shift(1))
+            self.symbol_data[s]['delta'] = (delta_df['delta'].mean())
 
-        # Should always remain true in live trading
+            # Combine different file indexes to account for nonexistent values 
+            # (needs 'is not None' because of Pandas 'The truth value of a DatetimeIndex is ambiguous.' error)
+            comb_index = comb_index.union(self.symbol_data[s]['df'].index) if comb_index is not None else self.symbol_data[s]['df'].index
+
+        # After combining all indexes, we can run iterrows in each df
+        for s in symbol_list:
+            # Original dataframe, padded
+            self.symbol_data[s]['df'] = self.symbol_data[s]['df'].reindex(index=comb_index, method=None)
+            
+            # Dataframe iterrows  generator
+            self.symbol_data[s]['bars'] = self.symbol_data[s]['df'].iterrows()
+            # List that will hold all rows from iterrows, one at a time
+            self.symbol_data[s]['latest_bars'] = []
+
+        # If not all symbols have the same delta
+        if len(set([self.symbol_data[s]['delta'] for s in symbol_list])) > 1:
+            logging.critical('Data files have different time deltas between bars - not a good sign! You should probably check that.')
+
         self.continue_execution = True
 
         self.load_time = datetime.now()-start_load_datetime
@@ -78,10 +106,10 @@ class HistoricalCSV(object):
         )
 
         try:
-            #Tries to index with %Y-%m-%d %H:%M:%S format
+            # Tries to index with %Y-%m-%d %H:%M:%S format
             df.index = pd.to_datetime(df.index,format='%Y-%m-%d %H:%M:%S')
         except ValueError:
-            #On ValueError try again with %Y-%m-%d
+            # On ValueError try again with %Y-%m-%d
             df.index = pd.to_datetime(df.index,format='%Y-%m-%d')
         
         # Fills NaN with 0 in volume column
@@ -96,10 +124,10 @@ class HistoricalCSV(object):
     def update_bars(self):
         for s in self.symbol_list:
             try:
-                new_row = next(self.symbol_data[s]['_bars']) #df.iterows
+                new_row = next(self.symbol_data[s]['bars']) #df.iterows
 
                 bar = tuple([
-                    new_row[0],#.strftime("%Y-%m-%d %H:%M:%S"), #datetime
+                    new_row[0],
                     new_row[1][0], #open
                     new_row[1][1], #high
                     new_row[1][2], #low
@@ -107,20 +135,18 @@ class HistoricalCSV(object):
                     new_row[1][4], #volume
                 ])
 
-                self.symbol_data[s]['_latest_bars'].append(bar)
+                self.symbol_data[s]['latest_bars'].append(bar)
 
                 return MarketEvent()
             except StopIteration:
-                # TODO atm if one data file ends, backtesting will stop
                 self.continue_execution = False
 
-
-    def get_latest_bars(self, symbol, N=1):
+    
+    def bars(self, symbol, N=1):
         """
         Returns Bars object containing latest N bars from self._latest_bars
         """
-        return Bars(self.symbol_data[symbol]['_latest_bars'][-N:])
-
+        return Bars(self.symbol_data[symbol]['latest_bars'][-N:])
 
 class Bars(object):
 
@@ -130,7 +156,6 @@ class Bars(object):
 
         self._latest_bars = latest_bars
 
-        #TODO check offset so daily data doesn't have %H:%M:%S - .strftime("%Y-%m-%d %H:%M:%S")
         self.datetime = [i[0] for i in self._latest_bars]
         self.last_datetime = self._latest_bars[-1][0]
 

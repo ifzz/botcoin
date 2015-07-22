@@ -23,8 +23,8 @@ class HistoricalOhlcDataTestCase(unittest.TestCase):
 
     def test_update_bars(self):
         self.data.update_bars()
-        self.assertTrue(self.data.get_latest_bars(1))
-        self.assertTrue(self.data.get_latest_bars(100))
+        self.assertTrue(self.data.bars(1))
+        self.assertTrue(self.data.bars(100))
 
     def test_latest_bars_integrity(self):
         """
@@ -33,7 +33,7 @@ class HistoricalOhlcDataTestCase(unittest.TestCase):
         """
         while self.data.continue_execution:
             self.data.update_bars()
-        bars = self.data.get_latest_bars(100)
+        bars = self.data.bars(100)
         openp, highp, lowp, closep = bars.get_all_prices()
         for i in range(0,(len(bars)-1)):
             #High price must be >= all other prices
@@ -46,7 +46,7 @@ class HistoricalOhlcDataTestCase(unittest.TestCase):
     
     def test_datetime_is_str(self):
         """Just to make sure datetime is always a string in latest bars"""
-        datetimes = self.data.get_latest_bars(100).datetime()
+        datetimes = self.data.bars(100).datetime()
         for i in range(0,len(datetimes)-1):
             self.assertTrue(type(datetimes[i]) is str)
 

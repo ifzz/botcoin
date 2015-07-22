@@ -1,31 +1,44 @@
-#!/usr/bin/env python
 from datetime import datetime
 import logging
 import queue
 
-class Trade(object):
-    pass
+from .data import MarketData
+from .execution import BacktestExecution, Execution
+from .strategy import Strategy, RandomBuyStrategy
+from .portfolio import Portfolio
+from .settings import (
+    DATE_FROM,
+    DATE_TO,
+)
 
-class Backtest(Trade):
-    def __init__(self, data, portfolio, date_from=None, date_to=None):
-        self.data = data
-        self.date_from = date_from
-        self.date_to = date_to
-        # Holds events to/from external sources e.g. market, execution, broker, etc
-        self.external_events_queue = queue.Queue()
-        # Portfolio that contains strategies within itself
-        self.portfolio = portfolio.set_external_queue(self.external_events_queue)
+class TradingEngine():
+    def __init__(self, events_queue, market, portfolio, broker):
+
+        if (not isinstance(market, MarketData) or
+            not isinstance(events_queue, queue.Queue) or
+            not isinstance(portfolio, Portfolio) or
+            not isinstance(broker, Execution)):
+            raise TypeError
+
+        self.events_queue = events_queue
+        self.market = market
+        self.portfolio = portfolio
+        self.broker = broker
+
+    def get_new_market_event(self):
+        # update_bars can only be called here!
+        market_event = self.market.update_bars()
+        if market_event:
+            self.events_queue.put(market_event)
 
     def start(self):
-        time_started = datetime.now()
+        while self.market.continue_execution:
 
-        while self.data.continue_execution:
-
-            self.get_new_bar()
+            self.get_new_market_event()
 
             while True:
                 try:
-                    event = self.external_events_queue.get(False)
+                    event = self.events_queue.get(False)
                 except queue.Empty:
                     break
 
@@ -33,20 +46,39 @@ class Backtest(Trade):
                     self.portfolio.consume_market_event(event)
 
                 elif event.type == 'ORDER':
-                    pass # Not used in backtesting
+                    self.broker.execute_order(event, self.market.bars(event.symbol).last_close)
 
                 elif event.type == 'FILL':
-                    pass # Not used in backtetsting
+                    self.portfolio.consume_fill_event(event)
 
                 else:
                     raise TypeError
 
-        print(self.portfolio.performance())
 
-        self.run_time = datetime.now() - time_started
+class BacktestManager(object):
+    def __init__(self, market, strategy_parameters, portfolio_parameters=[[]]):
 
-    def get_new_bar(self):
-        # update_bars can only be called here!    
-        new_bar = self.data.update_bars()
-        if new_bar:
-            self.external_events_queue.put(new_bar)
+        # Strategy and Portfolio parameters need to be list within a list
+        if not (isinstance(strategy_parameters, list) and
+            isinstance(strategy_parameters[0], list)):
+            raise TypeError
+        if not (isinstance(portfolio_parameters, list) and
+                isinstance(portfolio_parameters[0], list)):
+            raise TypeError
+        # Single market object will be used for all backtesting instances
+        if not (isinstance(market, MarketData)):
+            raise TypeError
+
+        events_queue = queue.Queue()
+        broker = BacktestExecution(events_queue)
+        strategy = RandomBuyStrategy(market, strategy_parameters[0])
+        portfolio = Portfolio(market, strategy, events_queue)
+
+        self.engines = [TradingEngine(events_queue, market, portfolio, broker)]
+
+    def start(self):
+        [engine.start() for engine in self.engines]
+
+    def performance(self):
+        return [engine.portfolio.performance() for engine in self.engines]
+            

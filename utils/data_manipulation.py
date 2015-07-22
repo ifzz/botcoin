@@ -44,4 +44,3 @@ def break_tick_data_into_ohlc(folder, filename, output):
 
 if __name__ == '__main__':
     pass
-    
