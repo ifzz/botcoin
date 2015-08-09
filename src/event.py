@@ -33,32 +33,34 @@ class OrderEvent(Event):
     quantity and a direction.
     """
 
-    def __init__(self, symbol, order_type, quantity, direction):
+    def __init__(self, symbol, quantity, direction, limit_price, estimated_cost=0.0):
         """
-        Initialises the order type, setting whether it is
-        a Market order ('MKT') or Limit order ('LMT'), has
-        a quantity (integral) and its direction ('BUY' or
-        'SELL').
+        Initialises a Limit order order, has a quantity (integer)
+        and its direction ('BUY', 'SELL', 'SHORT' and 'COVER' ).
 
         Parameters:
         symbol - The instrument to trade.
-        order_type - 'MKT' or 'LMT' for Market or Limit.
         quantity - Non-negative integer for quantity.
         direction - 'BUY' or 'SELL' for long or short.
+        limit_price - Price 
         """
         
         self.type = 'ORDER'
         self.symbol = symbol
-        self.order_type = order_type
         self.quantity = quantity
         self.direction = direction
+        self.limit_price = limit_price
+
+        if direction in ('BUY', 'COVER') and not estimated_cost:
+            raise ValueError # BUY or COVER require estimated_cost
+        self.estimated_cost = estimated_cost
 
     def print_order(self):
         """
         Outputs the values within the Order.
         """
-        print("Order: Symbol={}, Type={}, Quantity={}, Direction={}".format(
-            self.symbol, self.order_type, self.quantity, self.direction))
+        print("Order: Symbol={}, Quantity={}, Direction={}, Limit price={}".format(
+            self.symbol, self.quantity, self.direction, self.limit_price))
 
 
 class FillEvent(Event):
@@ -69,8 +71,8 @@ class FillEvent(Event):
     the commission of the trade from the brokerage.
     """
 
-    def __init__(self, timeindex, symbol, quantity, 
-                 direction, cost, commission):
+    def __init__(self, timeindex, order, quantity,
+                 cost, commission):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
         quantity, direction, cost of fill and an optional 
@@ -87,9 +89,9 @@ class FillEvent(Event):
         
         self.type = 'FILL'
         self.timeindex = timeindex
-        self.symbol = symbol
+        self.order = order
+        self.symbol = order.symbol
         self.quantity = quantity
-        self.direction = direction
         self.cost = cost
         self.commission = commission
             

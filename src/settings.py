@@ -9,7 +9,7 @@ pd.set_option('display.width', 1000)
 
 # Logging config
 VERBOSITY = 10
-LOG_FORMAT = '#%(levelname)s:%(module)s - %(message)s'
+LOG_FORMAT = '# %(levelname)s:%(module)s - %(message)s'
 logging.basicConfig(format=LOG_FORMAT, level=VERBOSITY)
 
 # Directories
@@ -27,6 +27,9 @@ DATE_FROM = datetime.strptime("2015-01-01", '%Y-%m-%d') #date_from = DATE_TO - t
 COMMISSION_FIXED = 0.0
 # Percentage commission charged on each trade
 COMMISSION_PCT = 0.0085
+
+# Used by portfolio to calculate limit_prices and estimated cost for Orders
+MAX_SLIPPAGE = 0.0
 
 SYMBOL_LIST = [
     'btceUSD_1h',

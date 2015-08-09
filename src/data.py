@@ -43,8 +43,8 @@ class HistoricalCSV(MarketData):
         # After combining all indexes, we can run iterrows in each df
         for s in symbol_list:
             # Original dataframe, padded
-            self.symbol_data[s]['df'] = self.symbol_data[s]['df'].reindex(index=comb_index, method=None)
-            
+            self.symbol_data[s]['df'] = self._pad_empty_values(self.symbol_data[s]['df'].reindex(index=comb_index, method=None))
+
             # Dataframe iterrows  generator
             self.symbol_data[s]['bars'] = self.symbol_data[s]['df'].iterrows()
             # List that will hold all rows from iterrows, one at a time
@@ -107,23 +107,26 @@ class HistoricalCSV(MarketData):
 
         try:
             # Tries to index with %Y-%m-%d %H:%M:%S format
-            df.index = pd.to_datetime(df.index,format='%Y-%m-%d %H:%M:%S')
+            df.index = pd.to_datetime(df.index, format='%Y-%m-%d %H:%M:%S')
         except ValueError:
             # On ValueError try again with %Y-%m-%d
-            df.index = pd.to_datetime(df.index,format='%Y-%m-%d')
-        
+            df.index = pd.to_datetime(df.index, format='%Y-%m-%d')
+
+        return df
+
+    @staticmethod
+    def _pad_empty_values(df):
         # Fills NaN with 0 in volume column
         df['volume'] = df['volume'].fillna(0)
 
         # Pads prices forward for NaN cells on price columns
         for col in ['open', 'high', 'low', 'close']:
-            df[col] = df[col].ffill()
-
+            df[col] = df['close'].ffill()
         return df
 
     def update_bars(self):
-        for s in self.symbol_list:
-            try:
+        try:
+            for s in self.symbol_list:
                 new_row = next(self.symbol_data[s]['bars']) #df.iterows
 
                 bar = tuple([
@@ -136,12 +139,12 @@ class HistoricalCSV(MarketData):
                 ])
 
                 self.symbol_data[s]['latest_bars'].append(bar)
+            
+            return MarketEvent()
 
-                return MarketEvent()
-            except StopIteration:
+        except StopIteration:
                 self.continue_execution = False
-
-    
+        
     def bars(self, symbol, N=1):
         """
         Returns Bars object containing latest N bars from self._latest_bars

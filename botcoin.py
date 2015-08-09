@@ -12,16 +12,16 @@ from src.settings import (
 from src.trade import BacktestManager
 
 def main():
-    SYMBOL_LIST = ['btceUSD_1d','btceUSD_4h']
+    SYMBOL_LIST = ['btceUSD_1d']
     pd.set_option('display.max_rows', 50)
     
     market = HistoricalCSV(DATA_DIR, SYMBOL_LIST, date_from=DATE_FROM, date_to=DATE_TO)
 
-
-    for d in market.symbol_data:
-        print(market.symbol_data[d]['df'])
-
-    strategy_parameters = [[10,1]]
+    strategy_parameters = set()
+    for i in range(5,30):
+        for j in range(5,30):
+            strategy_parameters.add((i,j))
+    strategy_parameters = list(strategy_parameters)
 
     backtest = BacktestManager(
         market,

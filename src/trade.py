@@ -1,3 +1,4 @@
+import collections
 from datetime import datetime
 import logging
 import queue
@@ -12,73 +13,85 @@ from .settings import (
 )
 
 class TradingEngine():
-    def __init__(self, events_queue, market, portfolio, broker):
+    def __init__(self, events_queue, market, strategy, portfolio, broker):
 
         if (not isinstance(market, MarketData) or
             not isinstance(events_queue, queue.Queue) or
+            not isinstance(strategy, Strategy) or
             not isinstance(portfolio, Portfolio) or
             not isinstance(broker, Execution)):
             raise TypeError
 
         self.events_queue = events_queue
         self.market = market
+        self.strategy = strategy
         self.portfolio = portfolio
         self.broker = broker
 
-    def get_new_market_event(self):
-        # update_bars can only be called here!
-        market_event = self.market.update_bars()
-        if market_event:
-            self.events_queue.put(market_event)
+    def run_cycle(self):
+        while True:
+            try:
+                event = self.events_queue.get(False)
+            except queue.Empty:
+                break
 
-    def start(self):
-        while self.market.continue_execution:
+            if event.type == 'MARKET':
+                self.strategy.generate_signals()
+                self.portfolio.update_positions_and_holdings()
 
-            self.get_new_market_event()
+            elif event.type == 'SIGNAL':
+                self.portfolio.generate_orders(event)
 
-            while True:
-                try:
-                    event = self.events_queue.get(False)
-                except queue.Empty:
-                    break
+            elif event.type == 'ORDER':
+                self.broker.execute_order(event)
 
-                if event.type == 'MARKET':
-                    self.portfolio.consume_market_event(event)
+            elif event.type == 'FILL':
+                self.portfolio.consume_fill_event(event)
 
-                elif event.type == 'ORDER':
-                    self.broker.execute_order(event, self.market.bars(event.symbol).last_close)
-
-                elif event.type == 'FILL':
-                    self.portfolio.consume_fill_event(event)
-
-                else:
-                    raise TypeError
+            else:
+                raise TypeError
 
 
 class BacktestManager(object):
     def __init__(self, market, strategy_parameters, portfolio_parameters=[[]]):
-
         # Strategy and Portfolio parameters need to be list within a list
-        if not (isinstance(strategy_parameters, list) and
-            isinstance(strategy_parameters[0], list)):
+        if not (isinstance(strategy_parameters, collections.Iterable) and
+            isinstance(strategy_parameters[0], collections.Iterable)):
             raise TypeError
-        if not (isinstance(portfolio_parameters, list) and
-                isinstance(portfolio_parameters[0], list)):
+        if not (isinstance(portfolio_parameters, collections.Iterable) and
+                isinstance(portfolio_parameters[0], collections.Iterable)):
             raise TypeError
         # Single market object will be used for all backtesting instances
         if not (isinstance(market, MarketData)):
             raise TypeError
 
-        events_queue = queue.Queue()
-        broker = BacktestExecution(events_queue)
-        strategy = RandomBuyStrategy(market, strategy_parameters[0])
-        portfolio = Portfolio(market, strategy, events_queue)
+        self.market = market
+        self.engines = set()
 
-        self.engines = [TradingEngine(events_queue, market, portfolio, broker)]
+        for params in strategy_parameters:
+            events_queue = queue.Queue()
+            broker = BacktestExecution(events_queue)
+            strategy = RandomBuyStrategy(events_queue, market, params)
+            portfolio = Portfolio(events_queue, market)
+
+            self.engines.add(TradingEngine(events_queue, market, strategy, portfolio, broker))
 
     def start(self):
-        [engine.start() for engine in self.engines]
+        """
+        Starts backtesting for all engines created.
+        New market events are handled on this level to allow for multiple engines
+        to run simultaneously with a single market object
+        """
+        while self.market.continue_execution:
+            new_market_event = self.market.update_bars()
+            if new_market_event:
+                for engine in self.engines:
+                    engine.events_queue.put(new_market_event)
+                    engine.run_cycle()
 
     def performance(self):
-        return [engine.portfolio.performance() for engine in self.engines]
-            
+        performance = {engine.portfolio.calc_performance(): str(engine.strategy.parameters) for engine in self.engines}
+        result = '\n'.join([str(val) + ' : ' + str(performance[val]) for val in sorted(performance.keys(), reverse=True)])
+        result = '\n'.join([result, str(len(self.engines)) + ' tests performed.'])
+        return result
+

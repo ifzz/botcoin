@@ -7,17 +7,15 @@ import pandas as pd
 
 from .data import MarketData
 from .event import MarketEvent, SignalEvent, OrderEvent, FillEvent
-from .settings import COMMISSION_FIXED, COMMISSION_PCT
-from .strategy import Strategy
+from .settings import COMMISSION_FIXED, COMMISSION_PCT, MAX_SLIPPAGE
 
 class Portfolio(object):
     """
     Portfolio root class.
     """
-    def __init__(self, market, strategy, events_queue, initial_capital=100000.0):
+    def __init__(self, events_queue, market, initial_capital=100000.0):
         # check if variables instances of the correct objects
         if (not isinstance(market, MarketData) or
-            not isinstance(strategy, Strategy) or
             not isinstance(events_queue, queue.Queue)):
             raise TypeError
         # check for symbol names that would conflict with columns used in holdings and positions
@@ -26,42 +24,33 @@ class Portfolio(object):
                 raise ValueError
 
         self.market = market
-        self.strategy = strategy
         self.events_queue = events_queue
 
         self.all_positions = []
         self.all_holdings = []
         self.current_position = None
         self.current_holding = None
+        self.trades = []
+
+        self.pending_orders = set()
 
         self.initial_capital = initial_capital
 
-    def consume_market_event(self, market):
-        if not market.type == 'MARKET':
-            raise TypeError
-
-        self.update_positions_and_holdings()
-
-        for signal in self.strategy.generate_signals():
-            self.generate_orders(signal)
-
     def update_positions_and_holdings(self):
         """Used to add new position and holdings to portfolio, triggered by a new market signal"""
-        bar = self.market.bars(self.market.symbol_list[0])
+        # Can be any bar, 
+        cur_datetime = self.market.bars(self.market.symbol_list[0]).last_datetime
 
         # If there is no current position and holding, meaning execution just started
         if not self.current_position and not self.current_holding:
-            self.date_from = bar.last_datetime
-            self.current_position = self.construct_position(bar.last_datetime)
+            self.date_from = cur_datetime
+            self.current_position = self.construct_position(cur_datetime)
 
-            self.current_holding = self.construct_holding(bar.last_datetime, self.initial_capital, 0.00, self.current_position)
+            self.current_holding = self.construct_holding(cur_datetime, self.initial_capital, 0.00, self.current_position)
 
         else:
-            if ((bar.last_datetime <= self.current_position['datetime']) or 
-                (bar.last_datetime <= self.current_holding['datetime'])):
-                # logging.debug('Bar datetime is ' + str(bar.last_datetime))
-                # logging.debug('Holding datetime is ' + str(last_holding.datetime))
-                # logging.debug('Position datetime is ' + str(last_position.datetime))
+            if ((cur_datetime <= self.current_position['datetime']) or 
+                (cur_datetime <= self.current_holding['datetime'])):
                 logging.critical('New bar arrived with same datetime as previous holding and position. Aborting!')
                 raise ValueError
 
@@ -70,43 +59,46 @@ class Portfolio(object):
             self.all_holdings.append(self.current_holding)
 
 
-            self.current_position = self.construct_position(bar.last_datetime, self.current_position)
+            self.current_position = self.construct_position(cur_datetime, self.current_position)
             self.current_holding = self.construct_holding(
-                bar.last_datetime,
+                cur_datetime,
                 self.current_holding['cash'],
                 self.current_holding['commission'],
                 self.current_position,
             )
 
-
     def generate_orders(self, signal):
         symbol = signal.symbol
         sig_type = signal.signal_type
-        order_type = 'MKT'
         order = None
 
         cur_position = self.current_position[symbol]
-        cur_holding = self.current_holding[symbol]
-        cash = self.current_holding['cash']
+        cash = self.current_holding['cash'] - sum([i.estimated_cost for i in self.pending_orders])
+        # Close price adjusted with slippage
+        close_adj = self.market.bars(symbol).last_close * (1+MAX_SLIPPAGE)
 
-        bar = self.market.bars(symbol)
-
-        if sig_type in ('LONG') and cur_position == 0:
+        if sig_type in ('BUY') and cur_position == 0:
             # COMMISSION_FIXED remove the fixed ammount from cash, 
             # and COMMISSION_PCT increases the symbol price to reflect the fee
-            quantity = floor( (cash-COMMISSION_FIXED) / (bar.last_close * (1+COMMISSION_PCT)) )
-            order = OrderEvent(symbol, order_type, quantity, sig_type)
+            quantity = floor( (cash-COMMISSION_FIXED) / (close_adj * (1+COMMISSION_PCT)) )
 
-        elif sig_type in ('EXIT') and cur_position > 0:
+            if quantity > 0.0:
+                estimated_cost = COMMISSION_FIXED + (quantity * close_adj * (1+COMMISSION_PCT))
+                order = OrderEvent(symbol, quantity, sig_type, close_adj, estimated_cost)
+
+        elif sig_type in ('SELL') and cur_position > 0:
             quantity = cur_position
-            order = OrderEvent(symbol, order_type, quantity, sig_type)
+            order = OrderEvent(symbol, quantity, sig_type, close_adj)
         
         if order:
+            self.pending_orders.add(order)
             self.events_queue.put(order)
 
     def consume_fill_event(self, fill):
         if not fill.type == 'FILL':
             raise TypeError
+
+        self.pending_orders.remove(fill.order)
 
         self.current_position[fill.symbol] += fill.quantity
 
@@ -120,10 +112,15 @@ class Portfolio(object):
     def verify_consistency(self):
         """ Checks for problematic values in current holding and position """
 
-        if (self.current_holding['commission'] < 0 or
-            self.current_holding['cash'] < 0 or
-            self.current_holding['total'] < 0):
+        if (self.current_holding['cash'] < 0 or
+            self.current_holding['total'] < 0 or
+            self.current_holding['commission'] < 0):
             logging.critical('Cash, total or commission is a negative value. This shouldn\'t be possible.')
+            logging.critical('Cash={}, Total={}, Commission={}'.format(
+                self.current_holding['cash'],
+                self.current_holding['total'],
+                self.current_holding['commission'],
+            ))
             raise ValueError
         
         for s in self.market.symbol_list:
@@ -178,7 +175,7 @@ class Portfolio(object):
 
         return holding
 
-    def performance(self):
+    def calc_performance(self):
         # Adds latest current position and holding into 'all' lists, so they
         # can be part of performance as well
         if self.current_position and self.current_holding:
@@ -191,4 +188,7 @@ class Portfolio(object):
         curve.set_index('datetime', inplace=True)
         curve['returns'] = curve['total'].pct_change()
         curve['equity_curve'] = (1.0+curve['returns']).cumprod()
-        return curve
+        
+        self.equity_curve = curve
+        self.total_return = ((self.equity_curve['equity_curve'][-1] - 1.0) * 100.0)
+        return self.total_return
