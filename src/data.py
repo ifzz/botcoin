@@ -122,6 +122,8 @@ class HistoricalCSV(MarketData):
         # Pads prices forward for NaN cells on price columns
         for col in ['open', 'high', 'low', 'close']:
             df[col] = df['close'].ffill()
+            # Turn any remaining NaN in 0 (e.g. beginning of file)
+            df[col] = df[col].fillna(0)
         return df
 
     def update_bars(self):
@@ -129,13 +131,27 @@ class HistoricalCSV(MarketData):
             for s in self.symbol_list:
                 new_row = next(self.symbol_data[s]['bars']) #df.iterows
 
+                datetime = new_row[0]
+                openp = new_row[1][0]
+                highp = new_row[1][1]
+                lowp = new_row[1][2]
+                closep = new_row[1][3]
+                volume = new_row[1][4]
+
+                #High price must be >= all other prices
+                if not (highp >= lowp and highp >= openp and highp >= closep):
+                    raise ValueError
+                #Low price must be <= all other prices
+                if not (lowp <= openp and lowp <= closep):
+                    raise ValueError
+
                 bar = tuple([
-                    new_row[0],
-                    new_row[1][0], #open
-                    new_row[1][1], #high
-                    new_row[1][2], #low
-                    new_row[1][3], #close
-                    new_row[1][4], #volume
+                    datetime,
+                    openp,
+                    highp,
+                    lowp,
+                    closep,
+                    volume,
                 ])
 
                 self.symbol_data[s]['latest_bars'].append(bar)

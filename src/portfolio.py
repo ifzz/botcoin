@@ -74,8 +74,13 @@ class Portfolio(object):
 
         cur_position = self.current_position[symbol]
         cash = self.current_holding['cash'] - sum([i.estimated_cost for i in self.pending_orders])
+        bars = self.market.bars(symbol)
         # Close price adjusted with slippage
-        close_adj = self.market.bars(symbol).last_close * (1+MAX_SLIPPAGE)
+        close_adj = bars.last_close * (1+MAX_SLIPPAGE)
+
+        # Not trading if there is no volume
+        if bars.last_vol == 0.0:
+            return
 
         if sig_type in ('BUY') and cur_position == 0:
             # COMMISSION_FIXED remove the fixed ammount from cash, 
@@ -128,6 +133,14 @@ class Portfolio(object):
                 self.current_position[s] < 0):
                 logging.info('Do you really have a short position?')
 
+    def update_last_positions_and_holdings(self):
+        # Adds latest current position and holding into 'all' lists, so they
+        # can be part of performance as well
+        if self.current_position and self.current_holding:
+            self.all_holdings.append(self.current_holding)
+            self.all_positions.append(self.current_position)
+            self.current_holding, self.current_position = None, None
+
     def construct_position(self, cur_datetime, current_position={}):
         """
         Positions held at a point in time.
@@ -175,20 +188,3 @@ class Portfolio(object):
 
         return holding
 
-    def calc_performance(self):
-        # Adds latest current position and holding into 'all' lists, so they
-        # can be part of performance as well
-        if self.current_position and self.current_holding:
-            self.all_holdings.append(self.current_holding)
-            self.all_positions.append(self.current_position)
-            self.current_holding, self.current_position = None, None
-
-        # Calculate performance
-        curve = pd.DataFrame(self.all_holdings)
-        curve.set_index('datetime', inplace=True)
-        curve['returns'] = curve['total'].pct_change()
-        curve['equity_curve'] = (1.0+curve['returns']).cumprod()
-        
-        self.equity_curve = curve
-        self.total_return = ((self.equity_curve['equity_curve'][-1] - 1.0) * 100.0)
-        return self.total_return

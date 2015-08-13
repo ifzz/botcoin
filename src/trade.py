@@ -6,6 +6,7 @@ import queue
 from .data import MarketData
 from .execution import BacktestExecution, Execution
 from .strategy import Strategy, RandomBuyStrategy
+from .performance import Performance
 from .portfolio import Portfolio
 from .settings import (
     DATE_FROM,
@@ -27,6 +28,9 @@ class TradingEngine():
         self.strategy = strategy
         self.portfolio = portfolio
         self.broker = broker
+
+    def performance(self):
+        self.performance = Performance(self.portfolio)
 
     def run_cycle(self):
         while True:
@@ -65,6 +69,8 @@ class BacktestManager(object):
         if not (isinstance(market, MarketData)):
             raise TypeError
 
+        self.strategy_parameters = strategy_parameters
+
         self.market = market
         self.engines = set()
 
@@ -89,9 +95,12 @@ class BacktestManager(object):
                     engine.events_queue.put(new_market_event)
                     engine.run_cycle()
 
-    def performance(self):
-        performance = {engine.portfolio.calc_performance(): str(engine.strategy.parameters) for engine in self.engines}
-        result = '\n'.join([str(val) + ' : ' + str(performance[val]) for val in sorted(performance.keys(), reverse=True)])
-        result = '\n'.join([result, str(len(self.engines)) + ' tests performed.'])
-        return result
+        for engine in self.engines:
+            engine.portfolio.update_last_positions_and_holdings()
+
+    def calc_performance(self):
+        [engine.performance() for engine in self.engines]
+        performance = {engine.performance.total_return: str(engine.strategy.parameters) for engine in self.engines}
+        results = '\n'.join([str(val) + ' : ' + str(performance[val]) for val in sorted(performance.keys(), reverse=True)])
+        self.results = results
 
