@@ -10,7 +10,7 @@ from src.settings import (
     DATE_FROM,
     DATE_TO,
 )
-from src.trade import BacktestManager
+from src.engine import BacktestManager
 
 def main():
     SYMBOL_LIST = ['btceUSD_1h']
@@ -24,28 +24,31 @@ def main():
     #     print(market.symbol_data[m]['df'])
 
     strategy_parameters = set()
-    for i in range(2,30,2):
-        for j in range(0,30,2):
+    for i in range(0,400,20):
+        for j in range(0,400,20):
             strategy_parameters.add((i,j))
     strategy_parameters = list(strategy_parameters)
 
     backtest = BacktestManager(
         market,
-        strategy_parameters,
+        [[340,240]],
     )
 
-    logging.debug(str(len(backtest.strategy_parameters)) + ' combinations of parameters')
-    logging.debug('Starting backtest at ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    logging.debug('Starting backtest from ' + DATE_FROM.strftime('%Y-%m-%d') + ' to ' + DATE_TO.strftime('%Y-%m-%d'))
+    logging.debug('with ' + str(len(backtest.strategy_parameters)) + ' combinations of parameters')
 
     backtest.start()
     
-    logging.debug('Calculating performance at ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    
+    logging.debug("Backtest took " + str(backtest.backtest_time))
+
     backtest.calc_performance()
 
-    print(backtest.results)
+    logging.debug("Performance calculated in " + str(backtest.perf_time))
+    
+    logging.debug("Done")
 
-    logging.debug('Done at ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    print(backtest.results)
+    print(backtest.engines[0].performance.equity_curve)
 
     return backtest
 

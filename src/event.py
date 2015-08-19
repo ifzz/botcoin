@@ -52,7 +52,7 @@ class OrderEvent(Event):
         self.limit_price = limit_price
 
         if direction in ('BUY', 'COVER') and not estimated_cost:
-            raise ValueError # BUY or COVER require estimated_cost
+            raise ValueError("BUY or COVER require estimated_cost")
         self.estimated_cost = estimated_cost
 
     def print_order(self):

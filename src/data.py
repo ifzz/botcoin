@@ -100,7 +100,7 @@ class HistoricalCSV(MarketData):
         
         df = pd.io.parsers.read_csv(
             os.path.expanduser(csv_dir+filename),
-            header=0,
+            header=None,
             index_col=0,
             names=['datetime', 'open', 'high', 'low', 'close', 'volume']
         )
@@ -116,14 +116,17 @@ class HistoricalCSV(MarketData):
 
     @staticmethod
     def _pad_empty_values(df):
-        # Fills NaN with 0 in volume column
+        # Fill NaN with 0 in volume column
         df['volume'] = df['volume'].fillna(0)
+        # Pad close price forward
+        df['close'] = df['close'].ffill()
+        # Fill any remaining close NaN in 0 (e.g. beginning of file)
+        df['close'] = df['close'].fillna(0)
+        
+        # Fill open high and low NaN with close price
+        for col in ['open', 'high', 'low']:
+            df[col] = df[col].fillna(df['close'])
 
-        # Pads prices forward for NaN cells on price columns
-        for col in ['open', 'high', 'low', 'close']:
-            df[col] = df['close'].ffill()
-            # Turn any remaining NaN in 0 (e.g. beginning of file)
-            df[col] = df[col].fillna(0)
         return df
 
     def update_bars(self):
@@ -138,12 +141,13 @@ class HistoricalCSV(MarketData):
                 closep = new_row[1][3]
                 volume = new_row[1][4]
 
-                #High price must be >= all other prices
-                if not (highp >= lowp and highp >= openp and highp >= closep):
-                    raise ValueError
-                #Low price must be <= all other prices
-                if not (lowp <= openp and lowp <= closep):
-                    raise ValueError
+                if not (highp>=lowp and highp>=openp and highp>=closep and
+                    lowp<=openp and lowp<=closep):
+                    raise ValueError("Data inconsistency at " +
+                        datetime +
+                        ". High price must be >= all other prices"
+                        " and low price must be <= all other prices"
+                    )
 
                 bar = tuple([
                     datetime,
@@ -159,7 +163,7 @@ class HistoricalCSV(MarketData):
             return MarketEvent()
 
         except StopIteration:
-                self.continue_execution = False
+            self.continue_execution = False
         
     def bars(self, symbol, N=1):
         """
@@ -171,7 +175,7 @@ class Bars(object):
 
     def __init__(self,latest_bars):
         if not latest_bars:
-            raise ValueError
+            raise ValueError("latest_bars needed to create Bars object")
 
         self._latest_bars = latest_bars
 

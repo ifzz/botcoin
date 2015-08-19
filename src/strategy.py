@@ -1,6 +1,7 @@
 import logging
 
 from .event import SignalEvent
+from .indicator import ma
 
 class Strategy(object):
     """
@@ -17,19 +18,19 @@ class Strategy(object):
 
     def buy(self, symbol):
         self.positions[symbol] = 'BUY'
-        return SignalEvent(symbol,'BUY')
+        self.events_queue.put(SignalEvent(symbol,'BUY'))
 
-    def exit(self, symbol):
+    def sell(self, symbol):
         self.positions[symbol] = ''
-        return SignalEvent(symbol,'SELL')
+        self.events_queue.put(SignalEvent(symbol,'SELL'))
 
     def short(self, symbol):
         self.positions[symbol] = 'SHORT'
-        return SignalEvent(symbol,'SHORT')
+        self.events_queue.put(SignalEvent(symbol,'SHORT'))
 
     def cover(self, symbol):
         self.positions[symbol] = ''
-        return SignalEvent(symbol,'COVER')
+        self.events_queue.put(SignalEvent(symbol,'COVER'))
 
 class RandomBuyStrategy(Strategy):
     """
@@ -48,9 +49,26 @@ class RandomBuyStrategy(Strategy):
             if self.floating_interval == 0:
                 if not self.positions[s]:
                     self.floating_interval = self.hold  
-                    self.events_queue.put(self.buy(s))
+                    self.buy(s)
 
                 elif self.positions[s] == 'BUY':
                     self.floating_interval = self.interval
-                    self.events_queue.put(self.exit(s))
+                    self.selll(s)
             self.floating_interval -= 1
+
+class MACrossStrategy(Strategy):
+    def __init__(self, events_queue, market, parameters):
+        Strategy.__init__(self, events_queue, market, parameters)
+        self.fast = parameters[0]
+        self.slow = parameters[1]
+
+    def generate_signals(self):
+        for s in self.symbol_list:
+
+            if self.positions[s]:
+                if ma(self.market.bars(s, self.fast).close) < ma(self.market.bars(s, self.slow).close):
+                    self.sell(s)
+
+            else:
+                if ma(self.market.bars(s, self.fast).close) > ma(self.market.bars(s, self.slow).close):
+                    self.buy(s)

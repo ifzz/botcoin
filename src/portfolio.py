@@ -17,11 +17,11 @@ class Portfolio(object):
         # check if variables instances of the correct objects
         if (not isinstance(market, MarketData) or
             not isinstance(events_queue, queue.Queue)):
-            raise TypeError
+            raise TypeError("Improper parameter type on Portfolio.__init__()")
         # check for symbol names that would conflict with columns used in holdings and positions
         for symbol in market.symbol_list:
             if symbol in ('cash', 'commission', 'total', 'returns', 'equity_curve', 'datetime'):
-                raise ValueError
+                raise ValueError("A symbol has an invalid name (e.g. 'cash', 'commission', etc)")
 
         self.market = market
         self.events_queue = events_queue
@@ -51,8 +51,7 @@ class Portfolio(object):
         else:
             if ((cur_datetime <= self.current_position['datetime']) or 
                 (cur_datetime <= self.current_holding['datetime'])):
-                logging.critical('New bar arrived with same datetime as previous holding and position. Aborting!')
-                raise ValueError
+                raise ValueError("New bar arrived with same datetime as previous holding and position. Aborting!")
 
             # Add current to all lists
             self.all_positions.append(self.current_position)
@@ -101,7 +100,7 @@ class Portfolio(object):
 
     def consume_fill_event(self, fill):
         if not fill.type == 'FILL':
-            raise TypeError
+            raise TypeError("Wrong event type passed to Portfolio.consume_fill_event()")
 
         self.pending_orders.remove(fill.order)
 
@@ -126,7 +125,7 @@ class Portfolio(object):
                 self.current_holding['total'],
                 self.current_holding['commission'],
             ))
-            raise ValueError
+            raise ValueError("Inconsistency in Portfolio.current_holding()")
         
         for s in self.market.symbol_list:
             if (self.current_holding[s] < 0 or
@@ -149,7 +148,7 @@ class Portfolio(object):
             s -- dictionary with symbols as key and ammount owned as value
         """
         if not isinstance(cur_datetime, datetime.datetime) or not isinstance(current_position, dict):
-            raise TypeError
+            raise TypeError("Improprer parameter type on Portfolio.construct_position()")
 
         if current_position:
             position = dict((k,v) for k, v in [(s, current_position[s]) for s in self.market.symbol_list])
@@ -170,7 +169,7 @@ class Portfolio(object):
             total -- cash equivalent of all holdings combined - commission paid
         """
         if not isinstance(cur_datetime, datetime.datetime) or not isinstance(current_position, dict):
-            raise TypeError
+            raise TypeError("Improprer parameter type on portfolio.construct_holding()")
 
         holding = {}
 

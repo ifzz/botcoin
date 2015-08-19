@@ -34,3 +34,4 @@ MAX_SLIPPAGE = 0.0
 SYMBOL_LIST = [
     'btceUSD_1h',
 ]
+
