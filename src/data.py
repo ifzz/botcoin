@@ -68,10 +68,13 @@ class HistoricalCSV(MarketData):
             df = self._load_csv_tick(csv_dir, filename, interval)
         else:
             raise ValueError
-        
+
         df = df[date_from:] if date_from else df
         df = df[:date_to] if date_to else df
         
+        if df.empty:
+            raise ValueError("Empty DataFrame loaded. Possibly invalid date ranges?")
+
         return df
 
     @staticmethod

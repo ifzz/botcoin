@@ -8,12 +8,13 @@ class Strategy(object):
     Strategy parent class.
         position -- current position held (LONG, SHORT or EXIT)
     """
-    def __init__(self, events_queue, market, parameters):
+    def __init__(self, parameters):
+        pass
+
+    def set_market_and_queue(self, events_queue, market):
         self.events_queue = events_queue
         self.market = market
-        self.parameters = parameters
         self.symbol_list = self.market.symbol_list
-
         self.positions = {symbol: None for symbol in self.symbol_list}
 
     def buy(self, symbol):
@@ -38,8 +39,8 @@ class RandomBuyStrategy(Strategy):
 
     position -- current position held (LONG, SHORT or EXIT)
     """
-    def __init__(self, events_queue, market, parameters=[5, 5]):
-        Strategy.__init__(self, events_queue, market, parameters)
+    def __init__(self, parameters=[5, 5]):
+        self.parameters = parameters
         self.interval = parameters[0]
         self.hold = parameters[1]
         self.floating_interval = self.interval
@@ -57,8 +58,8 @@ class RandomBuyStrategy(Strategy):
             self.floating_interval -= 1
 
 class MACrossStrategy(Strategy):
-    def __init__(self, events_queue, market, parameters):
-        Strategy.__init__(self, events_queue, market, parameters)
+    def __init__(self, parameters):
+        self.parameters = parameters
         self.fast = parameters[0]
         self.slow = parameters[1]
 
@@ -72,3 +73,8 @@ class MACrossStrategy(Strategy):
             else:
                 if ma(self.market.bars(s, self.fast).close) > ma(self.market.bars(s, self.slow).close):
                     self.buy(s)
+
+class BBStrategy(Strategy):
+    def __init__(self, parameters):
+        self.parameters = parameters
+        

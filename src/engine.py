@@ -5,7 +5,7 @@ import queue
 
 from .data import MarketData
 from .execution import BacktestExecution, Execution
-from .strategy import Strategy, RandomBuyStrategy, MACrossStrategy
+from .strategy import Strategy
 from .performance import Performance
 from .portfolio import Portfolio
 from .settings import (
@@ -57,25 +57,22 @@ class TradingEngine():
 
 
 class BacktestManager(object):
-    def __init__(self, market, strategy_parameters, portfolio_parameters=[[]]):
+    def __init__(self, market, strategies):
         # Strategy and Portfolio parameters need to be list within a list
-        if not (isinstance(strategy_parameters, collections.Iterable) and
-            isinstance(strategy_parameters[0], collections.Iterable) and
-            isinstance(portfolio_parameters, collections.Iterable) and
-            isinstance(portfolio_parameters[0], collections.Iterable) and
+        if not (isinstance(strategies, collections.Iterable) and
             isinstance(market, MarketData)):
             raise TypeError("Improper parameter type on BacktestManager.__init__()")
 
-        self.strategy_parameters = strategy_parameters
+        self.strategies = strategies
         
         # Single market object will be used for all backtesting instances
         self.market = market
         self.engines = []
 
-        for params in strategy_parameters:
+        for strategy in strategies:
             events_queue = queue.Queue()
             broker = BacktestExecution(events_queue)
-            strategy = MACrossStrategy(events_queue, market, params)
+            strategy.set_market_and_queue(events_queue, market)
             portfolio = Portfolio(events_queue, market)
 
             self.engines.append(TradingEngine(events_queue, market, strategy, portfolio, broker))

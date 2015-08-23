@@ -7,6 +7,8 @@ class Performance(object):
     Calculates multiple performance stats given a portfolio object.
     """
     def __init__(self, portfolio):
+        if not portfolio.all_holdings:
+            raise ValueError("Portfolio with empty holdings")
         curve = pd.DataFrame(portfolio.all_holdings)
         curve.set_index('datetime', inplace=True)
         curve['returns'] = curve['total'].pct_change()

@@ -11,9 +11,10 @@ from src.settings import (
     DATE_TO,
 )
 from src.engine import BacktestManager
+from src.strategy import RandomBuyStrategy, MACrossStrategy
 
 def main():
-    SYMBOL_LIST = ['btceUSD_1h']
+    SYMBOL_LIST = ['btceUSD_5Min']
     # DATE_FROM = datetime.datetime.strptime("2011-08-14", '%Y-%m-%d')
     # DATE_TO= datetime.datetime.strptime("2011-09-01", '%Y-%m-%d')
     # pd.set_option('display.max_rows', 50)
@@ -24,18 +25,20 @@ def main():
     #     print(market.symbol_data[m]['df'])
 
     strategy_parameters = set()
-    for i in range(0,400,20):
-        for j in range(0,400,20):
+    for i in range(0,50,1):
+        for j in range(0,50,1):
             strategy_parameters.add((i,j))
     strategy_parameters = list(strategy_parameters)
+    strategies = [MACrossStrategy(params) for params in strategy_parameters]
+    
 
     backtest = BacktestManager(
         market,
-        [[340,240]],
+        [MACrossStrategy([50,5])],
     )
 
     logging.debug('Starting backtest from ' + DATE_FROM.strftime('%Y-%m-%d') + ' to ' + DATE_TO.strftime('%Y-%m-%d'))
-    logging.debug('with ' + str(len(backtest.strategy_parameters)) + ' combinations of parameters')
+    logging.debug('with ' + str(len(backtest.strategies)) + ' combinations of parameters')
 
     backtest.start()
     
@@ -48,7 +51,7 @@ def main():
     logging.debug("Done")
 
     print(backtest.results)
-    print(backtest.engines[0].performance.equity_curve)
+    # print(backtest.engines[0].performance.equity_curve)
 
     return backtest
 

@@ -20,13 +20,13 @@ SRC_DIR = os.path.join(BASE_DIR, 'src/')
 
 # Backtesting specific configuration
 DATE_TO = datetime.now()
-DATE_FROM = datetime.strptime("2015-01-01", '%Y-%m-%d') #date_from = DATE_TO - timedelta(weeks=10)
+DATE_FROM = DATE_TO - timedelta(weeks=52) #datetime.strptime("2015-01-01", '%Y-%m-%d') #
 
 # If both COMMISSION_FIXED and COMMISSION_PCT are set, both will be charged on each trade
 # Fixed commission charged on each trade
 COMMISSION_FIXED = 0.0
 # Percentage commission charged on each trade
-COMMISSION_PCT = 0.0085
+COMMISSION_PCT = 0.0026 #maker commission of Kraken
 
 # Used by portfolio to calculate limit_prices and estimated cost for Orders
 MAX_SLIPPAGE = 0.0
