@@ -100,11 +100,9 @@ class BacktestManager(object):
         start_time = datetime.datetime.now()
 
         [engine.performance() for engine in self.engines]
-        
+        self.engines = sorted(self.engines, key=lambda x: x.performance.total_return, reverse=True)
+
         self.perf_time = (datetime.datetime.now()-start_time)
 
-        results = ""
-        for engine in sorted(self.engines, key=lambda x: x.performance.total_return, reverse=True):
-            results += str(engine.strategy.parameters) + ":" + str(engine.performance.total_return) + '\n'
-        self.results = results.rstrip()
+        self.results = "\n".join(str(engine.strategy.parameters) + ":" + str(engine.performance.total_return) for engine in self.engines)
 

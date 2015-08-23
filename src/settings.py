@@ -31,7 +31,6 @@ COMMISSION_PCT = 0.0026 #maker commission of Kraken
 # Used by portfolio to calculate limit_prices and estimated cost for Orders
 MAX_SLIPPAGE = 0.0
 
-SYMBOL_LIST = [
-    'btceUSD_1h',
-]
 
+# List of symbols
+ASX_TOP_50 = ['AGL.AX','AIO.AX','AMC.AX','AMP.AX','ANZ.AX','APA.AX','ASX.AX','AZJ.AX','BHP.AX','BXB.AX','CBA.AX','CCL.AX','CPU.AX','CSL.AX','CTX.AX','CWN.AX','DXS.AX','FDC.AX','GMG.AX','GPT.AX','IAG.AX','IPL.AX','JHX.AX','LLC.AX','MGR.AX','MPL.AX','MQG.AX','NAB.AX','NCM.AX','ORG.AX','ORI.AX','OSH.AX','QBE.AX','RHC.AX','RIO.AX','S32.AX','SCG.AX','SEK.AX','SGP.AX','SHL.AX','STO.AX','SUN.AX','SYD.AX','TCL.AX','TLS.AX','WBC.AX','WES.AX','WFD.AX','WOW.AX','WPL.AX',]

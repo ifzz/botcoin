@@ -1,7 +1,7 @@
 import logging
 
 from .event import SignalEvent
-from .indicator import ma
+from .indicator import ma, bbands
 
 class Strategy(object):
     """
@@ -65,16 +65,35 @@ class MACrossStrategy(Strategy):
 
     def generate_signals(self):
         for s in self.symbol_list:
+            slow = self.market.bars(s, self.slow).close
+            fast = self.market.bars(s, self.fast).close
+            if len(slow) == self.slow:
+                if self.positions[s]:
+                    if ma(fast) <= ma(slow):
+                        self.sell(s)
 
-            if self.positions[s]:
-                if ma(self.market.bars(s, self.fast).close) < ma(self.market.bars(s, self.slow).close):
-                    self.sell(s)
-
-            else:
-                if ma(self.market.bars(s, self.fast).close) > ma(self.market.bars(s, self.slow).close):
-                    self.buy(s)
+                else:
+                    if ma(fast) >= ma(slow):
+                        self.buy(s)
 
 class BBStrategy(Strategy):
     def __init__(self, parameters):
         self.parameters = parameters
+        self.length = parameters[0]
+        self.k = parameters[1]
+
+    def generate_signals(self):
+        for s in self.symbol_list:
+            bars = self.market.bars(s, self.length)
+            if len(bars) >= self.length:
+                price = bars.last_close
+                average, upband, lwband = bbands(bars.close, self.k)
+                if self.positions[s]:
+                    if price >= average:
+                        self.sell(s)
+                else:
+                    if price <= lwband:
+                        self.buy(s)
+
+
         

@@ -8,6 +8,7 @@ import pandas as pd
 from .data import MarketData
 from .event import MarketEvent, SignalEvent, OrderEvent, FillEvent
 from .settings import COMMISSION_FIXED, COMMISSION_PCT, MAX_SLIPPAGE
+from .trade import Trade
 
 class Portfolio(object):
     """
@@ -30,6 +31,8 @@ class Portfolio(object):
         self.all_holdings = []
         self.current_position = None
         self.current_holding = None
+
+        self.pending_trades = set()
         self.trades = []
 
         self.pending_orders = set()
@@ -90,7 +93,10 @@ class Portfolio(object):
                 estimated_cost = COMMISSION_FIXED + (quantity * close_adj * (1+COMMISSION_PCT))
                 order = OrderEvent(symbol, quantity, sig_type, close_adj, estimated_cost)
 
-        elif sig_type in ('SELL') and cur_position > 0:
+        elif sig_type in ('SHORT') and cur_position == 0:
+            pass #TODO 
+
+        elif sig_type in ('SELL', 'COVER') and cur_position > 0:
             quantity = cur_position
             order = OrderEvent(symbol, quantity, sig_type, close_adj)
         
@@ -103,6 +109,13 @@ class Portfolio(object):
             raise TypeError("Wrong event type passed to Portfolio.consume_fill_event()")
 
         self.pending_orders.remove(fill.order)
+
+        # Manipulate Trades
+        if fill.order.direction in ('SELL', 'COVER'):
+            pass
+        elif fill.order.direction in ('BUY', 'SHORT'):
+            self.pending_trades.add(Trade(fill))
+
 
         self.current_position[fill.symbol] += fill.quantity
 

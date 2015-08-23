@@ -16,9 +16,9 @@ def ma(prices):
 def bbands(prices, k):
     """ returns average, upper band, and lower band"""
     ave = np.mean(prices)
-    sd = np.std(price)
+    sd = np.std(prices)
     upband = ave + (sd*k)
-    dnband = ave - (sd*k)
-    return np.round(ave,3), np.round(upband,3), np.round(dnband,3)
+    lwband = ave - (sd*k)
+    return np.round(ave,3), np.round(upband,3), np.round(lwband,3)
 
 

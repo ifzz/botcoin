@@ -171,7 +171,10 @@ class HistoricalCSV(MarketData):
     def bars(self, symbol, N=1):
         """
         Returns Bars object containing latest N bars from self._latest_bars
+
+        N can't be 0, will be automatically changed to 1
         """
+        N=1 if N==0 else N            
         return Bars(self.symbol_data[symbol]['latest_bars'][-N:])
 
 class Bars(object):
