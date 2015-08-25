@@ -85,15 +85,42 @@ class BBStrategy(Strategy):
     def generate_signals(self):
         for s in self.symbol_list:
             bars = self.market.bars(s, self.length)
+
             if len(bars) >= self.length:
-                price = bars.last_close
+                
                 average, upband, lwband = bbands(bars.close, self.k)
+                
                 if self.positions[s]:
-                    if price >= average:
+                    if bars.last_high >= upband:
                         self.sell(s)
+
                 else:
-                    if price <= lwband:
+                    if bars.last_low <= lwband:
                         self.buy(s)
 
+class DonchianStrategy(Strategy):
+    def __init__(self, parameters):
+        self.parameters = parameters
+        self.upper = parameters[0]
+        self.lower = parameters[1]
+
+    def generate_signals(self):
+        for s in self.symbol_list:
+            bars_upper = self.market.bars(s, self.upper)
+            bars_lower = self.market.bars(s, self.lower)
+
+            if (len(bars_lower) >= self.lower and len(bars_upper) >= self.upper):
+
+                upband = max(bars_upper.high)
+                lwband = min(bars_upper.low)
+                bar = self.market.bars(s)
+
+                if self.positions[s]:
+                    if bar.low <= lwband:
+                        self.sell(s)
+
+                else:
+                    if bar.high >= upband:
+                        self.buy(s)
 
         

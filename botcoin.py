@@ -8,17 +8,16 @@ import pandas as pd
 from src.data import HistoricalCSV
 from src.settings import (
     DATA_DIR,
-    SYMBOL_LIST,
     DATE_FROM,
     DATE_TO,
 )
 import src.settings
 from src.engine import BacktestManager
-from src.strategy import RandomBuyStrategy, MACrossStrategy, BBStrategy
+from src.strategy import RandomBuyStrategy, MACrossStrategy, BBStrategy, DonchianStrategy
 
 def main():
-    SYMBOL_LIST = ['krakenEUR_1d']
-    DATE_FROM = datetime.datetime.strptime("2011-08-14", '%Y-%m-%d')
+    SYMBOL_LIST = ['krakenEUR_1h']
+    # DATE_FROM = datetime.datetime.strptime("2011-08-14", '%Y-%m-%d')
     # DATE_TO= datetime.datetime.strptime("2011-09-01", '%Y-%m-%d')
     # pd.set_option('display.max_rows', 50)
 
@@ -28,11 +27,11 @@ def main():
     #     print(market.symbol_data[m]['df'])
 
     strategy_parameters = set()
-    for i in range(0,20,1):
-        for j in range(20,30,1):
+    for i in range(150,300,10):
+        for j in range(10,50,5):
             strategy_parameters.add((i,j))
     strategy_parameters = list(strategy_parameters)
-    strategies = [MACrossStrategy(params) for params in strategy_parameters]
+    strategies = [DonchianStrategy(params) for params in strategy_parameters]
     
 
     backtest = BacktestManager(
