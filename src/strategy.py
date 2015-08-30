@@ -11,27 +11,30 @@ class Strategy(object):
     def __init__(self, parameters):
         pass
 
+    def __str__(self):
+        return self.__class__.__name__ + " with parameters " + ", ".join([str(i) for i in self.parameters])
+
     def set_market_and_queue(self, events_queue, market):
         self.events_queue = events_queue
         self.market = market
         self.symbol_list = self.market.symbol_list
         self.positions = {symbol: None for symbol in self.symbol_list}
 
-    def buy(self, symbol):
+    def buy(self, symbol, price=None):
         self.positions[symbol] = 'BUY'
-        self.events_queue.put(SignalEvent(symbol,'BUY'))
+        self.events_queue.put(SignalEvent(symbol,'BUY',price))
 
-    def sell(self, symbol):
+    def sell(self, symbol, price=None):
         self.positions[symbol] = ''
-        self.events_queue.put(SignalEvent(symbol,'SELL'))
+        self.events_queue.put(SignalEvent(symbol,'SELL',price))
 
-    def short(self, symbol):
+    def short(self, symbol, price=None):
         self.positions[symbol] = 'SHORT'
-        self.events_queue.put(SignalEvent(symbol,'SHORT'))
+        self.events_queue.put(SignalEvent(symbol,'SHORT',price))
 
-    def cover(self, symbol):
+    def cover(self, symbol, price=None):
         self.positions[symbol] = ''
-        self.events_queue.put(SignalEvent(symbol,'COVER'))
+        self.events_queue.put(SignalEvent(symbol,'COVER',price))
 
 class RandomBuyStrategy(Strategy):
     """
@@ -91,7 +94,7 @@ class BBStrategy(Strategy):
                 average, upband, lwband = bbands(bars.close, self.k)
                 
                 if self.positions[s]:
-                    if bars.last_high >= upband:
+                    if bars.last_high >= average:
                         self.sell(s)
 
                 else:

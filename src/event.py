@@ -18,13 +18,16 @@ class SignalEvent(Event):
     Exchanged directly between Portfolio and its strategies.
     Parameters
         datetime - The timestamp at which the signal was generated.
-        signal_type - 'LONG' or 'SHORT'.
+        signal_type - "BUY", "SELL", "SHORT" or "COVER".
+        price - Target price defined by strategy. 
+            If None, last close will be used by portfolio.
     """
     
-    def __init__(self, symbol, signal_type):
+    def __init__(self, symbol, signal_type, price=None):
         self.type = 'SIGNAL'
         self.symbol = symbol
         self.signal_type = signal_type
+        self.price = price
 
 class OrderEvent(Event):
     """
@@ -42,9 +45,10 @@ class OrderEvent(Event):
         symbol - The instrument to trade.
         quantity - Non-negative integer for quantity.
         direction - 'BUY' or 'SELL' for long or short.
-        limit_price - Price 
+        limit_price - Limit price to be used for execution.
+        estimated_cost -How much the order is expected to cost, used 
+            to calculate money locked in before order is executed.
         """
-        
         self.type = 'ORDER'
         self.symbol = symbol
         self.quantity = quantity
@@ -54,13 +58,6 @@ class OrderEvent(Event):
         if direction in ('BUY', 'COVER') and not estimated_cost:
             raise ValueError("BUY or COVER require estimated_cost")
         self.estimated_cost = estimated_cost
-
-    def print_order(self):
-        """
-        Outputs the values within the Order.
-        """
-        print("Order: Symbol={}, Quantity={}, Direction={}, Limit price={}".format(
-            self.symbol, self.quantity, self.direction, self.limit_price))
 
 
 class FillEvent(Event):

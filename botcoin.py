@@ -2,10 +2,9 @@
 import datetime
 import logging
 
-import matplotlib.pyplot as plt
 import pandas as pd
 
-from src.data import HistoricalCSV
+from src.data import HistoricalCSV, yahoo_api
 from src.settings import (
     DATA_DIR,
     DATE_FROM,
@@ -16,28 +15,29 @@ from src.engine import BacktestManager
 from src.strategy import RandomBuyStrategy, MACrossStrategy, BBStrategy, DonchianStrategy
 
 def main():
-    SYMBOL_LIST = ['krakenEUR_1h']
-    # DATE_FROM = datetime.datetime.strptime("2011-08-14", '%Y-%m-%d')
-    # DATE_TO= datetime.datetime.strptime("2011-09-01", '%Y-%m-%d')
-    # pd.set_option('display.max_rows', 50)
+    SYMBOL_LIST = src.settings.ASX_50
+    DATE_FROM = datetime.datetime.strptime("2010", '%Y')
+    DATE_TO = datetime.datetime.now() - datetime.timedelta(weeks=52)
+    # DATE_FROM = datetime.datetime.now() - datetime.timedelta(weeks=52)
+    # DATE_TO= datetime.datetime.now()
 
-    market = HistoricalCSV(DATA_DIR, SYMBOL_LIST, date_from=DATE_FROM, date_to=DATE_TO)
 
     # for m in market.symbol_list:
     #     print(market.symbol_data[m]['df'])
 
     strategy_parameters = set()
-    for i in range(150,300,10):
-        for j in range(10,50,5):
+    for i in range(0,100,5):
+        for j in range(1,6,1):
             strategy_parameters.add((i,j))
     strategy_parameters = list(strategy_parameters)
-    strategies = [DonchianStrategy(params) for params in strategy_parameters]
+    strategies = [BBStrategy(params) for params in strategy_parameters]
     
+    market = HistoricalCSV(DATA_DIR, SYMBOL_LIST, date_from=DATE_FROM, date_to=DATE_TO)
 
     backtest = BacktestManager(
         market,
-        strategies,
-        # [MACrossStrategy([5,2])],
+        # strategies,
+        [BBStrategy([30,3])],
     )
 
     logging.debug('Backtest {} from {} to {}'.format(SYMBOL_LIST, DATE_FROM.strftime('%Y-%m-%d'), DATE_TO.strftime('%Y-%m-%d')))
@@ -54,11 +54,8 @@ def main():
     logging.debug("Done")
 
     print(backtest.results)
-    # print(backtest.engines[0].performance.equity_curve)
 
-    for engine in backtest.engines:
-        engine.performance.equity_curve.total.plot()
-        plt.show()
+    backtest.plot_results()
 
     return backtest
 

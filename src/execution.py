@@ -13,9 +13,7 @@ class BacktestExecution(Execution):
     def execute_order(self, order):
         if order.type == 'ORDER':
 
-            direction = 1
-            if order.direction in ('SELL','SHORT'):
-                direction = -1
+            direction = -1 if order.direction in ('SELL','SHORT') else 1
 
             quantity = order.quantity * direction
             cost = order.quantity * order.limit_price * direction

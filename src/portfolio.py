@@ -72,33 +72,37 @@ class Portfolio(object):
     def generate_orders(self, signal):
         symbol = signal.symbol
         sig_type = signal.signal_type
-        order = None
-
-        cur_position = self.current_position[symbol]
-        cash = self.current_holding['cash'] - sum([i.estimated_cost for i in self.pending_orders])
+        price = signal.price
+        
         bars = self.market.bars(symbol)
-        # Close price adjusted with slippage
-        close_adj = bars.last_close * (1+MAX_SLIPPAGE)
-
         # Not trading if there is no volume
         if bars.last_vol == 0.0:
             return
+        
+        price = signal.price if signal.price else bars.last_close
+        # Execution price adjusted for slippage
+        adj_price = bars.last_close * (1+MAX_SLIPPAGE)
+
+        cur_position = self.current_position[symbol]
+        cash = self.current_holding['cash'] - sum([i.estimated_cost for i in self.pending_orders])
+
+        order = None
 
         if sig_type in ('BUY') and cur_position == 0:
             # COMMISSION_FIXED remove the fixed ammount from cash, 
             # and COMMISSION_PCT increases the symbol price to reflect the fee
-            quantity = floor( (cash-COMMISSION_FIXED) / (close_adj * (1+COMMISSION_PCT)) )
+            quantity = floor( (cash-COMMISSION_FIXED) / (adj_price * (1+COMMISSION_PCT)) )
 
             if quantity > 0.0:
-                estimated_cost = COMMISSION_FIXED + (quantity * close_adj * (1+COMMISSION_PCT))
-                order = OrderEvent(symbol, quantity, sig_type, close_adj, estimated_cost)
+                estimated_cost = COMMISSION_FIXED + (quantity * adj_price * (1+COMMISSION_PCT))
+                order = OrderEvent(symbol, quantity, sig_type, adj_price, estimated_cost)
 
         elif sig_type in ('SHORT') and cur_position == 0:
             pass #TODO 
 
         elif sig_type in ('SELL', 'COVER') and cur_position > 0:
             quantity = cur_position
-            order = OrderEvent(symbol, quantity, sig_type, close_adj)
+            order = OrderEvent(symbol, quantity, sig_type, adj_price)
         
         if order:
             self.pending_orders.add(order)

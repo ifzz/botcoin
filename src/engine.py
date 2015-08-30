@@ -72,8 +72,9 @@ class BacktestManager(object):
         for strategy in strategies:
             events_queue = queue.Queue()
             broker = BacktestExecution(events_queue)
-            strategy.set_market_and_queue(events_queue, market)
             portfolio = Portfolio(events_queue, market)
+
+            strategy.set_market_and_queue(events_queue, market)
 
             self.engines.append(TradingEngine(events_queue, market, strategy, portfolio, broker))
 
@@ -104,5 +105,18 @@ class BacktestManager(object):
 
         self.perf_time = (datetime.datetime.now()-start_time)
 
-        self.results = "\n".join(str(engine.strategy.parameters) + ":" + str(engine.performance.total_return) for engine in self.engines)
+        self.results = "\n".join(
+            str(engine.strategy.parameters) + 
+            ": " + 
+            str(engine.performance.total_return) +
+            ' - ' + 
+            str(engine.performance.ann_return) for engine in self.engines)
+
+    def plot_results(self):
+        import matplotlib.pyplot as plt
+
+        for engine in self.engines:
+            ax = engine.performance.equity_curve.total.plot()
+            ax.set_title(engine.strategy)
+            plt.show()
 

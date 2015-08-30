@@ -4,6 +4,7 @@ import os
 import pandas as pd
 
 from .event import MarketEvent
+from .settings import DATA_DIR, YAHOO_API
 
 class MarketData(object):
     def update_bars(self):
@@ -31,10 +32,10 @@ class HistoricalCSV(MarketData):
             # Original dataframe from csv
             self.symbol_data[s]['df'] = df
             
-            # Calculating average delta between each row
-            delta_df = pd.DataFrame({'date':df.index})
-            delta_df['delta'] = (delta_df['date'] - delta_df['date'].shift(1))
-            self.symbol_data[s]['delta'] = (delta_df['delta'].mean())
+            # # Calculating average delta between each row
+            # delta_df = pd.DataFrame({'date':df.index})
+            # delta_df['delta'] = (delta_df['date'] - delta_df['date'].shift(1))
+            # self.symbol_data[s]['delta'] = (delta_df['delta'].mean())
 
             # Combine different file indexes to account for nonexistent values 
             # (needs 'is not None' because of Pandas 'The truth value of a DatetimeIndex is ambiguous.' error)
@@ -50,9 +51,9 @@ class HistoricalCSV(MarketData):
             # List that will hold all rows from iterrows, one at a time
             self.symbol_data[s]['latest_bars'] = []
 
-        # If not all symbols have the same delta
-        if len(set([self.symbol_data[s]['delta'] for s in symbol_list])) > 1:
-            logging.critical('Data files have different time deltas between bars - not a good sign! You should probably check that.')
+        # # If not all symbols have the same delta
+        # if len(set([self.symbol_data[s]['delta'] for s in symbol_list])) > 1:
+        #     logging.critical('Data files have different time deltas between bars - not a good sign! You should probably check that.')
 
         self.continue_execution = True
 
@@ -73,7 +74,7 @@ class HistoricalCSV(MarketData):
         df = df[:date_to] if date_to else df
         
         if df.empty:
-            raise ValueError("Empty DataFrame loaded. Possibly invalid date ranges?")
+            logging.warning("Empty DataFrame loaded for {}.".format(filename)) # Possibly invalid date ranges?
 
         return df
 
@@ -211,3 +212,18 @@ class Bars(object):
 
     def get_all(self):
         return self.datetime, self.open, self.high, self.low, self.close, self.vol
+
+
+def yahoo_api(list_of_symbols, year_from=1900, period='d'):
+    import urllib.request
+
+    for s in list_of_symbols:
+        csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')
+        df = pd.io.parsers.read_csv(
+            csv,
+            header=0,
+            index_col=0,
+        )
+        df = df.reindex(index=df.index[::-1])
+        df.drop('Adj Close', axis=1, inplace=True)
+        df.to_csv(os.path.join(DATA_DIR, s+'.csv'), header=False)
