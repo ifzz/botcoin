@@ -7,15 +7,18 @@ import pandas as pd
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.width', 1000) 
 
+
 # Logging config
 VERBOSITY = 10
 LOG_FORMAT = '# %(levelname)s:%(module)s - %(message)s'
 logging.basicConfig(format=LOG_FORMAT, level=VERBOSITY)
 
+
 # Directories
 BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data/')
 SRC_DIR = os.path.join(BASE_DIR, 'src/')
+
 
 # Data APIs
 YAHOO_CHART_API = 'http://chartapi.finance.yahoo.com/instrument/1.0/{}/chartdata;type=quote;range={}/csv'
@@ -26,6 +29,9 @@ YAHOO_API = 'http://ichart.finance.yahoo.com/table.csv?s={}&c={}&g={}'
 DATE_TO = datetime.now()
 DATE_FROM = DATE_TO - timedelta(weeks=52)
 
+# Initial portfolio capital
+INITIAL_CAPITAL = 100000.00
+
 # If both COMMISSION_FIXED and COMMISSION_PCT are set, both will be charged on each trade
 # Fixed commission charged on each trade
 COMMISSION_FIXED = 0.0
@@ -34,6 +40,15 @@ COMMISSION_PCT = 0.0008 # IB fixed commission Australia
 
 # Used by portfolio to calculate limit_prices and estimated cost for Orders
 MAX_SLIPPAGE = 0.0
+
+# Max number of concurrent open long positions
+MAX_LONG_POSITIONS = 5
+MAX_SHORT_POSITIONS = 0
+# Represented as percentage of portfolio level equity
+POSITION_SIZE = 1.0/MAX_LONG_POSITIONS
+
+# Adjusts position if there isn't enough cash available
+ADJUST_POSITION_DOWN = True
 
 
 # List of symbols

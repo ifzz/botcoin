@@ -16,18 +16,18 @@ class MarketData(object):
 
 class HistoricalCSV(MarketData):
 
-    def __init__(self, csv_dir, symbol_list, date_from='', date_to='', filetype='ohlc', interval=''):
+    def __init__(self, csv_dir, symbol_list, date_from='', date_to=''):
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
-        comb_index = None
         self.symbol_list = symbol_list
         self.symbol_data = {}
+        comb_index = None
 
         for s in symbol_list:
             self.symbol_data[s] = {}
             filename = s + '.csv'
-            df = self._load_csv(csv_dir, filename, date_from, date_to, filetype, interval)
+            df = self._load_csv(csv_dir, filename, date_from, date_to)
             
             # Original dataframe from csv
             self.symbol_data[s]['df'] = df
@@ -56,19 +56,13 @@ class HistoricalCSV(MarketData):
         #     logging.critical('Data files have different time deltas between bars - not a good sign! You should probably check that.')
 
         self.continue_execution = True
-
+        self.date_from = self.symbol_data[self.symbol_list[0]]['df'].index[0]
+        self.date_to = self.symbol_data[self.symbol_list[0]]['df'].index[-1]
         self.load_time = datetime.now()-start_load_datetime
 
-    def _load_csv(self, csv_dir, filename, date_from, date_to, filetype, interval):
-        if filetype == 'ohlc':
-            df = self._load_csv_ohlc(csv_dir, filename)
-        elif filetype == 'tick':
-            if not interval:
-                # If using tick data, needs an interval to create ohlc
-                raise ValueError
-            df = self._load_csv_tick(csv_dir, filename, interval)
-        else:
-            raise ValueError
+    def _load_csv(self, csv_dir, filename, date_from, date_to):
+
+        df = self._load_csv_ohlc(csv_dir, filename)
 
         df = df[date_from:] if date_from else df
         df = df[:date_to] if date_to else df
@@ -76,27 +70,6 @@ class HistoricalCSV(MarketData):
         if df.empty:
             logging.warning("Empty DataFrame loaded for {}.".format(filename)) # Possibly invalid date ranges?
 
-        return df
-
-    @staticmethod
-    def _load_csv_tick(csv_dir, filename, interval):
-        
-        interval = interval or '1d'
-
-        df = pd.io.parsers.read_csv(
-            os.path.expanduser(csv_dir+filename),
-            header=0, 
-            index_col=0, 
-            names=['timestamp', 'price', 'volume']
-        )
-        df.index = pd.to_datetime((df.index.values*1e9).astype(int))
-        df = pd.concat(
-            [
-                df['price'].resample(interval, how='ohlc'),
-                df['volume'].resample(interval, how='sum'),
-            ],
-            axis=1,
-        )
         return df
 
     @staticmethod

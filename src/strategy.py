@@ -22,19 +22,23 @@ class Strategy(object):
 
     def buy(self, symbol, price=None):
         self.positions[symbol] = 'BUY'
-        self.events_queue.put(SignalEvent(symbol,'BUY',price))
+        self.add_signal(symbol, 'BUY', price)
 
     def sell(self, symbol, price=None):
         self.positions[symbol] = ''
-        self.events_queue.put(SignalEvent(symbol,'SELL',price))
+        self.add_signal(symbol, 'SELL', price)
 
     def short(self, symbol, price=None):
         self.positions[symbol] = 'SHORT'
-        self.events_queue.put(SignalEvent(symbol,'SHORT',price))
+        self.add_signal(symbol, 'SHORT', price)
 
     def cover(self, symbol, price=None):
         self.positions[symbol] = ''
-        self.events_queue.put(SignalEvent(symbol,'COVER',price))
+        self.add_signal(symbol, 'COVER', price)
+
+    def add_signal(self, symbol, sig_type, price=None):
+        price = price or self.market.bars(symbol).last_close
+        self.events_queue.put(SignalEvent(symbol, sig_type, price))
 
 class RandomBuyStrategy(Strategy):
     """

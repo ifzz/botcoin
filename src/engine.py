@@ -3,10 +3,12 @@ import datetime
 import logging
 import queue
 
+import pandas as pd
+
 from .data import MarketData
 from .execution import BacktestExecution, Execution
 from .strategy import Strategy
-from .performance import Performance
+from .performance import performance
 from .portfolio import Portfolio
 from .settings import (
     DATE_FROM,
@@ -29,8 +31,9 @@ class TradingEngine():
         self.portfolio = portfolio
         self.broker = broker
 
-    def performance(self):
-        self.performance = Performance(self.portfolio)
+    def calc_perf(self):
+        self.performance = performance(self.portfolio)
+
 
     def run_cycle(self):
         while True:
@@ -57,26 +60,38 @@ class TradingEngine():
 
 
 class BacktestManager(object):
-    def __init__(self, market, strategies):
-        # Strategy and Portfolio parameters need to be list within a list
-        if not (isinstance(strategies, collections.Iterable) and
-            isinstance(market, MarketData)):
+    def __init__(self, market, strat_port_pairs):
+        if not (isinstance(strat_port_pairs, collections.Iterable) and
+                isinstance(strat_port_pairs[0], dict) and
+                isinstance(market, MarketData)):
             raise TypeError("Improper parameter type on BacktestManager.__init__()")
 
-        self.strategies = strategies
+        self.strat_port_pairs = strat_port_pairs
         
         # Single market object will be used for all backtesting instances
         self.market = market
         self.engines = []
 
-        for strategy in strategies:
+        for pair in strat_port_pairs:
             events_queue = queue.Queue()
-            broker = BacktestExecution(events_queue)
-            portfolio = Portfolio(events_queue, market)
+            broker = BacktestExecution(events_queue, market)
 
+            strategy = pair['strategy']
+            portfolio = pair['portfolio']
+
+            portfolio.set_market_and_queue(events_queue, market)
             strategy.set_market_and_queue(events_queue, market)
 
             self.engines.append(TradingEngine(events_queue, market, strategy, portfolio, broker))
+
+
+        logging.debug("Backtest {} from {} to {}".format(
+            market.symbol_list, 
+            market.date_from.strftime('%Y-%m-%d'), 
+            market.date_to.strftime('%Y-%m-%d'),
+        ))
+        logging.debug("with {} different strategies".format(str(len(self.engines))))
+        logging.debug("Data load took {}".format(str(self.market.load_time)))
 
     def start(self):
         """
@@ -95,28 +110,43 @@ class BacktestManager(object):
         for engine in self.engines:
             engine.portfolio.update_last_positions_and_holdings()
 
-        self.backtest_time = (datetime.datetime.now()-start_time)
+        logging.debug("Backtest took " + str((datetime.datetime.now()-start_time)))
 
-    def calc_performance(self):
+    def calc_performance(self, order_by='sharpe'):
         start_time = datetime.datetime.now()
 
-        [engine.performance() for engine in self.engines]
-        self.engines = sorted(self.engines, key=lambda x: x.performance.total_return, reverse=True)
+        [engine.calc_perf() for engine in self.engines]
 
-        self.perf_time = (datetime.datetime.now()-start_time)
+        # Order engines by sharpe (used for plotting)
+        self.engines = sorted(self.engines, key=lambda x: x.performance[order_by], reverse=True)
 
-        self.results = "\n".join(
-            str(engine.strategy.parameters) + 
-            ": " + 
-            str(engine.performance.total_return) +
-            ' - ' + 
-            str(engine.performance.ann_return) for engine in self.engines)
+        # Calc results dataframe that contains performance for all engines
+        self.results = pd.DataFrame(
+            [[
+                engine.strategy.parameters,
+                engine.performance['total_return'],
+                engine.performance['ann_return'],
+                engine.performance['sharpe'],
+                engine.performance['trades'],
+                engine.performance['pct_trades_profit'],
+            ] for engine in self.engines ],
+            columns=[
+                'strategy',
+                'total returns',
+                'annualised return',
+                'sharpe',
+                '# trades',
+                'profitable trades'
+            ],
+        )
+
+        logging.debug("Performance calculated in {}".format(str(datetime.datetime.now()-start_time)))
 
     def plot_results(self):
         import matplotlib.pyplot as plt
 
         for engine in self.engines:
-            ax = engine.performance.equity_curve.total.plot()
+            ax = engine.performance['equity_curve'].plot()
             ax.set_title(engine.strategy)
+            plt.grid()  
             plt.show()
-

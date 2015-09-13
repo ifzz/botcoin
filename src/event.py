@@ -23,11 +23,11 @@ class SignalEvent(Event):
             If None, last close will be used by portfolio.
     """
     
-    def __init__(self, symbol, signal_type, price=None):
+    def __init__(self, symbol, signal_type, exec_price):
         self.type = 'SIGNAL'
         self.symbol = symbol
         self.signal_type = signal_type
-        self.price = price
+        self.exec_price = exec_price
 
 class OrderEvent(Event):
     """
@@ -59,6 +59,8 @@ class OrderEvent(Event):
             raise ValueError("BUY or COVER require estimated_cost")
         self.estimated_cost = estimated_cost
 
+    def __str__(self):
+        return "{}:{}:{}".self.symbol,self.direction,str(self.quantity)
 
 class FillEvent(Event):
     """
@@ -68,7 +70,7 @@ class FillEvent(Event):
     the commission of the trade from the brokerage.
     """
 
-    def __init__(self, timeindex, order, quantity,
+    def __init__(self, datetime, order, quantity,
                  cost, commission):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
@@ -76,7 +78,7 @@ class FillEvent(Event):
         commission.
 
         Parameters:
-        timeindex - The bar-resolution when the order was filled.
+        datetime - The bar-resolution when the order was filled.
         symbol - The instrument which was filled.
         quantity - The filled quantity.
         direction - The direction of fill ('BUY' or 'SELL')
@@ -85,7 +87,7 @@ class FillEvent(Event):
         """
         
         self.type = 'FILL'
-        self.timeindex = timeindex
+        self.datetime = datetime
         self.order = order
         self.symbol = order.symbol
         self.quantity = quantity

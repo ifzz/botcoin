@@ -1,5 +1,3 @@
-import datetime
-
 from .event import FillEvent
 from .settings import COMMISSION_FIXED, COMMISSION_PCT
 
@@ -7,8 +5,9 @@ class Execution(object):
     pass
 
 class BacktestExecution(Execution):
-    def __init__(self, events_queue):
+    def __init__(self, events_queue, market):
         self.events_queue = events_queue
+        self.market = market
 
     def execute_order(self, order):
         if order.type == 'ORDER':
@@ -20,7 +19,7 @@ class BacktestExecution(Execution):
             commission = (COMMISSION_PCT * order.limit_price * order.quantity) + COMMISSION_FIXED
 
             fill_event = FillEvent(
-                datetime.datetime.utcnow(),
+                self.market.bars(order.symbol).last_datetime,
                 order,
                 quantity,
                 cost,
