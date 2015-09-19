@@ -29,6 +29,10 @@ class SignalEvent(Event):
         self.signal_type = signal_type
         self.exec_price = exec_price
 
+    def __str__(self):
+        return "Signal - {}:{}:{}".format(self.symbol,self.signal_type,str(self.exec_price))
+
+
 class OrderEvent(Event):
     """
     Handles the event of sending an Order to an execution system.
@@ -60,7 +64,7 @@ class OrderEvent(Event):
         self.estimated_cost = estimated_cost
 
     def __str__(self):
-        return "{}:{}:{}".self.symbol,self.direction,str(self.quantity)
+        return "Order - {}:{}:{}".format(self.symbol,self.direction,str(self.quantity),str(self.estimated_cost))
 
 class FillEvent(Event):
     """
@@ -93,4 +97,8 @@ class FillEvent(Event):
         self.quantity = quantity
         self.cost = cost
         self.commission = commission
+
+    def __str__(self):
+        return "Fill - {}:{}:{}".format(self.symbol,str(self.quantity),str(self.cost))
+
             

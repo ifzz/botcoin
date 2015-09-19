@@ -1,40 +1,32 @@
 #!/usr/bin/env python
 import datetime
+import logging
+from os.path import dirname
+import sys
 
-from src.data import HistoricalCSV, yahoo_api
-from src.settings import (
-    DATA_DIR,
-    DATE_FROM,
-    DATE_TO,
-)
-import src.settings
+import settings
 from src.engine import BacktestManager
-from src.strategy import RandomBuyStrategy, MACrossStrategy, BBStrategy, DonchianStrategy
+from src.strategy import RandomBuyStrategy, MACrossStrategy, BBStrategy, DonchianStrategy, MeanRevertingWeeklyStrategy
 from src.portfolio import Portfolio
 
 def main():
-    SYMBOL_LIST = src.settings.ASX_50
-    DATE_FROM = datetime.datetime.strptime("2005", '%Y')
-    DATE_TO = datetime.datetime.now() - datetime.timedelta(weeks=52)
-    # DATE_FROM = datetime.datetime.now() - datetime.timedelta(weeks=52)
-    # DATE_TO= datetime.datetime.now()
-
-
-    strategy_parameters = set()
-    for i in range(0,150,5):
-        for j in range(1,5,1):
-            strategy_parameters.add((i,j))
-    strategy_parameters = list(strategy_parameters)
-    strategies = [BBStrategy(params) for params in strategy_parameters]
     
-    # strategies = [BBStrategy([30, 2])]
+    settings.SYMBOL_LIST = settings.ASX_50
+    settings.DATE_FROM = datetime.datetime.strptime("2005", '%Y')
+    settings.DATE_TO = datetime.datetime.now() - datetime.timedelta(weeks=52)
 
-    pairs = [{'strategy':strategy,'portfolio':Portfolio(max_long_pos=5)} for strategy in strategies]
+    # strv ategy_parameters = set()
+    # for i in range(10,250,10):
+    #     for j in range(5,100,5):
+    #         strategy_parameters.add((i,j))
+    # strategy_parameters = list(strategy_parameters)
+    # strategies = [DonchianStrategy(params) for params in strategy_parameters]
+    
+    strategies = [DonchianStrategy([90,1])]
 
-    market = HistoricalCSV(DATA_DIR, SYMBOL_LIST, date_from=DATE_FROM, date_to=DATE_TO)
+    pairs = [{'portfolio':Portfolio(max_long_pos=5), 'strategy':strategy} for strategy in strategies]
 
     backtest = BacktestManager(
-        market,
         pairs,
     )
 
@@ -44,12 +36,15 @@ def main():
 
     print(backtest.results)
 
+    # print('\n'.join(str(trade) for trade in backtest.engines[0].portfolio.all_trades))
+    #backtest.plot_open_positions()
     backtest.plot_results()
 
     return backtest
 
 if __name__ == '__main__':
     try:
+        sys.path.append(dirname(__file__))
         main()
     except KeyboardInterrupt as e:
         import logging

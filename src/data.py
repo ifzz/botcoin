@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 from .event import MarketEvent
-from .settings import DATA_DIR, YAHOO_API
+from settings import DATA_DIR, YAHOO_API
 
 class MarketData(object):
     def update_bars(self):
@@ -160,22 +160,22 @@ class Bars(object):
         self._latest_bars = latest_bars
 
         self.datetime = [i[0] for i in self._latest_bars]
-        self.last_datetime = self._latest_bars[-1][0]
+        self.this_datetime = self._latest_bars[-1][0]
 
         self.open = [i[1] for i in self._latest_bars]
-        self.last_open = self._latest_bars[-1][1]
+        self.this_open = self._latest_bars[-1][1]
 
         self.high = [i[2] for i in self._latest_bars]
-        self.last_high = self._latest_bars[-1][2]
+        self.this_high = self._latest_bars[-1][2]
 
         self.low = [i[3] for i in self._latest_bars]
-        self.last_low = self._latest_bars[-1][3]
+        self.this_low = self._latest_bars[-1][3]
 
         self.close = [i[4] for i in self._latest_bars]
-        self.last_close = self._latest_bars[-1][4]
+        self.this_close = self._latest_bars[-1][4]
 
         self.vol = [i[5] for i in self._latest_bars]
-        self.last_vol = self._latest_bars[-1][5]
+        self.this_vol = self._latest_bars[-1][5]
 
     def __len__(self):
         return len(self._latest_bars)

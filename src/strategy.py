@@ -1,5 +1,7 @@
 import logging
 
+import numpy as np
+
 from .event import SignalEvent
 from .indicator import ma, bbands
 
@@ -18,14 +20,14 @@ class Strategy(object):
         self.events_queue = events_queue
         self.market = market
         self.symbol_list = self.market.symbol_list
-        self.positions = {symbol: None for symbol in self.symbol_list}
+        self.positions = {}
 
     def buy(self, symbol, price=None):
         self.positions[symbol] = 'BUY'
         self.add_signal(symbol, 'BUY', price)
 
     def sell(self, symbol, price=None):
-        self.positions[symbol] = ''
+        del(self.positions[symbol])
         self.add_signal(symbol, 'SELL', price)
 
     def short(self, symbol, price=None):
@@ -33,11 +35,11 @@ class Strategy(object):
         self.add_signal(symbol, 'SHORT', price)
 
     def cover(self, symbol, price=None):
-        self.positions[symbol] = ''
+        del(self.positions[symbol])
         self.add_signal(symbol, 'COVER', price)
 
     def add_signal(self, symbol, sig_type, price=None):
-        price = price or self.market.bars(symbol).last_close
+        price = price or self.market.bars(symbol).this_close
         self.events_queue.put(SignalEvent(symbol, sig_type, price))
 
 class RandomBuyStrategy(Strategy):
@@ -97,13 +99,13 @@ class BBStrategy(Strategy):
                 
                 average, upband, lwband = bbands(bars.close, self.k)
                 
-                if self.positions[s]:
-                    if bars.last_high >= average:
-                        self.sell(s)
+                if s in self.positions:
+                    if bars.this_high >= average:
+                        self.sell(s, bars.this_close)
 
                 else:
-                    if bars.last_low <= lwband:
-                        self.buy(s)
+                    if bars.this_low <= lwband:
+                        self.buy(s, bars.this_close)
 
 class DonchianStrategy(Strategy):
     def __init__(self, parameters):
@@ -113,21 +115,60 @@ class DonchianStrategy(Strategy):
 
     def generate_signals(self):
         for s in self.symbol_list:
-            bars_upper = self.market.bars(s, self.upper)
-            bars_lower = self.market.bars(s, self.lower)
+            bars_upper = self.market.bars(s, self.upper+1).high
+            bars_lower = self.market.bars(s, self.lower+1).low
+            bar = self.market.bars(s)
 
-            if (len(bars_lower) >= self.lower and len(bars_upper) >= self.upper):
+            if (len(bars_lower) > self.lower and len(bars_upper) > self.upper):
 
-                upband = max(bars_upper.high)
-                lwband = min(bars_upper.low)
+                upband = max(bars_upper[:-1])
+                lwband = min(bars_lower[:-1])
+                if (len(bars_upper[:-1]) != self.upper or
+                    len(bars_lower[:-1]) != self.lower):
+                    raise AssertionError("{} {} {} {}".format(len(bars_upper.high[:-1]), self.upper, len(bars_lower.low[:-1]), self.lower))
+
                 bar = self.market.bars(s)
 
-                if self.positions[s]:
-                    if bar.low <= lwband:
-                        self.sell(s)
+
+                if s in self.positions:
+                    if bar.this_low <= lwband:
+                        self.sell(s, lwband)
 
                 else:
-                    if bar.high >= upband:
-                        self.buy(s)
+                    if bar.this_high >= upband:
+                            self.buy(s, upband)
 
-        
+class MeanRevertingWeeklyStrategy(Strategy):
+
+        def __init__(self, parameters):
+            self.parameters = parameters
+            self.length = parameters[0]
+            self.max_positions = parameters[1]
+
+        def create_ordered_list(self):
+            # Creates list of pct distance on open
+            list_pct_from_avg = []
+            for s in self.symbol_list:
+                bars = self.market.bars(s, self.length+1)
+                if (len(bars)-1) >= self.length and bars.this_close:
+                    # avg is calculated not using current bar, but past bars
+                    avg = np.mean(bars.close[:-1])
+                    list_pct_from_avg.append((s, (avg-bars.this_close)/avg))   
+            return list_pct_from_avg
+
+        def generate_signals(self):
+            list_pct_from_avg = self.create_ordered_list()
+
+            # Generating signals for the extremes in the list
+            if list_pct_from_avg:
+                ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
+                list_to_buy = ordered_list[0:self.max_positions]
+                list_to_sell = [s for s in self.positions if s not in list_to_buy]
+                # print("Selling {}.\nBuying {}".format(list_to_sell,list_to_buy))
+                # input()
+                # selling on open of this bar
+                [self.sell(s, self.market.bars(s).this_open) for s in list_to_sell]
+
+                #, self.market.bars(s).this_open
+                [self.buy(s, self.market.bars(s).this_close) for s,pct_from_avg in list_to_buy if s not in self.positions]
+                        

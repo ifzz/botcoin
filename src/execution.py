@@ -1,5 +1,5 @@
 from .event import FillEvent
-from .settings import COMMISSION_FIXED, COMMISSION_PCT
+from settings import COMMISSION_FIXED, COMMISSION_PCT
 
 class Execution(object):
     pass
@@ -19,7 +19,7 @@ class BacktestExecution(Execution):
             commission = (COMMISSION_PCT * order.limit_price * order.quantity) + COMMISSION_FIXED
 
             fill_event = FillEvent(
-                self.market.bars(order.symbol).last_datetime,
+                self.market.bars(order.symbol).this_datetime,
                 order,
                 quantity,
                 cost,

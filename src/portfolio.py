@@ -6,7 +6,7 @@ import queue
 import pandas as pd
 
 from .event import MarketEvent, SignalEvent, OrderEvent, FillEvent
-from .settings import (COMMISSION_FIXED, COMMISSION_PCT, MAX_SLIPPAGE,
+from settings import (COMMISSION_FIXED, COMMISSION_PCT, MAX_SLIPPAGE,
                        POSITION_SIZE, MAX_LONG_POSITIONS, MAX_SHORT_POSITIONS,
                        INITIAL_CAPITAL, ADJUST_POSITION_DOWN)
 from .trade import Trade
@@ -50,14 +50,14 @@ class Portfolio(object):
             logging.warning("New market event arrived while there are pending orders. Shouldn't happen in backtesting.")
 
         # Can be any bar
-        cur_datetime = self.market.bars(self.market.symbol_list[0]).last_datetime
+        cur_datetime = self.market.bars(self.market.symbol_list[0]).this_datetime
 
         # If there is no current position and holding, meaning execution just started
         if not self.current_positions and not self.current_holdings:
             self.date_from = cur_datetime
             self.current_positions = self.construct_position(cur_datetime)
 
-            self.current_holdings = self.construct_holding(cur_datetime, self.initial_capital, 0.00, self.current_positions)
+            self.current_holdings = self.construct_holding(cur_datetime, self.initial_capital, 0.00, self.initial_capital)
 
         else:
             if ((cur_datetime <= self.current_positions['datetime']) or 
@@ -66,6 +66,25 @@ class Portfolio(object):
 
             # open_positions used for graphing and keeping track of open positions over time
             self.current_positions['open_trades'] = len(self.open_trades)
+            
+
+            # Restarts current_holdings 'total' and s based on this_close price and current_position[s]
+            self.current_holdings['total'] = self.current_holdings['cash']
+            open_long,open_short = 0,0
+            for s in self.market.symbol_list:
+                # Approximation to the real value
+                market_value = self.current_positions[s] * self.market.bars(s).this_close
+                
+                if market_value < 0:
+                    open_short += 1
+                elif market_value > 0:
+                    open_long += 1
+
+                self.current_holdings[s] = market_value
+                self.current_holdings['total'] += market_value
+
+            self.verify_consistency(open_long, open_short)
+
 
             # Add current to all lists
             self.all_positions.append(self.current_positions)
@@ -80,17 +99,20 @@ class Portfolio(object):
                 cur_datetime,
                 self.current_holdings['cash'],
                 self.current_holdings['commission'],
-                self.current_positions,
+                self.current_holdings['total']
             )
 
     def generate_orders(self, signal):
+        logging.debug(str(signal))
+
         symbol = signal.symbol
         sig_type = signal.signal_type
         exec_price = signal.exec_price
         
         bars = self.market.bars(symbol)
-        # Not trading if there is no volume
-        if bars.last_vol == 0.0:
+
+        # Not trading if there is no volume, or any price == 0.0
+        if 0.0 in (bars.this_open, bars.this_high, bars.this_low, bars.this_close, bars.this_vol):
             return
         
         # Execution price adjusted for slippage
@@ -133,10 +155,13 @@ class Portfolio(object):
             order = OrderEvent(symbol, quantity, sig_type, adj_price)
 
         if order:
+            logging.debug(str(order))
             self.pending_orders.add(order)
             self.events_queue.put(order)
 
     def consume_fill_event(self, fill):
+        logging.debug(str(fill))
+
         if not fill.type == 'FILL':
             raise TypeError("Wrong event type passed to Portfolio.consume_fill_event()")
 
@@ -152,14 +177,14 @@ class Portfolio(object):
 
         self.current_positions[fill.symbol] += fill.quantity
 
-        self.current_holdings[fill.symbol] += fill.cost
         self.current_holdings['commission'] += fill.commission
         self.current_holdings['cash'] -= (fill.cost + fill.commission)
-        self.current_holdings['total'] -= (fill.commission)
+        
+        # This is now being computed in update_positions_and_holdings instead of here 
+        # self.current_holdings[fill.symbol] += fill.cost
+        # self.current_holdings['total'] -= (fill.commission)
 
-        self.verify_consistency()
-
-    def verify_consistency(self):
+    def verify_consistency(self, open_long, open_short):
         """ Checks for problematic values in current holding and position """
 
         if (self.current_holdings['cash'] < 0 or
@@ -171,12 +196,19 @@ class Portfolio(object):
                 self.current_holdings['total'],
                 self.current_holdings['commission'],
             ))
-            raise ValueError("Inconsistency in Portfolio.current_holdings()")
+            raise AssertionError("Inconsistency in Portfolio.current_holdings()")
         
+        if open_long > MAX_LONG_POSITIONS or open_short > MAX_SHORT_POSITIONS:
+            raise AssertionError("Number of open positions is too high. {}/{} open positions and {}/{} short positions".format(
+                open_long,
+                MAX_LONG_POSITIONS,
+                open_short,
+                MAX_SHORT_POSITIONS,
+            ))
+
         for s in self.market.symbol_list:
-            if (self.current_holdings[s] < 0 or
-                self.current_positions[s] < 0):
-                logging.info('Do you really have a short position?')
+            if (self.current_positions[s] < 0 or self.current_holdings[s] < 0):
+                logging.info('Do you really have a short position? {}:{}:{}'.format(s, self.current_positions[s]. self.current_holdings[s]))
 
     def update_last_positions_and_holdings(self):
         # Adds latest current position and holding into 'all' lists, so they
@@ -190,8 +222,8 @@ class Portfolio(object):
         for trade in self.open_trades.values():
             bars = self.market.bars(trade.symbol)
             self.all_trades.append(trade.fake_close_trade(
-                bars.last_datetime,
-                bars.last_close,
+                bars.this_datetime,
+                bars.this_close,
             ))                
 
     def construct_position(self, cur_datetime, current_positions={}):
@@ -213,7 +245,7 @@ class Portfolio(object):
 
         return position
 
-    def construct_holding(self, cur_datetime, cash, commission, current_positions):
+    def construct_holding(self, cur_datetime, cash, commission, total):
         """
         Holdings at a point in time. All properties represented in cash.
         Parameters:
@@ -222,7 +254,7 @@ class Portfolio(object):
             commission -- cummulative commission paid up to this day
             total -- cash equivalent of all holdings combined - commission paid
         """
-        if not isinstance(cur_datetime, datetime.datetime) or not isinstance(current_positions, dict):
+        if not isinstance(cur_datetime, datetime.datetime):
             raise TypeError("Improprer parameter type on portfolio.construct_holding()")
 
         holding = {}
@@ -230,14 +262,7 @@ class Portfolio(object):
         holding['datetime'] = cur_datetime
         holding['cash'] = cash
         holding['commission'] = commission
-        holding['total'] = cash
-
-
-        for s in self.market.symbol_list:
-            # Approximation to the real value
-            market_value = self.current_positions[s] * self.market.bars(s).last_close
-            holding[s] = market_value
-            holding['total'] += market_value
+        holding['total'] = total
 
         return holding
 

@@ -9,13 +9,13 @@ pd.set_option('display.width', 1000)
 
 
 # Logging config
-VERBOSITY = 10
+VERBOSITY = 20
 LOG_FORMAT = '# %(levelname)s:%(module)s - %(message)s'
 logging.basicConfig(format=LOG_FORMAT, level=VERBOSITY)
 
 
 # Directories
-BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data/')
 SRC_DIR = os.path.join(BASE_DIR, 'src/')
 

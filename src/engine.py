@@ -5,15 +5,12 @@ import queue
 
 import pandas as pd
 
-from .data import MarketData
+from .data import MarketData, HistoricalCSV
 from .execution import BacktestExecution, Execution
 from .strategy import Strategy
 from .performance import performance
 from .portfolio import Portfolio
-from .settings import (
-    DATE_FROM,
-    DATE_TO,
-)
+import settings
 
 class TradingEngine():
     def __init__(self, events_queue, market, strategy, portfolio, broker):
@@ -33,7 +30,6 @@ class TradingEngine():
 
     def calc_perf(self):
         self.performance = performance(self.portfolio)
-
 
     def run_cycle(self):
         while True:
@@ -60,38 +56,39 @@ class TradingEngine():
 
 
 class BacktestManager(object):
-    def __init__(self, market, strat_port_pairs):
+    def __init__(self, strat_port_pairs, symbol_list=None):
         if not (isinstance(strat_port_pairs, collections.Iterable) and
-                isinstance(strat_port_pairs[0], dict) and
-                isinstance(market, MarketData)):
+                isinstance(strat_port_pairs[0], dict)):
             raise TypeError("Improper parameter type on BacktestManager.__init__()")
 
+        self.symbol_list = symbol_list or settings.SYMBOL_LIST
         self.strat_port_pairs = strat_port_pairs
-        
+
         # Single market object will be used for all backtesting instances
-        self.market = market
+        self.market = HistoricalCSV(settings.DATA_DIR, self.symbol_list, date_from=settings.DATE_FROM, date_to=settings.DATE_TO)
+
         self.engines = []
 
         for pair in strat_port_pairs:
             events_queue = queue.Queue()
-            broker = BacktestExecution(events_queue, market)
+            broker = BacktestExecution(events_queue, self.market)
 
             strategy = pair['strategy']
             portfolio = pair['portfolio']
 
-            portfolio.set_market_and_queue(events_queue, market)
-            strategy.set_market_and_queue(events_queue, market)
+            portfolio.set_market_and_queue(events_queue, self.market)
+            strategy.set_market_and_queue(events_queue, self.market)
 
-            self.engines.append(TradingEngine(events_queue, market, strategy, portfolio, broker))
+            self.engines.append(TradingEngine(events_queue, self.market, strategy, portfolio, broker))
 
 
-        logging.debug("Backtest {} from {} to {}".format(
-            market.symbol_list, 
-            market.date_from.strftime('%Y-%m-%d'), 
-            market.date_to.strftime('%Y-%m-%d'),
+        logging.info("Backtest {} from {} to {}".format(
+            self.market.symbol_list, 
+            self.market.date_from.strftime('%Y-%m-%d'), 
+            self.market.date_to.strftime('%Y-%m-%d'),
         ))
-        logging.debug("with {} different strategies".format(str(len(self.engines))))
-        logging.debug("Data load took {}".format(str(self.market.load_time)))
+        logging.info("with {} different strategies".format(str(len(self.engines))))
+        logging.info("Data load took {}".format(str(self.market.load_time)))
 
     def start(self):
         """
@@ -110,7 +107,7 @@ class BacktestManager(object):
         for engine in self.engines:
             engine.portfolio.update_last_positions_and_holdings()
 
-        logging.debug("Backtest took " + str((datetime.datetime.now()-start_time)))
+        logging.info("Backtest took " + str((datetime.datetime.now()-start_time)))
 
     def calc_performance(self, order_by='sharpe'):
         start_time = datetime.datetime.now()
@@ -140,7 +137,16 @@ class BacktestManager(object):
             ],
         )
 
-        logging.debug("Performance calculated in {}".format(str(datetime.datetime.now()-start_time)))
+        logging.info("Performance calculated in {}".format(str(datetime.datetime.now()-start_time)))
+
+    def plot_open_positions(self):
+        import matplotlib.pyplot as plt
+
+        for engine in self.engines:
+            ax = engine.performance['all_positions']['open_trades'].plot()
+            ax.set_title(engine.strategy)
+            plt.grid()  
+            plt.show()
 
     def plot_results(self):
         import matplotlib.pyplot as plt
