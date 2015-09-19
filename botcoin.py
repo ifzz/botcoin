@@ -26,18 +26,12 @@ def main():
 
     pairs = [{'portfolio':Portfolio(max_long_pos=5), 'strategy':strategy} for strategy in strategies]
 
-    backtest = BacktestManager(
-        pairs,
-    )
-
-    backtest.start()
-
-    backtest.calc_performance()
+    backtest = BacktestManager(pairs)
 
     print(backtest.results)
 
-    # print('\n'.join(str(trade) for trade in backtest.engines[0].portfolio.all_trades))
-    #backtest.plot_open_positions()
+    print(backtest.engines[0].performance['all_trades'])
+
     backtest.plot_results()
 
     return backtest

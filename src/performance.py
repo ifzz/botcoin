@@ -11,6 +11,18 @@ def performance(portfolio):
         raise ValueError("Portfolio with empty holdings")
     results = {}
 
+    results['all_trades'] =pd.DataFrame(
+        [(
+            t.symbol,
+            t.result,
+            t.open_datetime,
+            t.close_datetime,
+            t.open_cost,
+            t.close_cost
+        ) for t in portfolio.all_trades],
+        columns=['symbol', 'returns', 'open_datetime', 'close_datetime', 'open_cost', 'close_cost'],
+    )
+
     curve = pd.DataFrame(portfolio.all_positions)
     curve.set_index('datetime', inplace=True) 
     results['all_positions'] = curve

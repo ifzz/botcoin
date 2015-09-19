@@ -56,16 +56,20 @@ class TradingEngine():
 
 
 class BacktestManager(object):
-    def __init__(self, strat_port_pairs, symbol_list=None):
+    def __init__(self, strat_port_pairs, symbol_list=None, date_from=None, 
+                 date_to=None, data_dir=None, start_automatically=True):
+
         if not (isinstance(strat_port_pairs, collections.Iterable) and
                 isinstance(strat_port_pairs[0], dict)):
             raise TypeError("Improper parameter type on BacktestManager.__init__()")
 
-        self.symbol_list = symbol_list or settings.SYMBOL_LIST
-        self.strat_port_pairs = strat_port_pairs
-
         # Single market object will be used for all backtesting instances
-        self.market = HistoricalCSV(settings.DATA_DIR, self.symbol_list, date_from=settings.DATE_FROM, date_to=settings.DATE_TO)
+        self.market = HistoricalCSV(
+            data_dir or settings.DATA_DIR,
+            symbol_list or settings.SYMBOL_LIST,
+            date_from = date_from or settings.DATE_FROM,
+            date_to= date_to or settings.DATE_TO,
+        )
 
         self.engines = []
 
@@ -89,6 +93,10 @@ class BacktestManager(object):
         ))
         logging.info("with {} different strategies".format(str(len(self.engines))))
         logging.info("Data load took {}".format(str(self.market.load_time)))
+
+        if start_automatically:
+            self.start()
+            self.calc_performance()
 
     def start(self):
         """
