@@ -6,17 +6,15 @@ import queue
 import pandas as pd
 
 from .event import MarketEvent, SignalEvent, OrderEvent, FillEvent
-from settings import (COMMISSION_FIXED, COMMISSION_PCT, MAX_SLIPPAGE,
-                       POSITION_SIZE, MAX_LONG_POSITIONS, MAX_SHORT_POSITIONS,
-                       INITIAL_CAPITAL, ADJUST_POSITION_DOWN)
+import settings
 from .trade import Trade
 
 class Portfolio(object):
     """
     Portfolio root class.
     """
-    def __init__(self, initial_capital=INITIAL_CAPITAL, position_size=POSITION_SIZE, 
-                 max_long_pos=MAX_LONG_POSITIONS, max_short_pos=MAX_SHORT_POSITIONS,):
+    def __init__(self, initial_capital=None, position_size=None, 
+                 max_long_pos=None, max_short_pos=None,):
 
         self.all_positions = []
         self.all_holdings = []
@@ -30,10 +28,10 @@ class Portfolio(object):
         # List of all closed trades
         self.all_trades = []
 
-        self.initial_capital = initial_capital
-        self.position_size = position_size
-        self.max_long_pos = max_long_pos
-        self.max_short_pos = max_short_pos
+        self.initial_capital = initial_capital or settings.INITIAL_CAPITAL
+        self.position_size = position_size or settings.POSITION_SIZE
+        self.max_long_pos = max_long_pos or settings.MAX_LONG_POSITIONS
+        self.max_short_pos = max_short_pos or settings.MAX_SHORT_POSITIONS
 
     def set_market_and_queue(self, events_queue, market):
         # check for symbol names that would conflict with columns used in holdings and positions
@@ -116,7 +114,7 @@ class Portfolio(object):
             return
         
         # Execution price adjusted for slippage
-        adj_price = exec_price * (1+MAX_SLIPPAGE)
+        adj_price = exec_price * (1+settings.MAX_SLIPPAGE)
 
         cur_position = self.current_positions[symbol]
         available_cash = self.current_holdings['cash'] - sum([i.estimated_cost for i in self.pending_orders])
@@ -135,7 +133,7 @@ class Portfolio(object):
                 # Sometimes last position is a little over cash available
                 # so we adjust it down a little bit
                 if position_cash > available_cash:
-                    if ADJUST_POSITION_DOWN:
+                    if settings.ADJUST_POSITION_DOWN:
                         position_cash = available_cash
                     else:
                         logging.warning("Can't adjust position, {} missing cash.".format(str(position_size-available_cash)))
@@ -143,10 +141,10 @@ class Portfolio(object):
 
                 # COMMISSION_FIXED remove the fixed ammount from cash,
                 # and COMMISSION_PCT increases the symbol price to reflect the fee
-                quantity = floor( (position_cash-COMMISSION_FIXED) / (adj_price * (1+COMMISSION_PCT)) )
+                quantity = floor( (position_cash-settings.COMMISSION_FIXED) / (adj_price * (1+settings.COMMISSION_PCT)) )
 
                 if quantity > 0.0:
-                    estimated_cost = COMMISSION_FIXED + (quantity * adj_price * (1+COMMISSION_PCT))
+                    estimated_cost = settings.COMMISSION_FIXED + (quantity * adj_price * (1+settings.COMMISSION_PCT))
                     order = OrderEvent(symbol, quantity, sig_type, adj_price, estimated_cost)
 
 
@@ -198,7 +196,7 @@ class Portfolio(object):
             ))
             raise AssertionError("Inconsistency in Portfolio.current_holdings()")
         
-        if open_long > MAX_LONG_POSITIONS or open_short > MAX_SHORT_POSITIONS:
+        if open_long > settings.MAX_LONG_POSITIONS or open_short > settings.MAX_SHORT_POSITIONS:
             raise AssertionError("Number of open positions is too high. {}/{} open positions and {}/{} short positions".format(
                 open_long,
                 MAX_LONG_POSITIONS,

@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 
 from .event import MarketEvent
-from settings import DATA_DIR, YAHOO_API
 
 class MarketData(object):
     def update_bars(self):
@@ -19,7 +18,7 @@ class MarketData(object):
 class HistoricalCSV(MarketData):
 
     def __init__(self, csv_dir, symbol_list, date_from='', date_to='',
-                 normalize_prices=True, normalize_volume=True, round_decimals=3):
+                 normalize_prices=True, normalize_volume=True, round_decimals=2):
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
@@ -195,6 +194,7 @@ class Bars(object):
 
 def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=False):
     import urllib.request
+    from settings import DATA_DIR, YAHOO_API
 
     for s in list_of_symbols:
         csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')

@@ -12,6 +12,7 @@ def performance(portfolio):
         raise ValueError("Portfolio with empty holdings")
     results = {}
 
+    # Saving all trades
     results['all_trades'] =pd.DataFrame(
         [(
             t.symbol,
@@ -19,21 +20,25 @@ def performance(portfolio):
             t.open_datetime,
             t.close_datetime,
             t.open_cost,
-            t.close_cost
+            t.close_cost,
+            t.open_price,
+            t.close_price,
         ) for t in portfolio.all_trades],
-        columns=['symbol', 'returns', 'open_datetime', 'close_datetime', 'open_cost', 'close_cost'],
+        columns=['symbol', 'returns', 'open_datetime', 'close_datetime', 
+                 'open_cost', 'close_cost', 'open_price', 'close_price'],
     )
 
     results['dangerous_trades'] = results['all_trades'][
-        results['all_trades']['returns']>
+        results['all_trades']['returns'] >
         sum(results['all_trades']['returns'])*settings.THRESHOLD_DANGEROUS_TRADE
     ]
 
-
+    # Saving portfolio.all_positions in performance
     curve = pd.DataFrame(portfolio.all_positions)
     curve.set_index('datetime', inplace=True) 
     results['all_positions'] = curve
 
+    # Saving portfolio.all_holdings in performance
     curve = pd.DataFrame(portfolio.all_holdings)
     curve.set_index('datetime', inplace=True) 
     results['all_holdings'] = curve

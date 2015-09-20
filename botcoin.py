@@ -23,14 +23,14 @@ def main():
     # strategy_parameters = list(strategy_parameters)
     # strategies = [DonchianStrategy(params) for params in strategy_parameters]
     
-    strategies = [DonchianStrategy([100,35])]
+    strategies = [DonchianStrategy([50,40])]
 
     pairs = [{'portfolio':Portfolio(max_long_pos=5), 'strategy':strategy} for strategy in strategies]
 
     backtest = BacktestManager(pairs)#,start_automatically=False)
 
     print(backtest.results)
-    print(backtest.engines[0].performance['dangerous_trades'])
+    print(backtest.engines[0].performance['all_trades'])
 
     backtest.plot_results()
 

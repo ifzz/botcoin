@@ -68,6 +68,7 @@ class BacktestManager(object):
             date_to = date_to or settings.DATE_TO,
             normalize_prices = settings.NORMALIZE_PRICES,
             normalize_volume = settings.NORMALIZE_VOLUME,
+            round_decimals = settings.ROUND_DECIMALS,
         )
 
         self.engines = []
