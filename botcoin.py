@@ -17,19 +17,20 @@ def main():
     # settings.DATE_TO = datetime.datetime.now()  - datetime.timedelta(weeks=52)
 
     # strategy_parameters = set()
-    # for i in range(10,250,10):
-    #     for j in range(5,100,5):
+    # for i in range(20,120,20):
+    #     for j in range(5,40,5):
     #         strategy_parameters.add((i,j))
     # strategy_parameters = list(strategy_parameters)
     # strategies = [DonchianStrategy(params) for params in strategy_parameters]
     
-    strategies = [DonchianStrategy([90,10])]
+    strategies = [DonchianStrategy([100,35])]
 
     pairs = [{'portfolio':Portfolio(max_long_pos=5), 'strategy':strategy} for strategy in strategies]
 
     backtest = BacktestManager(pairs)#,start_automatically=False)
 
     print(backtest.results)
+    print(backtest.engines[0].performance['dangerous_trades'])
 
     backtest.plot_results()
 

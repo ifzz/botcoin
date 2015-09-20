@@ -71,14 +71,14 @@ class HistoricalCSV(MarketData):
             # On ValueError try again with %Y-%m-%d
             df.index = pd.to_datetime(df.index, format='%Y-%m-%d')
 
-        # Rounding adj_close to prevent rounding problems when low == close
-        # df['adj_close'] = df['adj_close'].round(round_decimals)
 
-        # Normalizing prices and volume based on adj_close price
-        if not df['adj_close'].isnull:
+        if not df['adj_close'].empty:
+            # Rounding adj_close to prevent rounding problems when low == close
+            df['adj_close'] = df['adj_close'].round(round_decimals)
+
+            # Normalizing prices and volume based on adj_close prices
             if normalize_volume:
                 df['volume'] = df['volume']*(df['adj_close']/df['close'])
-
             if normalize_adj_close:
                 for c in ('open', 'high', 'low', 'volume'):
                     df[c] = df[c]*(df['adj_close']/df['close'])

@@ -221,9 +221,13 @@ class Portfolio(object):
         # "Fake close" trades that are open, so they can be part of trades performance stats
         for trade in self.open_trades.values():
             bars = self.market.bars(trade.symbol)
+
+            direction = 1 if trade.direction in ('SELL','SHORT') else -1
+            quantity = trade.quantity * direction
+
             self.all_trades.append(trade.fake_close_trade(
                 bars.this_datetime,
-                bars.this_close,
+                quantity * bars.this_close,
             ))                
 
     def construct_position(self, cur_datetime, current_positions={}):

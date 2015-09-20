@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+import settings
 
 def performance(portfolio):
     """
@@ -22,6 +23,12 @@ def performance(portfolio):
         ) for t in portfolio.all_trades],
         columns=['symbol', 'returns', 'open_datetime', 'close_datetime', 'open_cost', 'close_cost'],
     )
+
+    results['dangerous_trades'] = results['all_trades'][
+        results['all_trades']['returns']>
+        sum(results['all_trades']['returns'])*settings.THRESHOLD_DANGEROUS_TRADE
+    ]
+
 
     curve = pd.DataFrame(portfolio.all_positions)
     curve.set_index('datetime', inplace=True) 
@@ -58,4 +65,6 @@ def performance(portfolio):
     results['pct_trades_profit'] = len([trade for trade in portfolio.all_trades if trade.result > 0])/results['trades']
     results['pct_trades_loss'] = len([trade for trade in portfolio.all_trades if trade.result <= 0])/results['trades']
 
+    # Dangerous trades that constitute more than THRESHOLD_DANGEROUS_TRADE of returns
+    results['dangerous'] = True if not results['dangerous_trades'].empty else False
     return results

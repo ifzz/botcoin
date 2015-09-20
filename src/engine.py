@@ -134,6 +134,7 @@ class BacktestManager(object):
                 engine.performance['sharpe'],
                 engine.performance['trades'],
                 engine.performance['pct_trades_profit'],
+                engine.performance['dangerous']
             ] for engine in self.engines ],
             columns=[
                 'strategy',
@@ -141,7 +142,8 @@ class BacktestManager(object):
                 'annualised return',
                 'sharpe',
                 '# trades',
-                'profitable trades'
+                'profitable trades',
+                'dangerous'
             ],
         )
 
