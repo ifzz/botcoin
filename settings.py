@@ -26,11 +26,22 @@ YAHOO_API = 'http://ichart.finance.yahoo.com/table.csv?s={}&c={}&g={}'
 
 
 # Backtesting specific configuration
+
+# Normalize all prices based on relation between adj_close and close
+NORMALIZE_PRICES = True
+
+# Normalize volume based on relation between adj_close and close
+NORMALIZE_VOLUME = True
+
+# Dates to start and finish backtest
 DATE_TO = datetime.now()
 DATE_FROM = DATE_TO - timedelta(weeks=52)
 
 # Initial portfolio capital
 INITIAL_CAPITAL = 100000.00
+
+# Number of decimals used for rounding prices 
+ROUND_DECIMALS = 2
 
 # If both COMMISSION_FIXED and COMMISSION_PCT are set, both will be charged on each trade
 # Fixed commission charged on each trade

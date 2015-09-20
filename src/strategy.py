@@ -3,7 +3,6 @@ import logging
 import numpy as np
 
 from .event import SignalEvent
-from .indicator import ma, bbands
 
 class Strategy(object):
     """
@@ -42,6 +41,17 @@ class Strategy(object):
         price = price or self.market.bars(symbol).this_close
         self.events_queue.put(SignalEvent(symbol, sig_type, price))
 
+def avg(prices):
+    return np.round(np.mean(prices),3)
+
+def bbands(prices, k):
+    """ returns average, upper band, and lower band"""
+    ave = np.mean(prices)
+    sd = np.std(prices)
+    upband = ave + (sd*k)
+    lwband = ave - (sd*k)
+    return np.round(ave,3), np.round(upband,3), np.round(lwband,3)
+
 class RandomBuyStrategy(Strategy):
     """
     Buys the asset every 1-n candles, and holds it for an entire candle
@@ -78,11 +88,11 @@ class MACrossStrategy(Strategy):
             fast = self.market.bars(s, self.fast).close
             if len(slow) == self.slow:
                 if self.positions[s]:
-                    if ma(fast) <= ma(slow):
+                    if avg(fast) <= avg(slow):
                         self.sell(s)
 
                 else:
-                    if ma(fast) >= ma(slow):
+                    if avg(fast) >= avg(slow):
                         self.buy(s)
 
 class BBStrategy(Strategy):
@@ -164,8 +174,7 @@ class MeanRevertingWeeklyStrategy(Strategy):
                 ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
                 list_to_buy = ordered_list[0:self.max_positions]
                 list_to_sell = [s for s in self.positions if s not in list_to_buy]
-                # print("Selling {}.\nBuying {}".format(list_to_sell,list_to_buy))
-                # input()
+
                 # selling on open of this bar
                 [self.sell(s, self.market.bars(s).this_open) for s in list_to_sell]
 

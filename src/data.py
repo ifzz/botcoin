@@ -1,6 +1,8 @@
 from datetime import datetime
 import logging
 import os
+
+import numpy as np
 import pandas as pd
 
 from .event import MarketEvent
@@ -16,7 +18,8 @@ class MarketData(object):
 
 class HistoricalCSV(MarketData):
 
-    def __init__(self, csv_dir, symbol_list, date_from='', date_to=''):
+    def __init__(self, csv_dir, symbol_list, date_from='', date_to='',
+                 normalize_prices=True, normalize_volume=True, round_decimals=3):
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
@@ -27,15 +30,10 @@ class HistoricalCSV(MarketData):
         for s in symbol_list:
             self.symbol_data[s] = {}
             filename = s + '.csv'
-            df = self._load_csv(csv_dir, filename, date_from, date_to)
+            df = self._load_csv(csv_dir, filename, date_from, date_to, normalize_prices, normalize_volume, round_decimals)
             
             # Original dataframe from csv
             self.symbol_data[s]['df'] = df
-            
-            # # Calculating average delta between each row
-            # delta_df = pd.DataFrame({'date':df.index})
-            # delta_df['delta'] = (delta_df['date'] - delta_df['date'].shift(1))
-            # self.symbol_data[s]['delta'] = (delta_df['delta'].mean())
 
             # Combine different file indexes to account for nonexistent values 
             # (needs 'is not None' because of Pandas 'The truth value of a DatetimeIndex is ambiguous.' error)
@@ -51,35 +49,19 @@ class HistoricalCSV(MarketData):
             # List that will hold all rows from iterrows, one at a time
             self.symbol_data[s]['latest_bars'] = []
 
-        # # If not all symbols have the same delta
-        # if len(set([self.symbol_data[s]['delta'] for s in symbol_list])) > 1:
-        #     logging.critical('Data files have different time deltas between bars - not a good sign! You should probably check that.')
-
         self.continue_execution = True
         self.date_from = self.symbol_data[self.symbol_list[0]]['df'].index[0]
         self.date_to = self.symbol_data[self.symbol_list[0]]['df'].index[-1]
         self.load_time = datetime.now()-start_load_datetime
 
-    def _load_csv(self, csv_dir, filename, date_from, date_to):
+    def _load_csv(self, csv_dir, filename, date_from, date_to, 
+                  normalize_adj_close, normalize_volume, round_decimals):
 
-        df = self._load_csv_ohlc(csv_dir, filename)
-
-        df = df[date_from:] if date_from else df
-        df = df[:date_to] if date_to else df
-        
-        if df.empty:
-            logging.warning("Empty DataFrame loaded for {}.".format(filename)) # Possibly invalid date ranges?
-
-        return df
-
-    @staticmethod
-    def _load_csv_ohlc(csv_dir, filename):
-        
         df = pd.io.parsers.read_csv(
             os.path.expanduser(csv_dir+filename),
             header=None,
             index_col=0,
-            names=['datetime', 'open', 'high', 'low', 'close', 'volume']
+            names=['datetime', 'open', 'high', 'low', 'close', 'volume', 'adj_close']
         )
 
         try:
@@ -88,6 +70,29 @@ class HistoricalCSV(MarketData):
         except ValueError:
             # On ValueError try again with %Y-%m-%d
             df.index = pd.to_datetime(df.index, format='%Y-%m-%d')
+
+        # Rounding adj_close to prevent rounding problems when low == close
+        # df['adj_close'] = df['adj_close'].round(round_decimals)
+
+        # Normalizing prices and volume based on adj_close price
+        if not df['adj_close'].isnull:
+            if normalize_volume:
+                df['volume'] = df['volume']*(df['adj_close']/df['close'])
+
+            if normalize_adj_close:
+                for c in ('open', 'high', 'low', 'volume'):
+                    df[c] = df[c]*(df['adj_close']/df['close'])
+                df['close'] = df['adj_close']
+
+        # Rounding prices
+        for c in ('open', 'high', 'low', 'close', 'adj_close'):
+            df[c] = df[c].round(round_decimals)
+
+        df = df[date_from:] if date_from else df
+        df = df[:date_to] if date_to else df
+        
+        if df.empty:
+            logging.warning("Empty DataFrame loaded for {}.".format(filename)) # Possibly invalid date ranges?
 
         return df
 
@@ -120,9 +125,10 @@ class HistoricalCSV(MarketData):
 
                 if not (highp>=lowp and highp>=openp and highp>=closep and
                     lowp<=openp and lowp<=closep):
-                    raise ValueError("Data inconsistency at " +
-                        datetime +
-                        ". High price must be >= all other prices"
+                    raise ValueError("Data inconsistency on " + s + " at " + 
+                        str(datetime) + ". OHLC is " + str(openp) + " " +
+                        str(highp) + " " + str(lowp) + " " + str(closep) +
+                        ". High price must be >= all other prices" + 
                         " and low price must be <= all other prices"
                     )
 
@@ -187,7 +193,7 @@ class Bars(object):
         return self.datetime, self.open, self.high, self.low, self.close, self.vol
 
 
-def yahoo_api(list_of_symbols, year_from=1900, period='d'):
+def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=False):
     import urllib.request
 
     for s in list_of_symbols:
@@ -198,5 +204,6 @@ def yahoo_api(list_of_symbols, year_from=1900, period='d'):
             index_col=0,
         )
         df = df.reindex(index=df.index[::-1])
-        df.drop('Adj Close', axis=1, inplace=True)
+        if remove_adj_close:
+            df.drop('Adj Close', axis=1, inplace=True)
         df.to_csv(os.path.join(DATA_DIR, s+'.csv'), header=False)

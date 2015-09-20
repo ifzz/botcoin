@@ -28,9 +28,6 @@ class TradingEngine():
         self.portfolio = portfolio
         self.broker = broker
 
-    def calc_perf(self):
-        self.performance = performance(self.portfolio)
-
     def run_cycle(self):
         while True:
             try:
@@ -68,7 +65,9 @@ class BacktestManager(object):
             data_dir or settings.DATA_DIR,
             symbol_list or settings.SYMBOL_LIST,
             date_from = date_from or settings.DATE_FROM,
-            date_to= date_to or settings.DATE_TO,
+            date_to = date_to or settings.DATE_TO,
+            normalize_prices = settings.NORMALIZE_PRICES,
+            normalize_volume = settings.NORMALIZE_VOLUME,
         )
 
         self.engines = []
@@ -120,7 +119,8 @@ class BacktestManager(object):
     def calc_performance(self, order_by='sharpe'):
         start_time = datetime.datetime.now()
 
-        [engine.calc_perf() for engine in self.engines]
+        for engine in self.engines:
+            engine.performance = performance(engine.portfolio)
 
         # Order engines by sharpe (used for plotting)
         self.engines = sorted(self.engines, key=lambda x: x.performance[order_by], reverse=True)
