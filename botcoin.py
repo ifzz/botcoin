@@ -13,8 +13,12 @@ from src.portfolio import Portfolio
 def main():
     
     settings.SYMBOL_LIST = settings.ASX_50
-    settings.DATE_FROM = datetime.datetime.strptime("2005", '%Y')
+    settings.DATE_FROM = datetime.datetime.strptime("2014", '%Y')
+    settings.DATE_TO = datetime.datetime.strptime("2016", '%Y')
     # settings.DATE_TO = datetime.datetime.now()  - datetime.timedelta(weeks=52)
+    # settings.DATE_FROM = datetime.datetime.now()  - datetime.timedelta(weeks=52)
+    # settings.DATE_TO = datetime.datetime.now()
+
 
     # strategy_parameters = set()
     # for i in range(20,120,20):
@@ -23,13 +27,14 @@ def main():
     # strategy_parameters = list(strategy_parameters)
     # strategies = [DonchianStrategy(params) for params in strategy_parameters]
     
-    strategies = [DonchianStrategy([50,40])]
+    strategies = [MeanRevertingWeeklyStrategy([30,10])]
 
-    pairs = [{'portfolio':Portfolio(max_long_pos=5), 'strategy':strategy} for strategy in strategies]
+    pairs = [{'portfolio':Portfolio(max_long_pos=10, position_size=0.1), 'strategy':strategy} for strategy in strategies]
 
     backtest = BacktestManager(pairs)#,start_automatically=False)
 
     print(backtest.results)
+
     print(backtest.engines[0].performance['all_trades'])
 
     backtest.plot_results()

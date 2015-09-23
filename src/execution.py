@@ -19,8 +19,8 @@ class BacktestExecution(Execution):
             commission = (settings.COMMISSION_PCT * order.limit_price * order.quantity) + settings.COMMISSION_FIXED
 
             fill_event = FillEvent(
-                self.market.bars(order.symbol).this_datetime,
                 order,
+                self.market.bars(order.symbol).this_datetime,
                 quantity,
                 cost,
                 commission,

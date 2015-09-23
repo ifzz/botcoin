@@ -29,11 +29,19 @@ class TradingEngine():
         self.broker = broker
 
     def run_cycle(self):
+
         while True:
             try:
                 event = self.events_queue.get(False)
             except queue.Empty:
-                break
+                try:
+                    if self.strategy.waiting_for_execution:
+                        self.strategy.generate_signals()
+                        event = self.events_queue.get(False)
+                    else:
+                        break
+                except AttributeError:
+                    break
 
             if event.type == 'MARKET':
                 self.strategy.generate_signals()

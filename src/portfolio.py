@@ -5,7 +5,7 @@ import queue
 
 import pandas as pd
 
-from .event import MarketEvent, SignalEvent, OrderEvent, FillEvent
+from .event import MarketEvent, SignalEvent, OrderEvent
 import settings
 from .trade import Trade
 
@@ -145,12 +145,12 @@ class Portfolio(object):
 
                 if quantity > 0.0:
                     estimated_cost = settings.COMMISSION_FIXED + (quantity * adj_price * (1+settings.COMMISSION_PCT))
-                    order = OrderEvent(symbol, quantity, sig_type, adj_price, estimated_cost)
+                    order = OrderEvent(signal, symbol, quantity, sig_type, adj_price, estimated_cost)
 
 
         elif sig_type in ('SELL', 'COVER') and cur_position > 0:
             quantity = cur_position
-            order = OrderEvent(symbol, quantity, sig_type, adj_price)
+            order = OrderEvent(signal, symbol, quantity, sig_type, adj_price)
 
         if order:
             logging.debug(str(order))
@@ -196,12 +196,12 @@ class Portfolio(object):
             ))
             raise AssertionError("Inconsistency in Portfolio.current_holdings()")
         
-        if open_long > settings.MAX_LONG_POSITIONS or open_short > settings.MAX_SHORT_POSITIONS:
+        if open_long > self.max_long_pos or open_short > self.max_short_pos:
             raise AssertionError("Number of open positions is too high. {}/{} open positions and {}/{} short positions".format(
                 open_long,
-                MAX_LONG_POSITIONS,
+                self.max_long_pos,
                 open_short,
-                MAX_SHORT_POSITIONS,
+                self.max_short_pos,
             ))
 
         for s in self.market.symbol_list:

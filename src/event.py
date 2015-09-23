@@ -40,7 +40,8 @@ class OrderEvent(Event):
     quantity and a direction.
     """
 
-    def __init__(self, symbol, quantity, direction, limit_price, estimated_cost=0.0):
+    def __init__(self, signal, symbol, quantity, direction, limit_price, 
+                 estimated_cost=0.0):
         """
         Initialises a Limit order order, has a quantity (integer)
         and its direction ('BUY', 'SELL', 'SHORT' and 'COVER' ).
@@ -53,6 +54,9 @@ class OrderEvent(Event):
         estimated_cost -How much the order is expected to cost, used 
             to calculate money locked in before order is executed.
         """
+        if not isinstance(signal, SignalEvent):
+            raise TypeError("signal is not instance of SignalEvent")
+
         self.type = 'ORDER'
         self.symbol = symbol
         self.quantity = quantity
@@ -74,7 +78,7 @@ class FillEvent(Event):
     the commission of the trade from the brokerage.
     """
 
-    def __init__(self, datetime, order, quantity,
+    def __init__(self, order, datetime, quantity,
                  cost, commission):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
@@ -89,6 +93,9 @@ class FillEvent(Event):
         cost - The holdings value in dollars.
         commission - comission paid
         """
+        if not isinstance(order, OrderEvent):
+            raise TypeError("order is not instance of OrderEvent")
+
         
         self.type = 'FILL'
         self.datetime = datetime

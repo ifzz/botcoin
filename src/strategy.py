@@ -16,6 +16,7 @@ class Strategy(object):
         return self.__class__.__name__ + " with parameters " + ", ".join([str(i) for i in self.parameters])
 
     def set_market_and_queue(self, events_queue, market):
+        self.waiting_for_execution = False
         self.events_queue = events_queue
         self.market = market
         self.symbol_list = self.market.symbol_list
@@ -38,8 +39,10 @@ class Strategy(object):
         self.add_signal(symbol, 'COVER', price)
 
     def add_signal(self, symbol, sig_type, price=None):
+        self.waiting_for_execution = False
         price = price or self.market.bars(symbol).this_close
-        self.events_queue.put(SignalEvent(symbol, sig_type, price))
+        signal = SignalEvent(symbol, sig_type, price)
+        self.events_queue.put(signal)
 
 def avg(prices):
     return np.round(np.mean(prices),3)
@@ -167,17 +170,21 @@ class MeanRevertingWeeklyStrategy(Strategy):
             return list_pct_from_avg
 
         def generate_signals(self):
-            list_pct_from_avg = self.create_ordered_list()
+            if not self.waiting_for_execution:
+                list_pct_from_avg = self.create_ordered_list()
+                # Generating signals for the extremes in the list
+                if list_pct_from_avg:
+                    ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
+                    self.list_to_buy = ordered_list[0:self.max_positions]
+                    list_to_sell = [s for s in self.positions if s not in self.list_to_buy]
 
-            # Generating signals for the extremes in the list
-            if list_pct_from_avg:
-                ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
-                list_to_buy = ordered_list[0:self.max_positions]
-                list_to_sell = [s for s in self.positions if s not in list_to_buy]
+                    # selling on open of this bar
+                    [self.sell(s, self.market.bars(s).this_open) for s in list_to_sell]
 
-                # selling on open of this bar
-                [self.sell(s, self.market.bars(s).this_open) for s in list_to_sell]
+                    self.waiting_for_execution = True
+                    return
 
+            elif self.waiting_for_execution:
                 #, self.market.bars(s).this_open
-                [self.buy(s, self.market.bars(s).this_close) for s,pct_from_avg in list_to_buy if s not in self.positions]
+                [self.buy(s, self.market.bars(s).this_open) for s,pct_from_avg in self.list_to_buy if s not in self.positions]
                         
