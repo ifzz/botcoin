@@ -6,8 +6,7 @@ from .event import SignalEvent
 
 class Strategy(object):
     """
-    Strategy parent class.
-        position -- current position held (LONG, SHORT or EXIT)
+    Strategy root class.
     """
     def __init__(self, parameters):
         pass
@@ -16,30 +15,50 @@ class Strategy(object):
         return self.__class__.__name__ + " with parameters " + ", ".join([str(i) for i in self.parameters])
 
     def set_market_and_queue(self, events_queue, market):
-        self.waiting_for_execution = False
+        """
+        Used to feed public Market and Queue objects to this class.
+        Not done in __init__ to simplify Strategy object creation
+        outside of engine.
+        """
+        # Main events queue shared with Market, Portfolio and Execution
         self.events_queue = events_queue
+        # Market data object
         self.market = market
+        # List of tradable symbols
         self.symbol_list = self.market.symbol_list
+        # Open positions. Not connected to Portfolio's open_trades
+        # Used to keep track of current state across all symbols
         self.positions = {}
+
+    def generate_signals(self):
+        # Reset pending_signals to remove signals that were not executed on last bar 
+        self.logic()
+
+    # def generate_more_signals(self, fill):
+    #     if self.pending_signals:
+    #         # remove the signal related to this fill
+    #         self.pending_signals.remove(fill.order.signal)
+    #         # after removal, if there are no more pending signals execute buffered ones
+    #         if not self.pending_signals:
+    #             [self.events_queue.put(signal) for signal in self.pending_signals]
 
     def buy(self, symbol, price=None):
         self.positions[symbol] = 'BUY'
-        self.add_signal(symbol, 'BUY', price)
+        self.add_signal_to_queue(symbol, 'BUY', price)
 
     def sell(self, symbol, price=None):
         del(self.positions[symbol])
-        self.add_signal(symbol, 'SELL', price)
+        self.add_signal_to_queue(symbol, 'SELL', price)
 
     def short(self, symbol, price=None):
         self.positions[symbol] = 'SHORT'
-        self.add_signal(symbol, 'SHORT', price)
+        self.add_signal_to_queue(symbol, 'SHORT', price)
 
     def cover(self, symbol, price=None):
         del(self.positions[symbol])
-        self.add_signal(symbol, 'COVER', price)
+        self.add_signal_to_queue(symbol, 'COVER', price)
 
-    def add_signal(self, symbol, sig_type, price=None):
-        self.waiting_for_execution = False
+    def add_signal_to_queue(self, symbol, sig_type, price):
         price = price or self.market.bars(symbol).this_close
         signal = SignalEvent(symbol, sig_type, price)
         self.events_queue.put(signal)
@@ -67,7 +86,7 @@ class RandomBuyStrategy(Strategy):
         self.hold = parameters[1]
         self.floating_interval = self.interval
 
-    def generate_signals(self):
+    def logic(self):
         for s in self.symbol_list:
             if self.floating_interval == 0:
                 if not self.positions[s]:
@@ -85,7 +104,7 @@ class MACrossStrategy(Strategy):
         self.fast = parameters[0]
         self.slow = parameters[1]
 
-    def generate_signals(self):
+    def logic(self):
         for s in self.symbol_list:
             slow = self.market.bars(s, self.slow).close
             fast = self.market.bars(s, self.fast).close
@@ -104,7 +123,7 @@ class BBStrategy(Strategy):
         self.length = parameters[0]
         self.k = parameters[1]
 
-    def generate_signals(self):
+    def logic(self):
         for s in self.symbol_list:
             bars = self.market.bars(s, self.length)
 
@@ -126,7 +145,7 @@ class DonchianStrategy(Strategy):
         self.upper = parameters[0]
         self.lower = parameters[1]
 
-    def generate_signals(self):
+    def logic(self):
         for s in self.symbol_list:
             bars_upper = self.market.bars(s, self.upper+1).high
             bars_lower = self.market.bars(s, self.lower+1).low
@@ -169,22 +188,16 @@ class MeanRevertingWeeklyStrategy(Strategy):
                     list_pct_from_avg.append((s, (avg-bars.this_close)/avg))   
             return list_pct_from_avg
 
-        def generate_signals(self):
-            if not self.waiting_for_execution:
+        def logic(self):
                 list_pct_from_avg = self.create_ordered_list()
                 # Generating signals for the extremes in the list
                 if list_pct_from_avg:
                     ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
-                    self.list_to_buy = ordered_list[0:self.max_positions]
-                    list_to_sell = [s for s in self.positions if s not in self.list_to_buy]
+                    list_to_buy = ordered_list[0:self.max_positions]
+                    list_to_sell = [s for s in self.positions if s not in list_to_buy]
 
                     # selling on open of this bar
                     [self.sell(s, self.market.bars(s).this_open) for s in list_to_sell]
 
-                    self.waiting_for_execution = True
-                    return
-
-            elif self.waiting_for_execution:
-                #, self.market.bars(s).this_open
-                [self.buy(s, self.market.bars(s).this_open) for s,pct_from_avg in self.list_to_buy if s not in self.positions]
+                    [self.buy(s, self.market.bars(s).this_open) for s,pct_from_avg in list_to_buy if s not in self.positions]
                         

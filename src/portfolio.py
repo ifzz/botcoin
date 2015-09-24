@@ -38,10 +38,12 @@ class Portfolio(object):
         for symbol in market.symbol_list:
             if symbol in ('cash', 'commission', 'total', 'returns', 'equity_curve', 'datetime'):
                 raise ValueError("A symbol has an invalid name (e.g. 'cash', 'commission', etc)")
+        # Main events queue shared with Market, Strategy and Execution
         self.events_queue = events_queue
+        # Market data object
         self.market = market
 
-    def update_positions_and_holdings(self):
+    def update_from_market(self):
         """Used to add new position and holdings to portfolio, triggered by a new market signal"""
         
         if self.pending_orders:
@@ -157,7 +159,7 @@ class Portfolio(object):
             self.pending_orders.add(order)
             self.events_queue.put(order)
 
-    def consume_fill_event(self, fill):
+    def update_from_fill(self, fill):
         logging.debug(str(fill))
 
         if not fill.type == 'FILL':

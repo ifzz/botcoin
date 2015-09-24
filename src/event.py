@@ -58,6 +58,7 @@ class OrderEvent(Event):
             raise TypeError("signal is not instance of SignalEvent")
 
         self.type = 'ORDER'
+        self.signal = signal
         self.symbol = symbol
         self.quantity = quantity
         self.direction = direction
@@ -96,10 +97,9 @@ class FillEvent(Event):
         if not isinstance(order, OrderEvent):
             raise TypeError("order is not instance of OrderEvent")
 
-        
         self.type = 'FILL'
-        self.datetime = datetime
         self.order = order
+        self.datetime = datetime
         self.symbol = order.symbol
         self.quantity = quantity
         self.cost = cost
@@ -107,5 +107,3 @@ class FillEvent(Event):
 
     def __str__(self):
         return "Fill - {}:{}:{}".format(self.symbol,str(self.quantity),str(self.cost))
-
-            

@@ -34,30 +34,23 @@ class TradingEngine():
             try:
                 event = self.events_queue.get(False)
             except queue.Empty:
-                try:
-                    if self.strategy.waiting_for_execution:
-                        self.strategy.generate_signals()
-                        event = self.events_queue.get(False)
-                    else:
-                        break
-                except AttributeError:
-                    break
+                break
 
-            if event.type == 'MARKET':
+            if event.type == "MARKET":
                 self.strategy.generate_signals()
-                self.portfolio.update_positions_and_holdings()
+                self.portfolio.update_from_market()
 
-            elif event.type == 'SIGNAL':
+            elif event.type == "SIGNAL":
                 self.portfolio.generate_orders(event)
 
-            elif event.type == 'ORDER':
+            elif event.type == "ORDER":
                 self.broker.execute_order(event)
 
-            elif event.type == 'FILL':
-                self.portfolio.consume_fill_event(event)
+            elif event.type == "FILL":
+                self.portfolio.update_from_fill(event)
 
             else:
-                raise TypeError("Unknown event type")
+                raise TypeError("The fuck is this?")
 
 
 class BacktestManager(object):

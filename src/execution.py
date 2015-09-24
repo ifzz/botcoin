@@ -6,7 +6,9 @@ class Execution(object):
 
 class BacktestExecution(Execution):
     def __init__(self, events_queue, market):
+        # Main events queue shared with Market, Portfolio and Strategy
         self.events_queue = events_queue
+        # Market data object
         self.market = market
 
     def execute_order(self, order):
