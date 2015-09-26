@@ -14,7 +14,7 @@ class Strategy(object):
     def __str__(self):
         return self.__class__.__name__ + " with parameters " + ", ".join([str(i) for i in self.parameters])
 
-    def set_market_and_queue(self, events_queue, market):
+    def set_modules(self, events_queue, market):
         """
         Used to feed public Market and Queue objects to this class.
         Not done in __init__ to simplify Strategy object creation

@@ -6,7 +6,7 @@ import sys
 
 import settings
 from src.data import yahoo_api
-from src.engine import BacktestManager
+from src.backtest import BacktestManager
 from src.strategy import RandomBuyStrategy, MACrossStrategy, BBStrategy, DonchianStrategy, MeanRevertingWeeklyStrategy
 from src.portfolio import Portfolio
 
@@ -35,7 +35,7 @@ def main():
 
     print(backtest.results)
 
-    print(backtest.engines[0].performance['all_trades'])
+    print(backtest.portfolios[0].performance['all_trades'])
 
     backtest.plot_results()
 

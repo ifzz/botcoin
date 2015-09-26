@@ -3,10 +3,14 @@ import logging
 from math import floor
 import queue
 
+import numpy as np
 import pandas as pd
 
+from .data import MarketData
 from .event import MarketEvent, SignalEvent, OrderEvent
+from .execution import Execution
 import settings
+from .strategy import Strategy
 from .trade import Trade
 
 class Portfolio(object):
@@ -33,15 +37,46 @@ class Portfolio(object):
         self.max_long_pos = max_long_pos or settings.MAX_LONG_POSITIONS
         self.max_short_pos = max_short_pos or settings.MAX_SHORT_POSITIONS
 
-    def set_market_and_queue(self, events_queue, market):
+    def set_modules(self, events_queue, market, strategy, broker):
+        if (not isinstance(market, MarketData) or
+            not isinstance(events_queue, queue.Queue) or
+            not isinstance(strategy, Strategy) or
+            not isinstance(broker, Execution)):
+            raise TypeError("Improper parameter type on TradingEngine.__init__()")
+
         # check for symbol names that would conflict with columns used in holdings and positions
         for symbol in market.symbol_list:
             if symbol in ('cash', 'commission', 'total', 'returns', 'equity_curve', 'datetime'):
                 raise ValueError("A symbol has an invalid name (e.g. 'cash', 'commission', etc)")
+
         # Main events queue shared with Market, Strategy and Execution
         self.events_queue = events_queue
-        # Market data object
         self.market = market
+        self.strategy = strategy
+        self.broker = broker
+
+    def run_cycle(self):
+        while True:
+            try:
+                event = self.events_queue.get(False)
+            except queue.Empty:
+                break
+
+            if event.type == "MARKET":
+                self.strategy.generate_signals()
+                self.update_from_market()
+
+            elif event.type == "SIGNAL":
+                self.generate_orders(event)
+
+            elif event.type == "ORDER":
+                self.broker.execute_order(event)
+
+            elif event.type == "FILL":
+                self.update_from_fill(event)
+
+            else:
+                raise TypeError("The fuck is this?")
 
     def update_from_market(self):
         """Used to add new position and holdings to portfolio, triggered by a new market signal"""
@@ -179,10 +214,6 @@ class Portfolio(object):
 
         self.current_holdings['commission'] += fill.commission
         self.current_holdings['cash'] -= (fill.cost + fill.commission)
-        
-        # This is now being computed in update_positions_and_holdings instead of here 
-        # self.current_holdings[fill.symbol] += fill.cost
-        # self.current_holdings['total'] -= (fill.commission)
 
     def verify_consistency(self, open_long, open_short):
         """ Checks for problematic values in current holding and position """
@@ -270,3 +301,75 @@ class Portfolio(object):
 
         return holding
 
+    def calc_performance(self):
+        """
+        Calculates multiple performance stats given a portfolio object.
+        """
+
+        if not self.all_holdings:
+            raise ValueError("Portfolio with empty holdings")
+        results = {}
+
+        # Saving all trades
+        results['all_trades'] =pd.DataFrame(
+            [(
+                t.symbol,
+                t.result,
+                t.open_datetime,
+                t.close_datetime,
+                t.open_cost,
+                t.close_cost,
+                t.open_price,
+                t.close_price,
+            ) for t in self.all_trades],
+            columns=['symbol', 'returns', 'open_datetime', 'close_datetime', 
+                     'open_cost', 'close_cost', 'open_price', 'close_price'],
+        )
+
+        results['dangerous_trades'] = results['all_trades'][
+            results['all_trades']['returns'] >
+            sum(results['all_trades']['returns'])*settings.THRESHOLD_DANGEROUS_TRADE
+        ]
+
+        # Saving portfolio.all_positions in performance
+        curve = pd.DataFrame(self.all_positions)
+        curve.set_index('datetime', inplace=True) 
+        results['all_positions'] = curve
+
+        # Saving portfolio.all_holdings in performance
+        curve = pd.DataFrame(self.all_holdings)
+        curve.set_index('datetime', inplace=True) 
+        results['all_holdings'] = curve
+
+        # Creating equity curve
+        curve['returns'] = curve['total'].pct_change()
+        curve['equity_curve'] = (1.0+curve['returns']).cumprod()
+        results['equity_curve'] = curve['equity_curve']
+
+        # Number of days elapsed between first and last bar
+        days = (curve.index[-1]-curve.index[0]).days
+        years = days/365.2425
+
+        # Average bars each year, used to calculate sharpe ratio (N)
+        avg_bars_per_year = len(curve.index)/years # curve.groupby(curve.index.year).count())
+        
+        # Total return
+        results['total_return'] = ((curve['equity_curve'][-1] - 1.0) * 100.0)
+
+        # Annualised return
+        results['ann_return'] = results['total_return'] ** 1/years
+
+        # Sharpe ratio
+        results['sharpe'] = np.sqrt(avg_bars_per_year) * curve['returns'].mean() / curve['returns'].std()
+
+        # Trades statistic
+        results['trades'] = len(self.all_trades)
+        results['trades_per_year'] = results['trades']/years
+        results['pct_trades_profit'] = len([trade for trade in self.all_trades if trade.result > 0])/results['trades']
+        results['pct_trades_loss'] = len([trade for trade in self.all_trades if trade.result <= 0])/results['trades']
+
+        # Dangerous trades that constitute more than THRESHOLD_DANGEROUS_TRADE of returns
+        results['dangerous'] = True if not results['dangerous_trades'].empty else False
+        
+        self.performance = results
+        return results
