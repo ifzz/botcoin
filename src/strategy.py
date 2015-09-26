@@ -1,4 +1,5 @@
 import logging
+import queue
 
 import numpy as np
 
@@ -14,14 +15,7 @@ class Strategy(object):
     def __str__(self):
         return self.__class__.__name__ + " with parameters " + ", ".join([str(i) for i in self.parameters])
 
-    def set_modules(self, events_queue, market):
-        """
-        Used to feed public Market and Queue objects to this class.
-        Not done in __init__ to simplify Strategy object creation
-        outside of engine.
-        """
-        # Main events queue shared with Market, Portfolio and Execution
-        self.events_queue = events_queue
+    def set_market(self, market):
         # Market data object
         self.market = market
         # List of tradable symbols
@@ -31,37 +25,34 @@ class Strategy(object):
         self.positions = {}
 
     def generate_signals(self):
-        # Reset pending_signals to remove signals that were not executed on last bar 
+        self.signals_to_execute = {}
         self.logic()
 
-    # def generate_more_signals(self, fill):
-    #     if self.pending_signals:
-    #         # remove the signal related to this fill
-    #         self.pending_signals.remove(fill.order.signal)
-    #         # after removal, if there are no more pending signals execute buffered ones
-    #         if not self.pending_signals:
-    #             [self.events_queue.put(signal) for signal in self.pending_signals]
+        signals_queue = queue.Queue()
+        for key in sorted(self.signals_to_execute.keys()):
+            signals_queue.put(self.signals_to_execute[key])
+        return signals_queue
 
-    def buy(self, symbol, price=None):
+    def buy(self, symbol, price=None, exec_round=0):
         self.positions[symbol] = 'BUY'
-        self.add_signal_to_queue(symbol, 'BUY', price)
+        self.add_signal_to_queue(symbol, 'BUY', price, exec_round)
 
-    def sell(self, symbol, price=None):
+    def sell(self, symbol, price=None, exec_round=0):
         del(self.positions[symbol])
-        self.add_signal_to_queue(symbol, 'SELL', price)
+        self.add_signal_to_queue(symbol, 'SELL', price, exec_round)
 
-    def short(self, symbol, price=None):
+    def short(self, symbol, price=None, exec_round=0):
         self.positions[symbol] = 'SHORT'
-        self.add_signal_to_queue(symbol, 'SHORT', price)
+        self.add_signal_to_queue(symbol, 'SHORT', price, exec_round)
 
-    def cover(self, symbol, price=None):
+    def cover(self, symbol, price=None, exec_round=0):
         del(self.positions[symbol])
-        self.add_signal_to_queue(symbol, 'COVER', price)
+        self.add_signal_to_queue(symbol, 'COVER', price, exec_round)
 
-    def add_signal_to_queue(self, symbol, sig_type, price):
+    def add_signal_to_queue(self, symbol, sig_type, price, exec_round):
         price = price or self.market.bars(symbol).this_close
         signal = SignalEvent(symbol, sig_type, price)
-        self.events_queue.put(signal)
+        self.signals_to_execute.setdefault(exec_round, []).append(signal)
 
 def avg(prices):
     return np.round(np.mean(prices),3)
@@ -161,7 +152,6 @@ class DonchianStrategy(Strategy):
 
                 bar = self.market.bars(s)
 
-
                 if s in self.positions:
                     if bar.this_low <= lwband:
                         self.sell(s, lwband)
@@ -170,7 +160,7 @@ class DonchianStrategy(Strategy):
                     if bar.this_high >= upband:
                             self.buy(s, upband)
 
-class MeanRevertingWeeklyStrategy(Strategy):
+class BasicMeanRevertingStrategy(Strategy):
 
         def __init__(self, parameters):
             self.parameters = parameters
@@ -189,15 +179,79 @@ class MeanRevertingWeeklyStrategy(Strategy):
             return list_pct_from_avg
 
         def logic(self):
+            list_pct_from_avg = self.create_ordered_list()
+            # Generating signals for the extremes in the list
+            if list_pct_from_avg:
+                ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
+                list_to_buy = [s for s, pct in ordered_list[0:self.max_positions]]
+
+                [self.buy(s, self.market.bars(s).this_open) for s in list_to_buy]
+
+                # selling on open of this bar
+                [self.sell(s, self.market.bars(s).this_close, 2) for s in list_to_buy]
+                    
+class WeeklyMeanRevertingStrategy(Strategy):
+
+        def __init__(self, parameters):
+            self.parameters = parameters
+            self.length = parameters[0]
+            self.max_positions = parameters[1]
+
+        def create_ordered_list(self):
+            # Creates list of pct distance on open
+            list_pct_from_avg = []
+            for s in self.symbol_list:
+                bars = self.market.bars(s, self.length+1)
+                if (len(bars)-1) >= self.length and bars.this_close:
+                    # avg is calculated not using current bar, but past bars
+                    avg = np.mean(bars.close[:-1])
+                    list_pct_from_avg.append((s, (avg-bars.this_close)/avg))   
+            return list_pct_from_avg
+
+        def logic(self):
+            if self.market.bars(self.market.symbol_list[0]).this_datetime.weekday() == 0:
                 list_pct_from_avg = self.create_ordered_list()
                 # Generating signals for the extremes in the list
                 if list_pct_from_avg:
-                    ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
-                    list_to_buy = ordered_list[0:self.max_positions]
-                    list_to_sell = [s for s in self.positions if s not in list_to_buy]
 
-                    # selling on open of this bar
+                    ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
+                    list_to_buy = [s for s, pct_from_avg in ordered_list[0:self.max_positions]]
+                    list_to_sell = [s for s in self.positions]
+
                     [self.sell(s, self.market.bars(s).this_open) for s in list_to_sell]
 
-                    [self.buy(s, self.market.bars(s).this_open) for s,pct_from_avg in list_to_buy if s not in self.positions]
-                        
+                    [self.buy(s, self.market.bars(s).this_open, 1) for s in list_to_buy]
+                    # print(self.market.bars(self.market.symbol_list[0]).this_datetime, len(list_pct_from_avg), list_to_sell, list_to_buy)
+                    # input()
+
+class BasicMeanRevertingStrategy2(Strategy):
+
+        def __init__(self, parameters):
+            self.parameters = parameters
+            self.length = parameters[0]
+            self.max_positions = parameters[1]
+
+        def create_ordered_list(self):
+            # Creates list of pct distance on open
+            list_pct_from_avg = []
+            for s in self.symbol_list:
+                bars = self.market.bars(s, self.length+1)
+                if (len(bars)-1) >= self.length and bars.this_close:
+                    # avg is calculated not using current bar, but past bars
+                    avg = np.mean(bars.close[:-1])
+                    list_pct_from_avg.append((s, (avg-bars.this_close)/avg))   
+            return list_pct_from_avg
+
+        def logic(self):
+            list_pct_from_avg = self.create_ordered_list()
+            # Generating signals for the extremes in the list
+            if list_pct_from_avg:
+                ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
+                list_to_buy = ordered_list[0:self.max_positions]
+                list_to_sell = [s for s in self.positions if s not in list_to_buy]
+
+                # selling on open of this bar
+                [self.sell(s, self.market.bars(s).this_open) for s in list_to_sell]
+
+                [self.buy(s, self.market.bars(s).this_open, 1) for s,pct_from_avg in list_to_buy if s not in self.positions]
+                    

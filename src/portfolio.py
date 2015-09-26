@@ -37,9 +37,8 @@ class Portfolio(object):
         self.max_long_pos = max_long_pos or settings.MAX_LONG_POSITIONS
         self.max_short_pos = max_short_pos or settings.MAX_SHORT_POSITIONS
 
-    def set_modules(self, events_queue, market, strategy, broker):
+    def set_modules(self, market, strategy, broker):
         if (not isinstance(market, MarketData) or
-            not isinstance(events_queue, queue.Queue) or
             not isinstance(strategy, Strategy) or
             not isinstance(broker, Execution)):
             raise TypeError("Improper parameter type on TradingEngine.__init__()")
@@ -49,11 +48,14 @@ class Portfolio(object):
             if symbol in ('cash', 'commission', 'total', 'returns', 'equity_curve', 'datetime'):
                 raise ValueError("A symbol has an invalid name (e.g. 'cash', 'commission', etc)")
 
-        # Main events queue shared with Market, Strategy and Execution
-        self.events_queue = events_queue
+        # Main events queue shared with Market and Execution
+        self.events_queue = queue.Queue()
         self.market = market
         self.strategy = strategy
         self.broker = broker
+
+        self.strategy.set_market(market)
+        self.broker.set_queue_and_market(self.events_queue, market)
 
     def run_cycle(self):
         while True:
@@ -63,8 +65,8 @@ class Portfolio(object):
                 break
 
             if event.type == "MARKET":
-                self.strategy.generate_signals()
                 self.update_from_market()
+                self.release_signals_to_queue()
 
             elif event.type == "SIGNAL":
                 self.generate_orders(event)
@@ -74,6 +76,7 @@ class Portfolio(object):
 
             elif event.type == "FILL":
                 self.update_from_fill(event)
+                self.release_signals_to_queue()
 
             else:
                 raise TypeError("The fuck is this?")
@@ -137,6 +140,15 @@ class Portfolio(object):
                 self.current_holdings['total']
             )
 
+        self.signals_queue = self.strategy.generate_signals()
+
+    def release_signals_to_queue(self):
+        try:
+            for signal in self.signals_queue.get(False):
+                self.events_queue.put(signal)
+        except queue.Empty:
+            pass
+
     def generate_orders(self, signal):
         logging.debug(str(signal))
 
@@ -148,10 +160,13 @@ class Portfolio(object):
 
         # Not trading if there is no volume, or any price == 0.0
         if 0.0 in (bars.this_open, bars.this_high, bars.this_low, bars.this_close, bars.this_vol):
+            logging.debug('Something wrong with last signal')
             return
+    
+        direction = -1 if sig_type in ('SELL','SHORT') else 1
         
         # Execution price adjusted for slippage
-        adj_price = exec_price * (1+settings.MAX_SLIPPAGE)
+        adj_price = np.round(exec_price * (1+settings.MAX_SLIPPAGE*direction),settings.ROUND_DECIMALS)
 
         cur_position = self.current_positions[symbol]
         available_cash = self.current_holdings['cash'] - sum([i.estimated_cost for i in self.pending_orders])
@@ -305,6 +320,19 @@ class Portfolio(object):
         """
         Calculates multiple performance stats given a portfolio object.
         """
+        def drawdown(curve):
+            hwm = [0]
+            eq_idx = curve.index
+            drawdown = pd.Series(index = eq_idx)
+            duration = pd.Series(index = eq_idx)
+
+            # Loop over the index range
+            for t in range(1, len(eq_idx)):
+                cur_hwm = max(hwm[t-1], curve[t])
+                hwm.append(cur_hwm)
+                drawdown[t]= hwm[t] - curve[t]
+                duration[t]= 0 if drawdown[t] == 0 else duration[t-1] + 1
+            return drawdown.max(), duration.max()
 
         if not self.all_holdings:
             raise ValueError("Portfolio with empty holdings")
@@ -370,6 +398,8 @@ class Portfolio(object):
 
         # Dangerous trades that constitute more than THRESHOLD_DANGEROUS_TRADE of returns
         results['dangerous'] = True if not results['dangerous_trades'].empty else False
-        
+
+        results['dd_max'], results['dd_duration'] = drawdown(results['equity_curve'])
+
         self.performance = results
         return results

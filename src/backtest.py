@@ -1,7 +1,6 @@
 import collections
 import datetime
 import logging
-import queue
 
 import pandas as pd
 
@@ -34,17 +33,8 @@ class BacktestManager(object):
         self.portfolios = []
 
         for pair in strat_port_pairs:
-            events_queue = queue.Queue()
-            broker = BacktestExecution(events_queue, self.market)
-
-            strategy = pair['strategy']
-            portfolio = pair['portfolio']
-
-            portfolio.set_modules(events_queue, self.market, strategy, broker)
-            strategy.set_modules(events_queue, self.market)
-
-            self.portfolios.append(portfolio)
-
+            pair['portfolio'].set_modules(self.market, pair['strategy'], BacktestExecution())
+            self.portfolios.append(pair['portfolio'])
 
         logging.info("Backtest {} from {} to {}".format(
             self.market.symbol_list, 
@@ -93,7 +83,8 @@ class BacktestManager(object):
                 portfolio.performance['sharpe'],
                 portfolio.performance['trades'],
                 portfolio.performance['pct_trades_profit'],
-                portfolio.performance['dangerous']
+                portfolio.performance['dangerous'],
+                portfolio.performance['dd_max'],
             ] for portfolio in self.portfolios ],
             columns=[
                 'strategy',
@@ -101,8 +92,9 @@ class BacktestManager(object):
                 'annualised return',
                 'sharpe',
                 '# trades',
-                'profitable trades',
-                'dangerous'
+                'profit %',
+                'dangerous',
+                'max dd',
             ],
         )
 
