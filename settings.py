@@ -50,7 +50,7 @@ COMMISSION_FIXED = 0.0
 COMMISSION_PCT = 0.0008 # IB fixed commission Australia
 
 # Used by portfolio to calculate limit_prices and estimated cost for Orders
-MAX_SLIPPAGE = 0.0001
+MAX_SLIPPAGE = 0.0005
 
 # Max number of concurrent open long positions
 MAX_LONG_POSITIONS = 5

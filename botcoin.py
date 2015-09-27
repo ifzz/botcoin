@@ -13,19 +13,19 @@ from src.portfolio import Portfolio
 def main():
     
     settings.SYMBOL_LIST = settings.ASX_50
-    settings.DATE_FROM = datetime.datetime.strptime("2012", '%Y')
+    settings.DATE_FROM = datetime.datetime.strptime("2015", '%Y')
     settings.DATE_TO = datetime.datetime.strptime("2016", '%Y')
     # settings.DATE_TO = datetime.datetime.now()  - datetime.timedelta(weeks=52)
     # settings.DATE_FROM = datetime.datetime.now()  - datetime.timedelta(weeks=52)
     # settings.DATE_TO = datetime.datetime.now()
 
 
-    strategy_parameters = set()
-    for i in range(5,115,10):
-        for j in range(1,15,1):
-            strategy_parameters.add((i,j))
-    strategy_parameters = list(strategy_parameters)
-    strategies = [WeeklyMeanRevertingStrategy(params) for params in strategy_parameters]
+    # strategy_parameters = set()
+    # for i in range(1,115,2):
+    #     for j in range(1,15,1):
+    #         strategy_parameters.add((i,j))
+    # strategy_parameters = list(strategy_parameters)
+    # strategies = [WeeklyMeanRevertingStrategy(params) for params in strategy_parameters]
 
     strategies = [WeeklyMeanRevertingStrategy([5,1])]
 

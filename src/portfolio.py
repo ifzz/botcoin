@@ -87,8 +87,7 @@ class Portfolio(object):
         if self.pending_orders:
             logging.warning("New market event arrived while there are pending orders. Shouldn't happen in backtesting.")
 
-        # Can be any bar
-        cur_datetime = self.market.bars(self.market.symbol_list[0]).this_datetime
+        cur_datetime = self.market.this_datetime
 
         # If there is no current position and holding, meaning execution just started
         if not self.current_positions and not self.current_holdings:
@@ -143,17 +142,18 @@ class Portfolio(object):
         self.signals_queue = self.strategy.generate_signals()
 
     def release_signals_to_queue(self):
-        try:
-            for signal in self.signals_queue.get(False):
-                self.events_queue.put(signal)
-        except queue.Empty:
-            pass
+        if not self.pending_orders:
+            try:
+                for signal in self.signals_queue.get(False):
+                    self.events_queue.put(signal)
+            except queue.Empty:
+                pass
 
     def generate_orders(self, signal):
         logging.debug(str(signal))
 
         symbol = signal.symbol
-        sig_type = signal.signal_type
+        direction = signal.direction
         exec_price = signal.exec_price
         
         bars = self.market.bars(symbol)
@@ -163,10 +163,10 @@ class Portfolio(object):
             logging.debug('Something wrong with last signal')
             return
     
-        direction = -1 if sig_type in ('SELL','SHORT') else 1
+        direction_mod = -1 if direction in ('SELL','SHORT') else 1
         
         # Execution price adjusted for slippage
-        adj_price = np.round(exec_price * (1+settings.MAX_SLIPPAGE*direction),settings.ROUND_DECIMALS)
+        adj_price = np.round(exec_price * (1+settings.MAX_SLIPPAGE*direction_mod),settings.ROUND_DECIMALS)
 
         cur_position = self.current_positions[symbol]
         available_cash = self.current_holdings['cash'] - sum([i.estimated_cost for i in self.pending_orders])
@@ -174,7 +174,7 @@ class Portfolio(object):
 
         order = None
 
-        if sig_type in ('BUY', 'SHORT') and cur_position == 0:
+        if direction in ('BUY', 'SHORT') and cur_position == 0:
 
             # Check for max positions
             if (len(self.open_trades) + len(self.pending_orders)) < self.max_long_pos:
@@ -193,16 +193,18 @@ class Portfolio(object):
 
                 # COMMISSION_FIXED remove the fixed ammount from cash,
                 # and COMMISSION_PCT increases the symbol price to reflect the fee
-                quantity = floor( (position_cash-settings.COMMISSION_FIXED) / (adj_price * (1+settings.COMMISSION_PCT)) )
+                quantity = direction_mod * floor( (position_cash-settings.COMMISSION_FIXED) / (adj_price * (1+settings.COMMISSION_PCT)) )
 
                 if quantity > 0.0:
-                    estimated_cost = settings.COMMISSION_FIXED + (quantity * adj_price * (1+settings.COMMISSION_PCT))
-                    order = OrderEvent(signal, symbol, quantity, sig_type, adj_price, estimated_cost)
+                    commission = settings.COMMISSION_FIXED + (settings.COMMISSION_PCT * abs(quantity) * adj_price)
+                    # TODO check below formula for short positions
+                    estimated_cost = commission + (quantity * adj_price)
+                    order = OrderEvent(signal, symbol, quantity, direction, adj_price, estimated_cost)
 
 
-        elif sig_type in ('SELL', 'COVER') and cur_position > 0:
-            quantity = cur_position
-            order = OrderEvent(signal, symbol, quantity, sig_type, adj_price)
+        elif direction in ('SELL', 'COVER') and cur_position != 0:
+            quantity = direction_mod * cur_position
+            order = OrderEvent(signal, symbol, quantity, direction, adj_price)
 
         if order:
             logging.debug(str(order))
@@ -229,6 +231,8 @@ class Portfolio(object):
 
         self.current_holdings['commission'] += fill.commission
         self.current_holdings['cash'] -= (fill.cost + fill.commission)
+
+        self.strategy.update_position_from_fill(fill)
 
     def verify_consistency(self, open_long, open_short):
         """ Checks for problematic values in current holding and position """
@@ -332,7 +336,7 @@ class Portfolio(object):
                 hwm.append(cur_hwm)
                 drawdown[t]= hwm[t] - curve[t]
                 duration[t]= 0 if drawdown[t] == 0 else duration[t-1] + 1
-            return drawdown.max(), duration.max()
+            return drawdown.max()*100, duration.max()
 
         if not self.all_holdings:
             raise ValueError("Portfolio with empty holdings")

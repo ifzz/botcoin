@@ -34,25 +34,27 @@ class Strategy(object):
         return signals_queue
 
     def buy(self, symbol, price=None, exec_round=0):
-        self.positions[symbol] = 'BUY'
         self.add_signal_to_queue(symbol, 'BUY', price, exec_round)
 
     def sell(self, symbol, price=None, exec_round=0):
-        del(self.positions[symbol])
         self.add_signal_to_queue(symbol, 'SELL', price, exec_round)
 
     def short(self, symbol, price=None, exec_round=0):
-        self.positions[symbol] = 'SHORT'
         self.add_signal_to_queue(symbol, 'SHORT', price, exec_round)
 
     def cover(self, symbol, price=None, exec_round=0):
-        del(self.positions[symbol])
         self.add_signal_to_queue(symbol, 'COVER', price, exec_round)
 
     def add_signal_to_queue(self, symbol, sig_type, price, exec_round):
         price = price or self.market.bars(symbol).this_close
         signal = SignalEvent(symbol, sig_type, price)
         self.signals_to_execute.setdefault(exec_round, []).append(signal)
+
+    def update_position_from_fill(self, fill):
+        if fill.direction in ('BUY', 'SHORT'):
+            self.positions[fill.symbol] = fill.direction
+        else:
+            del(self.positions[fill.symbol])
 
 def avg(prices):
     return np.round(np.mean(prices),3)
@@ -209,20 +211,19 @@ class WeeklyMeanRevertingStrategy(Strategy):
             return list_pct_from_avg
 
         def logic(self):
-            if self.market.bars(self.market.symbol_list[0]).this_datetime.weekday() == 0:
+            weekday = self.market.this_datetime.weekday()
+            week_number = self.market.this_datetime.isocalendar()[1]
+            if weekday == 0:
                 list_pct_from_avg = self.create_ordered_list()
                 # Generating signals for the extremes in the list
                 if list_pct_from_avg:
 
                     ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
                     list_to_buy = [s for s, pct_from_avg in ordered_list[0:self.max_positions]]
-                    list_to_sell = [s for s in self.positions]
 
-                    [self.sell(s, self.market.bars(s).this_open) for s in list_to_sell]
+                    [self.sell(s, self.market.bars(s).this_open) for s in self.positions]
 
                     [self.buy(s, self.market.bars(s).this_open, 1) for s in list_to_buy]
-                    # print(self.market.bars(self.market.symbol_list[0]).this_datetime, len(list_pct_from_avg), list_to_sell, list_to_buy)
-                    # input()
 
 class BasicMeanRevertingStrategy2(Strategy):
 

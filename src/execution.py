@@ -13,20 +13,17 @@ class BacktestExecution(Execution):
         self.market = market
 
     def execute_order(self, order):
-        if order.type == 'ORDER':
+        cost = order.quantity * order.limit_price
+        commission = (settings.COMMISSION_PCT * order.limit_price * abs(order.quantity)) + settings.COMMISSION_FIXED
 
-            direction = -1 if order.direction in ('SELL','SHORT') else 1
+        fill_event = FillEvent(
+            order,
+            self.market.this_datetime,
+            order.direction,
+            order.quantity,
+            cost,
+            order.limit_price,
+            commission,
+        )
 
-            quantity = order.quantity * direction
-            cost = order.quantity * order.limit_price * direction
-            commission = (settings.COMMISSION_PCT * order.limit_price * order.quantity) + settings.COMMISSION_FIXED
-
-            fill_event = FillEvent(
-                order,
-                self.market.bars(order.symbol).this_datetime,
-                quantity,
-                cost,
-                commission,
-            )
-
-            self.events_queue.put(fill_event)
+        self.events_queue.put(fill_event)

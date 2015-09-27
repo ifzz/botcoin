@@ -141,12 +141,14 @@ class HistoricalCSV(MarketData):
                 ])
 
                 self.symbol_data[s]['latest_bars'].append(bar)
+
+            self.this_datetime = datetime
             
             return MarketEvent()
 
         except StopIteration:
             self.continue_execution = False
-        
+
     def bars(self, symbol, N=1):
         """
         Returns Bars object containing latest N bars from self._latest_bars

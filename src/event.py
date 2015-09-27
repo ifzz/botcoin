@@ -23,14 +23,14 @@ class SignalEvent(Event):
             If None, last close will be used by portfolio.
     """
     
-    def __init__(self, symbol, signal_type, exec_price):
+    def __init__(self, symbol, direction, exec_price):
         self.type = 'SIGNAL'
         self.symbol = symbol
-        self.signal_type = signal_type
+        self.direction = direction
         self.exec_price = exec_price
 
     def __str__(self):
-        return "Signal - {}:{}:{}".format(self.symbol,self.signal_type,str(self.exec_price))
+        return "Signal - {}:{}:{}".format(self.symbol,self.direction,str(self.exec_price))
 
 
 class OrderEvent(Event):
@@ -79,8 +79,8 @@ class FillEvent(Event):
     the commission of the trade from the brokerage.
     """
 
-    def __init__(self, order, datetime, quantity,
-                 cost, commission):
+    def __init__(self, order, datetime, direction,
+                 quantity, cost, price, commission):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
         quantity, direction, cost of fill and an optional 
@@ -99,10 +99,12 @@ class FillEvent(Event):
 
         self.type = 'FILL'
         self.order = order
-        self.datetime = datetime
         self.symbol = order.symbol
+        self.datetime = datetime
+        self.direction = direction
         self.quantity = quantity
         self.cost = cost
+        self.price = price
         self.commission = commission
 
     def __str__(self):
