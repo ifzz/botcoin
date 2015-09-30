@@ -23,6 +23,8 @@ class Strategy(object):
         # Open positions. Not connected to Portfolio's open_trades
         # Used to keep track of current state across all symbols
         self.positions = {}
+        # Entry price for open positions
+        self.entry_price = {}
 
     def generate_signals(self):
         self.signals_to_execute = {}
@@ -53,8 +55,32 @@ class Strategy(object):
     def update_position_from_fill(self, fill):
         if fill.direction in ('BUY', 'SHORT'):
             self.positions[fill.symbol] = fill.direction
+            self.entry_price[fill.symbol] = fill.price
         else:
             del(self.positions[fill.symbol])
+            del(self.entry_price[fill.symbol])
+
+    def take_profit(self, profit_pct):
+        for s in self.positions:
+            if self.positions[s] in ('SHORT'):
+                exit_price = self.entry_price[s]*(1-profit_pct)
+                if self.market.bars(s).this_low <= exit_price:
+                    self.cover(s, exit_price)
+            elif self.positions[s] in ('BUY'):
+                exit_price = self.entry_price[s]*(1+profit_pct)
+                if self.market.bars(s).this_high >= exit_price:
+                    self.sell(s, exit_price)
+
+    def stop_loss(self, loss_pct):
+        for s in self.positions:
+            if self.positions[s] in ('BUY'):
+                exit_price = self.entry_price[s]*(1-loss_pct)
+                if self.market.bars(s).this_low <= exit_price:
+                    self.sell(s, exit_price)
+            elif self.positions[s] in ('SHORT'):
+                exit_price = self.entry_price[s]*(1+loss_pct)
+                if self.market.bars(s).this_high >= exit_price:
+                    self.cover(s, exit_price)
 
 def avg(prices):
     return np.round(np.mean(prices),3)
@@ -198,6 +224,10 @@ class WeeklyMeanRevertingStrategy(Strategy):
             self.parameters = parameters
             self.length = parameters[0]
             self.max_positions = parameters[1]
+            self.take_profit_pct = parameters[2]
+            self.stop_loss_pct = parameters[3]
+
+            self.last_week = None
 
         def create_ordered_list(self):
             # Creates list of pct distance on open
@@ -212,18 +242,35 @@ class WeeklyMeanRevertingStrategy(Strategy):
 
         def logic(self):
             weekday = self.market.this_datetime.weekday()
-            week_number = self.market.this_datetime.isocalendar()[1]
-            if weekday == 0:
-                list_pct_from_avg = self.create_ordered_list()
-                # Generating signals for the extremes in the list
-                if list_pct_from_avg:
+            this_week = self.market.this_datetime.isocalendar()[1]
 
-                    ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
-                    list_to_buy = [s for s, pct_from_avg in ordered_list[0:self.max_positions]]
+            # Beggining of the week
+            if self.last_week != this_week:
 
+                # If there are positions leftover from last week
+                # e.g. when the market doesn't open past friday
+                # will sell on this open
+                if self.positions:
                     [self.sell(s, self.market.bars(s).this_open) for s in self.positions]
 
+                list_pct_from_avg = self.create_ordered_list()
+
+                if list_pct_from_avg:
+                    ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
+                    list_to_buy = [s for s, pct_from_avg in ordered_list[0:self.max_positions]]
+                    # Buy with this open price
                     [self.buy(s, self.market.bars(s).this_open, 1) for s in list_to_buy]
+
+                    self.last_week = this_week
+
+            # Middle of the week
+            self.take_profit(self.take_profit_pct)
+            
+            # End of the week
+            if weekday == 4:
+                # Sell on market close
+                [self.sell(s, self.market.bars(s).this_close) for s in self.positions]
+
 
 class BasicMeanRevertingStrategy2(Strategy):
 

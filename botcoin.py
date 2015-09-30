@@ -4,6 +4,8 @@ import logging
 from os.path import dirname
 import sys
 
+import numpy as np
+
 import settings
 from src.data import yahoo_api
 from src.backtest import BacktestManager
@@ -20,14 +22,14 @@ def main():
     # settings.DATE_TO = datetime.datetime.now()
 
 
-    # strategy_parameters = set()
-    # for i in range(1,115,2):
-    #     for j in range(1,15,1):
-    #         strategy_parameters.add((i,j))
-    # strategy_parameters = list(strategy_parameters)
-    # strategies = [WeeklyMeanRevertingStrategy(params) for params in strategy_parameters]
+    strategy_parameters = set()
+    for i in np.arange(0.005,0.1,0.005):
+        for j in np.arange(0.005,0.1,0.005):
+            strategy_parameters.add((i,j))
+    strategy_parameters = list(strategy_parameters)
+    strategies = [WeeklyMeanRevertingStrategy([5,1,i[0],i[1]]) for i in strategy_parameters]
 
-    strategies = [WeeklyMeanRevertingStrategy([5,1])]
+    # strategies = [WeeklyMeanRevertingStrategy([5,1,0.075])]
 
     pairs = [{'portfolio':Portfolio(max_long_pos=strategy.parameters[1], position_size=1/strategy.parameters[1]), 'strategy':strategy} for strategy in strategies]
 

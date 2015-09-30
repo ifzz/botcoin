@@ -204,7 +204,10 @@ class Portfolio(object):
 
         elif direction in ('SELL', 'COVER') and cur_position != 0:
             quantity = direction_mod * cur_position
-            order = OrderEvent(signal, symbol, quantity, direction, adj_price)
+            # Checks if there is a similar order in pending_orders to protect
+            # against repeated signals coming from strategy
+            if not [order for order in self.pending_orders if (order.symbol == symbol and order.quantity == quantity)]:
+                order = OrderEvent(signal, symbol, quantity, direction, adj_price)
 
         if order:
             logging.debug(str(order))
