@@ -11,7 +11,7 @@ from .portfolio import Portfolio
 import settings
 
 
-class BacktestManager(object):
+class Backtest(object):
     def __init__(self, strat_port_pairs, symbol_list=None, date_from=None, 
                  date_to=None, data_dir=None, start_automatically=True):
 
@@ -77,7 +77,7 @@ class BacktestManager(object):
         # Calc results dataframe that contains performance for all portfolios
         self.results = pd.DataFrame(
             [[
-                portfolio.strategy.parameters,
+                portfolio.strategy.args,
                 portfolio.performance['total_return'],
                 portfolio.performance['ann_return'],
                 portfolio.performance['sharpe'],
