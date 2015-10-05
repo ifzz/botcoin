@@ -155,43 +155,61 @@ class HistoricalCSV(MarketData):
 
         N can't be 0, will be automatically changed to 1
         """
-        N=1 if N==0 else N            
+        N=1 if N==0 else N
         return Bars(self.symbol_data[symbol]['latest_bars'][-N:])
 
-class Bars(object):
+    def past_bars(self, symbol, N=1):
+        """Returns Bars in self._latest_bars discarding the very last result
+        to simulate perspective on open
+        """
+        N=1 if N==0 else N
+        return Bars(self.symbol_data[symbol]['latest_bars'][-N:-1]) if N==1 else None
 
+    def today(self, symbol):
+        """Returns last Bar in self._latest_bars"""
+        return Bar(self.symbol_data[symbol]['latest_bars'][-1:])
+
+
+class Bar(object):
+    """Represents a single bar, usually today"""
     def __init__(self,latest_bars):
         if not latest_bars:
             raise ValueError("latest_bars needed to create Bars object")
 
+        self.datetime = latest_bars[-1][0]
+        self.open = latest_bars[-1][1]
+        self.high = latest_bars[-1][2]
+        self.low = latest_bars[-1][3]
+        self.close = latest_bars[-1][4]
+        self.vol = latest_bars[-1][5]
+
+class Bars(object):
+    """Multiple Bars, usually from past data"""
+    def __init__(self,latest_bars):
+        if not latest_bars:
+            raise ValueError("latest_bars needed to create Bars object")
         self._latest_bars = latest_bars
 
-        self.datetime = [i[0] for i in self._latest_bars]
-        self.this_datetime = self._latest_bars[-1][0]
+        self.datetime = [i[0] for i in latest_bars]
+        self.today_datetime = latest_bars[-1][0]
 
-        self.open = [i[1] for i in self._latest_bars]
-        self.this_open = self._latest_bars[-1][1]
+        self.open = [i[1] for i in latest_bars]
+        self.today_open = self._latest_bars[-1][1]
 
-        self.high = [i[2] for i in self._latest_bars]
-        self.this_high = self._latest_bars[-1][2]
+        self.high = [i[2] for i in latest_bars]
+        self.today_high = latest_bars[-1][2]
 
-        self.low = [i[3] for i in self._latest_bars]
-        self.this_low = self._latest_bars[-1][3]
+        self.low = [i[3] for i in latest_bars]
+        self.today_low = latest_bars[-1][3]
 
-        self.close = [i[4] for i in self._latest_bars]
-        self.this_close = self._latest_bars[-1][4]
+        self.close = [i[4] for i in latest_bars]
+        self.today_close = latest_bars[-1][4]
 
-        self.vol = [i[5] for i in self._latest_bars]
-        self.this_vol = self._latest_bars[-1][5]
+        self.vol = [i[5] for i in latest_bars]
+        self.today_vol = latest_bars[-1][5]
 
     def __len__(self):
         return len(self._latest_bars)
-
-    def get_all_prices(self):
-        return self.open, self.high, self.low, self.close
-
-    def get_all(self):
-        return self.datetime, self.open, self.high, self.low, self.close, self.vol
 
 
 def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=False):

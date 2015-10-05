@@ -110,7 +110,7 @@ class Portfolio(object):
             open_long,open_short = 0,0
             for s in self.market.symbol_list:
                 # Approximation to the real value
-                market_value = self.current_positions[s] * self.market.bars(s).this_close
+                market_value = self.current_positions[s] * self.market.today(s).close
                 
                 if market_value < 0:
                     open_short += 1
@@ -156,10 +156,10 @@ class Portfolio(object):
         direction = signal.direction
         exec_price = signal.exec_price
         
-        bars = self.market.bars(symbol)
+        bar = self.market.today(symbol)
 
         # Not trading if there is no volume, or any price == 0.0
-        if 0.0 in (bars.this_open, bars.this_high, bars.this_low, bars.this_close, bars.this_vol):
+        if 0.0 in (bar.open, bar.high, bar.low, bar.close, bar.vol):
             logging.debug('Something wrong with last signal')
             return
     
@@ -273,15 +273,15 @@ class Portfolio(object):
 
         # "Fake close" trades that are open, so they can be part of trades performance stats
         for trade in self.open_trades.values():
-            bars = self.market.bars(trade.symbol)
+            bar = self.market.today(trade.symbol)
 
             direction = 1 if trade.direction in ('SELL','SHORT') else -1
             quantity = trade.quantity * direction
 
             self.all_trades.append(trade.fake_close_trade(
-                bars.this_datetime,
-                quantity * bars.this_close,
-            ))                
+                bar.datetime,
+                quantity * bar.close,
+            ))
 
     def construct_position(self, cur_datetime, current_positions={}):
         """

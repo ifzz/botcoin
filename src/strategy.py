@@ -48,7 +48,7 @@ class Strategy(object):
         self.add_signal_to_queue(symbol, 'COVER', price, exec_round)
 
     def add_signal_to_queue(self, symbol, sig_type, price, exec_round):
-        price = price or self.market.bars(symbol).this_close
+        price = price or self.market.today(symbol).close
         signal = SignalEvent(symbol, sig_type, price)
         self.signals_to_execute.setdefault(exec_round, []).append(signal)
 
@@ -93,28 +93,6 @@ def bbands(prices, k):
     lwband = ave - (sd*k)
     return np.round(ave,3), np.round(upband,3), np.round(lwband,3)
 
-class RandomBuyStrategy(Strategy):
-    """
-    Buys the asset every 1-n candles, and holds it for an entire candle
-
-    position -- current position held (LONG, SHORT or EXIT)
-    """
-    def __init__(self, *args):
-        self.args = args
-        self.interval = args[0]
-        self.hold = args[1]
-        self.floating_interval = self.interval
-
-    def logic(self):
-        for s in self.symbol_list:
-            if self.floating_interval == 0:
-                if s in self.positions:
-                    self.floating_interval = self.interval
-                    self.sell(s)
-                else:
-                    self.floating_interval = self.hold  
-                    self.buy(s)
-            self.floating_interval -= 1
 
 class MACrossStrategy(Strategy):
     def __init__(self, *args):
@@ -130,7 +108,6 @@ class MACrossStrategy(Strategy):
                 if s in self.positions:
                     if avg(fast) <= avg(slow):
                         self.sell(s)
-
                 else:
                     if avg(fast) >= avg(slow):
                         self.buy(s)
@@ -177,94 +154,12 @@ class DonchianStrategy(Strategy):
                     len(bars_lower[:-1]) != self.lower):
                     raise AssertionError("{} {} {} {}".format(len(bars_upper.high[:-1]), self.upper, len(bars_lower.low[:-1]), self.lower))
 
-                bar = self.market.bars(s)
+                bar = self.market.today(s)
 
                 if s in self.positions:
-                    if bar.this_low <= lwband:
+                    if bar.low <= lwband:
                         self.sell(s, lwband)
 
                 else:
-                    if bar.this_high >= upband:
+                    if bar.high >= upband:
                             self.buy(s, upband)
-
-class BasicMeanRevertingStrategy(Strategy):
-
-        def __init__(self, *args):
-            self.args = args
-            self.length = args[0]
-            self.max_positions = args[1]
-
-        def create_ordered_list(self):
-            # Creates list of pct distance on open
-            list_pct_from_avg = []
-            for s in self.symbol_list:
-                bars = self.market.bars(s, self.length+1)
-                if (len(bars)-1) >= self.length and bars.this_close:
-                    # avg is calculated not using current bar, but past bars
-                    avg = np.mean(bars.close[:-1])
-                    list_pct_from_avg.append((s, (avg-bars.close[-2])/avg))
-            return list_pct_from_avg
-
-        def logic(self):
-            list_pct_from_avg = self.create_ordered_list()
-            # Generating signals for the extremes in the list
-            if list_pct_from_avg:
-                ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1], reverse=True)
-                list_to_buy = [s for s, pct in ordered_list[0:self.max_positions]]
-                
-                [self.buy(s, self.market.bars(s).this_open) for s in list_to_buy]
-
-                [self.sell(s, self.market.bars(s).this_close, 2) for s in list_to_buy]
-                    
-class WeeklyMeanRevertingStrategy(Strategy):
-
-        def __init__(self, *args):
-            self.args = args
-            self.length = args[0]
-            self.max_positions = args[1]
-            self.take_profit_pct = args[2] if 2 in args else 1.00
-            self.stop_loss_pct = args[3] if 3 in args else 1.00
-
-            self.last_week = None
-
-        def create_ordered_list(self):
-            # Creates list of pct distance on open
-            list_pct_from_avg = []
-            for s in self.symbol_list:
-                bars = self.market.bars(s, self.length+1)
-                if (len(bars)-1) >= self.length and bars.this_close:
-                    # avg is calculated not using current bar, but past bars
-                    avg = np.mean(bars.close[:-1])
-                    list_pct_from_avg.append((s, (avg-bars.this_close)/avg))
-            return list_pct_from_avg
-
-        def logic(self):
-            weekday = self.market.this_datetime.weekday()
-            this_week = self.market.this_datetime.isocalendar()[1]
-
-            # Beggining of the week
-            if self.last_week != this_week:
-
-                # If there are positions leftover from last week
-                # e.g. when the market doesn't open past friday
-                # will sell on this open
-                if self.positions:
-                    [self.sell(s, self.market.bars(s).this_open) for s in self.positions]
-
-                list_pct_from_avg = self.create_ordered_list()
-
-                if list_pct_from_avg:
-                    ordered_list = sorted(list_pct_from_avg, key=lambda tup: tup[1])
-                    list_to_buy = [s for s, pct_from_avg in ordered_list[0:self.max_positions]]
-                    # Buy with this open price
-                    [self.buy(s, self.market.bars(s).this_open, 1) for s in list_to_buy]
-
-                    self.last_week = this_week
-
-            # Middle of the week
-            self.take_profit(self.take_profit_pct)
-            
-            # End of the week
-            if weekday == 4:
-                # Sell on market close
-                [self.sell(s, self.market.bars(s).this_close) for s in self.positions]
