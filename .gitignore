@@ -3,3 +3,4 @@ venv/*
 venv3/*
 __pycache__
 data/
+custom.py
