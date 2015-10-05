@@ -163,12 +163,21 @@ class HistoricalCSV(MarketData):
         to simulate perspective on open
         """
         N=1 if N==0 else N
-        return Bars(self.symbol_data[symbol]['latest_bars'][-N:-1]) if N==1 else None
+        if len(self.symbol_data[symbol]['latest_bars'][-(N+1):-1]) > 0:
+            return Bars(self.symbol_data[symbol]['latest_bars'][-(N+1):-1])
+        else:
+            return []
 
     def today(self, symbol):
         """Returns last Bar in self._latest_bars"""
         return Bar(self.symbol_data[symbol]['latest_bars'][-1:])
 
+    def yesterday(self, symbol):
+        """Returns last Bar in self._latest_bars"""
+        if len(self.symbol_data[symbol]['latest_bars'][-2:-1]) > 0:
+            return Bar(self.symbol_data[symbol]['latest_bars'][-2:-1])
+        else:
+            return []
 
 class Bar(object):
     """Represents a single bar, usually today"""
@@ -182,6 +191,9 @@ class Bar(object):
         self.low = latest_bars[-1][3]
         self.close = latest_bars[-1][4]
         self.vol = latest_bars[-1][5]
+
+    def __len__(self):
+        return 1
 
 class Bars(object):
     """Multiple Bars, usually from past data"""

@@ -60,27 +60,29 @@ class Strategy(object):
             del(self.positions[fill.symbol])
             del(self.entry_price[fill.symbol])
 
-    def take_profit(self, profit_pct):
-        for s in self.positions:
-            if self.positions[s] in ('SHORT'):
-                exit_price = self.entry_price[s]*(1-profit_pct)
-                if self.market.bars(s).this_low <= exit_price:
-                    self.cover(s, exit_price)
-            elif self.positions[s] in ('BUY'):
-                exit_price = self.entry_price[s]*(1+profit_pct)
-                if self.market.bars(s).this_high >= exit_price:
-                    self.sell(s, exit_price)
+    # def take_profit(self, s, profit_pct, entry_price=None, exec_round=0):
+    #     entry_price = entry_price or self.entry_price[s]
 
-    def stop_loss(self, loss_pct):
-        for s in self.positions:
-            if self.positions[s] in ('BUY'):
-                exit_price = self.entry_price[s]*(1-loss_pct)
-                if self.market.bars(s).this_low <= exit_price:
-                    self.sell(s, exit_price)
-            elif self.positions[s] in ('SHORT'):
-                exit_price = self.entry_price[s]*(1+loss_pct)
-                if self.market.bars(s).this_high >= exit_price:
-                    self.cover(s, exit_price)
+    #     if self.positions[s] in ('SHORT'):
+    #         exit_price = entry_price*(1-profit_pct)
+    #         if self.market.bars(s).this_low <= exit_price:
+    #             self.cover(s, exit_price, exec_round)
+    #     elif self.positions[s] in ('BUY'):
+    #         exit_price = entry_price*(1+profit_pct)
+    #         if self.market.bars(s).this_high >= exit_price:
+    #             self.sell(s, exit_price, exec_round)
+
+    # def stop_loss(self, s, loss_pct, entry_price=None, exec_round=0):
+    #     entry_price = entry_price or self.entry_price[s]
+
+    #     if self.positions[s] in ('BUY'):
+    #         exit_price = entry_price*(1-loss_pct)
+    #         if self.market.bars(s).this_low <= exit_price:
+    #             self.sell(s, exit_price, exec_round)
+    #     elif self.positions[s] in ('SHORT'):
+    #         exit_price = entry_price*(1+loss_pct)
+    #         if self.market.bars(s).this_high >= exit_price:
+    #             self.cover(s, exit_price, exec_round)
 
 def avg(prices):
     return np.round(np.mean(prices),3)
@@ -125,13 +127,14 @@ class BollingerBandStrategy(Strategy):
             if len(bars) >= self.length:
                 
                 average, upband, lwband = bbands(bars.close, self.k)
-                
+                today = self.market.today(s)
+
                 if s in self.positions:
-                    if bars.this_high >= average:
+                    if today.high >= average:
                         self.sell(s, average)
 
                 else:
-                    if bars.this_low <= lwband:
+                    if today.low <= lwband:
                         self.buy(s, lwband)
 
 class DonchianStrategy(Strategy):

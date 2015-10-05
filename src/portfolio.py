@@ -34,8 +34,8 @@ class Portfolio(object):
 
         self.initial_capital = initial_capital or settings.INITIAL_CAPITAL
         self.position_size = position_size or settings.POSITION_SIZE
-        self.max_long_pos = max_long_pos or settings.MAX_LONG_POSITIONS
-        self.max_short_pos = max_short_pos or settings.MAX_SHORT_POSITIONS
+        self.max_long_pos = floor(max_long_pos or settings.MAX_LONG_POSITIONS)
+        self.max_short_pos = floor(max_short_pos or settings.MAX_SHORT_POSITIONS)
 
     def set_modules(self, market, strategy, broker):
         if (not isinstance(market, MarketData) or
@@ -395,13 +395,13 @@ class Portfolio(object):
         results['ann_return'] = results['total_return'] ** 1/years
 
         # Sharpe ratio
-        results['sharpe'] = np.sqrt(avg_bars_per_year) * curve['returns'].mean() / curve['returns'].std()
+        results['sharpe'] = np.sqrt(avg_bars_per_year) * curve['returns'].mean() / curve['returns'].std() if curve['returns'].mean() else 0.0
 
         # Trades statistic
         results['trades'] = len(self.all_trades)
         results['trades_per_year'] = results['trades']/years
-        results['pct_trades_profit'] = len([trade for trade in self.all_trades if trade.result > 0])/results['trades']
-        results['pct_trades_loss'] = len([trade for trade in self.all_trades if trade.result <= 0])/results['trades']
+        results['pct_trades_profit'] = len([trade for trade in self.all_trades if trade.result > 0])/results['trades'] if results['trades'] else 0.0
+        results['pct_trades_loss'] = len([trade for trade in self.all_trades if trade.result <= 0])/results['trades'] if results['trades'] else 0.0
 
         # Dangerous trades that constitute more than THRESHOLD_DANGEROUS_TRADE of returns
         results['dangerous'] = True if not results['dangerous_trades'].empty else False
