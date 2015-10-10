@@ -1,11 +1,32 @@
 #!/usr/bin/env python
-import settings
-from src.data import yahoo_api, MarketData, HistoricalCSV
-from src.backtest import Backtest
-from src.event import Event, MarketEvent, SignalEvent, OrderEvent, FillEvent
-from src.execution import Execution, BacktestExecution
-from src.strategy import Strategy, MACrossStrategy, BollingerBandStrategy, DonchianStrategy
-from src.portfolio import Portfolio
-
+import argparse
+import importlib
+import logging
+import os
 import sys
-sys.path.append(settings.BASE_DIR)
+
+import settings
+from src.data import *
+from src.backtest import *
+from src.event import *
+from src.execution import *
+from src.strategy import *
+from src.portfolio import *
+
+
+if __name__ == '__main__':
+    sys.path.append(settings.BASE_DIR)
+
+    parser = argparse.ArgumentParser(description='Botcoin script execution.')
+    parser.add_argument('-f', '--file', required=False, nargs='?', help='file with strategy scripts')
+    args = parser.parse_args()
+
+    try:
+        if args.file:
+            importlib.import_module(args.file)
+        else:
+            import custom
+    except KeyboardInterrupt:
+        sys.exit("# Execution stopped")
+    except ImportError as e:
+        logging.error(e)

@@ -159,8 +159,8 @@ class HistoricalCSV(MarketData):
         return Bars(self.symbol_data[symbol]['latest_bars'][-N:])
 
     def past_bars(self, symbol, N=1):
-        """Returns Bars in self._latest_bars discarding the very last result
-        to simulate perspective on open
+        """Returns Bars discarding the very last result to simulate data
+        past the current date
         """
         N=1 if N==0 else N
         if len(self.symbol_data[symbol]['latest_bars'][-(N+1):-1]) > 0:

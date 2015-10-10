@@ -4,6 +4,7 @@ import queue
 import numpy as np
 
 from .event import SignalEvent
+import settings
 
 class Strategy(object):
     """
@@ -93,7 +94,8 @@ def bbands(prices, k):
     sd = np.std(prices)
     upband = ave + (sd*k)
     lwband = ave - (sd*k)
-    return np.round(ave,3), np.round(upband,3), np.round(lwband,3)
+    round_dec = settings.ROUND_DECIMALS
+    return np.round(ave,round_dec), np.round(upband,round_dec), np.round(lwband,round_dec)
 
 
 class MACrossStrategy(Strategy):
