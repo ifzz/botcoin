@@ -124,7 +124,7 @@ class BollingerBandStrategy(Strategy):
 
     def logic(self):
         for s in self.symbol_list:
-            bars = self.market.bars(s, self.length)
+            bars = self.market.past_bars(s, self.length)
 
             if len(bars) >= self.length:
                 

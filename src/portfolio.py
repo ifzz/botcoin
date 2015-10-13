@@ -337,8 +337,9 @@ class Portfolio(object):
             for t in range(1, len(eq_idx)):
                 cur_hwm = max(hwm[t-1], curve[t])
                 hwm.append(cur_hwm)
-                drawdown[t]= hwm[t] - curve[t]
+                drawdown[t]= (hwm[t] - curve[t])/hwm[t]
                 duration[t]= 0 if drawdown[t] == 0 else duration[t-1] + 1
+
             return drawdown.max()*100, duration.max()
 
         if not self.all_holdings:
