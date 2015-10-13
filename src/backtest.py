@@ -12,29 +12,31 @@ import settings
 
 
 class Backtest(object):
-    def __init__(self, strat_port_pairs, symbol_list=None, date_from=None, 
+    def __init__(self, strategies, symbol_list=None, date_from=None, 
                  date_to=None, data_dir=None, start_automatically=True):
 
-        if not (isinstance(strat_port_pairs, collections.Iterable) and
-                isinstance(strat_port_pairs[0], dict)):
+        if not (isinstance(strategies, collections.Iterable) and
+                isinstance(strategies[0], Strategy)):
             raise TypeError("Improper parameter type on BacktestManager.__init__()")
+
 
         # Single market object will be used for all backtesting instances
         self.market = HistoricalCSV(
-            data_dir or settings.DATA_DIR,
-            symbol_list or settings.SYMBOL_LIST,
-            date_from = date_from or settings.DATE_FROM,
-            date_to = date_to or settings.DATE_TO,
-            normalize_prices = settings.NORMALIZE_PRICES,
-            normalize_volume = settings.NORMALIZE_VOLUME,
-            round_decimals = settings.ROUND_DECIMALS,
+            data_dir or settings.DATA_DIR, #should come from script loader
+            strategies[0].SYMBOL_LIST or settings.SYMBOL_LIST,
+            date_from = strategies[0].DATE_FROM if hasattr(strategies[0],'DATE_FROM') else settings.DATE_FROM,
+            date_to = strategies[0].DATE_TO if hasattr(strategies[0], 'DATE_TO') else settings.DATE_TO,
+            normalize_prices = strategies[0].NORMALIZE_PRICES if hasattr(strategies[0], 'NORMALIZE_PRICES') else settings.NORMALIZE_PRICES,
+            normalize_volume = strategies[0].NORMALIZE_VOLUME if hasattr(strategies[0], 'NORMALIZE_VOLUME') else settings.NORMALIZE_VOLUME,
+            round_decimals = strategies[0].ROUND_DECIMALS if hasattr(strategies[0], 'ROUND_DECIMALS') else settings.ROUND_DECIMALS,
         )
 
         self.portfolios = []
 
-        for pair in strat_port_pairs:
-            pair['portfolio'].set_modules(self.market, pair['strategy'], BacktestExecution())
-            self.portfolios.append(pair['portfolio'])
+        for strategy in strategies:
+            port = Portfolio()
+            port.set_modules(self.market, strategy, BacktestExecution())
+            self.portfolios.append(port)
 
         logging.info("Backtest {} from {} to {}".format(
             self.market.symbol_list, 

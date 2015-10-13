@@ -55,8 +55,9 @@ MAX_SLIPPAGE = 0.0005
 # Max number of concurrent open long positions
 MAX_LONG_POSITIONS = 5
 MAX_SHORT_POSITIONS = 0
-# Represented as percentage of portfolio level equity
-POSITION_SIZE = 1.0/MAX_LONG_POSITIONS
+# Position size POSITION_SIZE has no default value.
+# It is either derived from 1/MAX_LONG_POSITIONS or set by strategy, and is 
+# represented as percentage of portfolio level equity
 
 # Adjusts position if there isn't enough cash available
 ADJUST_POSITION_DOWN = True

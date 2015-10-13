@@ -9,7 +9,6 @@ import pandas as pd
 from .data import MarketData
 from .event import MarketEvent, SignalEvent, OrderEvent
 from .execution import Execution
-import settings
 from .strategy import Strategy
 from .trade import Trade
 
@@ -17,8 +16,7 @@ class Portfolio(object):
     """
     Portfolio root class.
     """
-    def __init__(self, initial_capital=None, position_size=None, 
-                 max_long_pos=None, max_short_pos=None,):
+    def __init__(self):
 
         self.all_positions = []
         self.all_holdings = []
@@ -32,10 +30,6 @@ class Portfolio(object):
         # List of all closed trades
         self.all_trades = []
 
-        self.initial_capital = initial_capital or settings.INITIAL_CAPITAL
-        self.position_size = position_size or settings.POSITION_SIZE
-        self.max_long_pos = floor(max_long_pos or settings.MAX_LONG_POSITIONS)
-        self.max_short_pos = floor(max_short_pos or settings.MAX_SHORT_POSITIONS)
 
     def set_modules(self, market, strategy, broker):
         if (not isinstance(market, MarketData) or
@@ -56,6 +50,22 @@ class Portfolio(object):
 
         self.strategy.set_market(market)
         self.broker.set_queue_and_market(self.events_queue, market)
+
+        import settings
+
+        self.INITIAL_CAPITAL = strategy.INITIAL_CAPITAL if hasattr(strategy, 'INITIAL_CAPITAL') else settings.INITIAL_CAPITAL
+        self.MAX_LONG_POSITIONS = floor(strategy.MAX_LONG_POSITIONS) if hasattr(strategy, 'MAX_LONG_POSITIONS') else floor(settings.MAX_LONG_POSITIONS)
+        self.MAX_SHORT_POSITIONS = floor(strategy.MAX_SHORT_POSITIONS) if hasattr(strategy, 'MAX_SHORT_POSITIONS') else floor(settings.MAX_SHORT_POSITIONS)
+        self.POSITION_SIZE = strategy.POSITION_SIZE if hasattr(strategy, 'POSITION_SIZE') else 1.0/self.MAX_LONG_POSITIONS
+
+        self.COMMISSION_FIXED = strategy.COMMISSION_FIXED if hasattr(strategy, 'COMMISSION_FIXED') else settings.COMMISSION_FIXED
+        self.COMMISSION_PCT = strategy.COMMISSION_PCT if hasattr(strategy, 'COMMISSION_PCT') else settings.COMMISSION_PCT
+        self.MAX_SLIPPAGE = strategy.MAX_SLIPPAGE if hasattr(strategy, 'MAX_SLIPPAGE') else settings.MAX_SLIPPAGE
+        self.ADJUST_POSITION_DOWN = strategy.ADJUST_POSITION_DOWN if hasattr(strategy, 'ADJUST_POSITION_DOWN') else settings.ADJUST_POSITION_DOWN
+
+        self.ROUND_DECIMALS = strategy.ROUND_DECIMALS if hasattr(strategy, 'ROUND_DECIMALS') else settings.ROUND_DECIMALS
+        self.THRESHOLD_DANGEROUS_TRADE = strategy.THRESHOLD_DANGEROUS_TRADE if hasattr(strategy, 'THRESHOLD_DANGEROUS_TRADE') else settings.THRESHOLD_DANGEROUS_TRADE
+
 
     def run_cycle(self):
         while True:
@@ -94,7 +104,7 @@ class Portfolio(object):
             self.date_from = cur_datetime
             self.current_positions = self.construct_position(cur_datetime)
 
-            self.current_holdings = self.construct_holding(cur_datetime, self.initial_capital, 0.00, self.initial_capital)
+            self.current_holdings = self.construct_holding(cur_datetime, self.INITIAL_CAPITAL, 0.00, self.INITIAL_CAPITAL)
 
         else:
             if ((cur_datetime <= self.current_positions['datetime']) or 
@@ -166,7 +176,7 @@ class Portfolio(object):
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
         
         # Execution price adjusted for slippage
-        adj_price = np.round(exec_price * (1+settings.MAX_SLIPPAGE*direction_mod),settings.ROUND_DECIMALS)
+        adj_price = np.round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod),self.ROUND_DECIMALS)
 
         cur_position = self.current_positions[symbol]
         available_cash = self.current_holdings['cash'] - sum([i.estimated_cost for i in self.pending_orders])
@@ -177,26 +187,26 @@ class Portfolio(object):
         if direction in ('BUY', 'SHORT') and cur_position == 0:
 
             # Check for max positions
-            if (len(self.open_trades) + len(self.pending_orders)) < self.max_long_pos:
+            if (len(self.open_trades) + len(self.pending_orders)) < self.MAX_LONG_POSITIONS:
 
                 # Cash to be spent on this position
-                position_cash = portf_value*self.position_size
+                position_cash = portf_value*self.POSITION_SIZE
 
                 # Sometimes last position is a little over cash available
                 # so we adjust it down a little bit
                 if position_cash > available_cash:
-                    if settings.ADJUST_POSITION_DOWN:
+                    if self.adjust_position_down:
                         position_cash = available_cash
                     else:
-                        logging.warning("Can't adjust position, {} missing cash.".format(str(position_size-available_cash)))
+                        logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-available_cash)))
                         return
 
                 # COMMISSION_FIXED remove the fixed ammount from cash,
                 # and COMMISSION_PCT increases the symbol price to reflect the fee
-                quantity = direction_mod * floor( (position_cash-settings.COMMISSION_FIXED) / (adj_price * (1+settings.COMMISSION_PCT)) )
+                quantity = direction_mod * floor( (position_cash-self.COMMISSION_FIXED) / (adj_price * (1+self.COMMISSION_PCT)) )
 
                 if quantity > 0.0:
-                    commission = settings.COMMISSION_FIXED + (settings.COMMISSION_PCT * abs(quantity) * adj_price)
+                    commission = self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price)
                     # TODO check below formula for short positions
                     estimated_cost = commission + (quantity * adj_price)
                     order = OrderEvent(signal, symbol, quantity, direction, adj_price, estimated_cost)
@@ -251,12 +261,12 @@ class Portfolio(object):
             ))
             raise AssertionError("Inconsistency in Portfolio.current_holdings()")
         
-        if open_long > self.max_long_pos or open_short > self.max_short_pos:
+        if open_long > self.MAX_LONG_POSITIONS or open_short > self.MAX_SHORT_POSITIONS:
             raise AssertionError("Number of open positions is too high. {}/{} open positions and {}/{} short positions".format(
                 open_long,
-                self.max_long_pos,
+                self.MAX_LONG_POSITIONS,
                 open_short,
-                self.max_short_pos,
+                self.MAX_SHORT_POSITIONS,
             ))
 
         for s in self.market.symbol_list:
@@ -364,7 +374,7 @@ class Portfolio(object):
 
         results['dangerous_trades'] = results['all_trades'][
             results['all_trades']['returns'] >
-            sum(results['all_trades']['returns'])*settings.THRESHOLD_DANGEROUS_TRADE
+            sum(results['all_trades']['returns'])*self.THRESHOLD_DANGEROUS_TRADE
         ]
 
         # Saving portfolio.all_positions in performance
