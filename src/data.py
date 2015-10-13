@@ -22,7 +22,7 @@ class HistoricalCSV(MarketData):
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
-        self.symbol_list = symbol_list
+        self.symbol_list = sorted(list(set(symbol_list)))
         self.symbol_data = {}
         comb_index = None
 
@@ -152,17 +152,13 @@ class HistoricalCSV(MarketData):
     def bars(self, symbol, N=1):
         """
         Returns Bars object containing latest N bars from self._latest_bars
-
-        N can't be 0, will be automatically changed to 1
         """
-        N=1 if N==0 else N
         return Bars(self.symbol_data[symbol]['latest_bars'][-N:])
 
     def past_bars(self, symbol, N=1):
         """Returns Bars discarding the very last result to simulate data
         past the current date
         """
-        N=1 if N==0 else N
         if len(self.symbol_data[symbol]['latest_bars'][-(N+1):-1]) > 0:
             return Bars(self.symbol_data[symbol]['latest_bars'][-(N+1):-1])
         else:

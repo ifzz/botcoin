@@ -373,7 +373,7 @@ class Portfolio(object):
 
         # Saving portfolio.all_holdings in performance
         curve = pd.DataFrame(self.all_holdings)
-        curve.set_index('datetime', inplace=True) 
+        curve.set_index('datetime', inplace=True)
         results['all_holdings'] = curve
 
         # Creating equity curve

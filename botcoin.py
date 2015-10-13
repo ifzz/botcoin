@@ -25,7 +25,7 @@ if __name__ == '__main__':
         if args.file:
             importlib.import_module(args.file)
         else:
-            import custom
+            import strategies.custom
     except KeyboardInterrupt:
         sys.exit("# Execution stopped")
     except ImportError as e:
