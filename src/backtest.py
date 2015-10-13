@@ -23,12 +23,12 @@ class Backtest(object):
         # Single market object will be used for all backtesting instances
         self.market = HistoricalCSV(
             data_dir or settings.DATA_DIR, #should come from script loader
-            strategies[0].SYMBOL_LIST or settings.SYMBOL_LIST,
-            date_from = strategies[0].DATE_FROM if hasattr(strategies[0],'DATE_FROM') else settings.DATE_FROM,
-            date_to = strategies[0].DATE_TO if hasattr(strategies[0], 'DATE_TO') else settings.DATE_TO,
-            normalize_prices = strategies[0].NORMALIZE_PRICES if hasattr(strategies[0], 'NORMALIZE_PRICES') else settings.NORMALIZE_PRICES,
-            normalize_volume = strategies[0].NORMALIZE_VOLUME if hasattr(strategies[0], 'NORMALIZE_VOLUME') else settings.NORMALIZE_VOLUME,
-            round_decimals = strategies[0].ROUND_DECIMALS if hasattr(strategies[0], 'ROUND_DECIMALS') else settings.ROUND_DECIMALS,
+            getattr(strategies[0], 'SYMBOL_LIST', settings.SYMBOL_LIST),
+            date_from = getattr(strategies[0], 'DATE_FROM', settings.DATE_FROM),
+            date_to = getattr(strategies[0], 'DATE_TO', settings.DATE_TO),
+            normalize_prices = getattr(strategies[0], 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES),
+            normalize_volume = getattr(strategies[0], 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME),
+            round_decimals = getattr(strategies[0], 'ROUND_DECIMALS', settings.ROUND_DECIMALS),
         )
 
         self.portfolios = []

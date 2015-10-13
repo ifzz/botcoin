@@ -53,18 +53,18 @@ class Portfolio(object):
 
         import settings
 
-        self.INITIAL_CAPITAL = strategy.INITIAL_CAPITAL if hasattr(strategy, 'INITIAL_CAPITAL') else settings.INITIAL_CAPITAL
-        self.MAX_LONG_POSITIONS = floor(strategy.MAX_LONG_POSITIONS) if hasattr(strategy, 'MAX_LONG_POSITIONS') else floor(settings.MAX_LONG_POSITIONS)
-        self.MAX_SHORT_POSITIONS = floor(strategy.MAX_SHORT_POSITIONS) if hasattr(strategy, 'MAX_SHORT_POSITIONS') else floor(settings.MAX_SHORT_POSITIONS)
-        self.POSITION_SIZE = strategy.POSITION_SIZE if hasattr(strategy, 'POSITION_SIZE') else 1.0/self.MAX_LONG_POSITIONS
+        self.INITIAL_CAPITAL = getattr(strategy, 'INITIAL_CAPITAL', settings.INITIAL_CAPITAL)
+        self.MAX_LONG_POSITIONS = floor(getattr(strategy, 'MAX_LONG_POSITIONS', settings.MAX_LONG_POSITIONS))
+        self.MAX_SHORT_POSITIONS = floor(getattr(strategy, 'MAX_SHORT_POSITIONS', settings.MAX_SHORT_POSITIONS))
+        self.POSITION_SIZE = getattr(strategy, 'POSITION_SIZE', 1.0/self.MAX_LONG_POSITIONS)
 
-        self.COMMISSION_FIXED = strategy.COMMISSION_FIXED if hasattr(strategy, 'COMMISSION_FIXED') else settings.COMMISSION_FIXED
-        self.COMMISSION_PCT = strategy.COMMISSION_PCT if hasattr(strategy, 'COMMISSION_PCT') else settings.COMMISSION_PCT
-        self.MAX_SLIPPAGE = strategy.MAX_SLIPPAGE if hasattr(strategy, 'MAX_SLIPPAGE') else settings.MAX_SLIPPAGE
-        self.ADJUST_POSITION_DOWN = strategy.ADJUST_POSITION_DOWN if hasattr(strategy, 'ADJUST_POSITION_DOWN') else settings.ADJUST_POSITION_DOWN
+        self.COMMISSION_FIXED = getattr(strategy, 'COMMISSION_FIXED', settings.COMMISSION_FIXED)
+        self.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
+        self.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
+        self.ADJUST_POSITION_DOWN = getattr(strategy, 'ADJUST_POSITION_DOWN', settings.ADJUST_POSITION_DOWN)
 
-        self.ROUND_DECIMALS = strategy.ROUND_DECIMALS if hasattr(strategy, 'ROUND_DECIMALS') else settings.ROUND_DECIMALS
-        self.THRESHOLD_DANGEROUS_TRADE = strategy.THRESHOLD_DANGEROUS_TRADE if hasattr(strategy, 'THRESHOLD_DANGEROUS_TRADE') else settings.THRESHOLD_DANGEROUS_TRADE
+        self.ROUND_DECIMALS = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
+        self.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
 
 
     def run_cycle(self):
