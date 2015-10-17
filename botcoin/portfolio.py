@@ -48,7 +48,6 @@ class Portfolio(object):
         self.strategy = strategy
         self.broker = broker
 
-        self.strategy.set_market(market)
         self.broker.set_queue_and_market(self.events_queue, market)
 
         import settings
@@ -76,6 +75,7 @@ class Portfolio(object):
 
             if event.type == "MARKET":
                 self.update_from_market()
+                self.signals_queue = self.strategy.generate_signals(self.market)
                 self.release_signals_to_queue()
 
             elif event.type == "SIGNAL":
@@ -148,8 +148,6 @@ class Portfolio(object):
                 self.current_holdings['commission'],
                 self.current_holdings['total']
             )
-
-        self.signals_queue = self.strategy.generate_signals()
 
     def release_signals_to_queue(self):
         if not self.pending_orders:

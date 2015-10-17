@@ -38,12 +38,13 @@ class Backtest(object):
             port.set_modules(self.market, strategy, BacktestExecution())
             self.portfolios.append(port)
 
-        logging.info("Backtest {} from {} to {}".format(
-            self.market.symbol_list, 
+        logging.info("Backtesting {} {} with {} symbols from {} to {}".format(
+            len(self.portfolios),
+            'strategies' if len(self.portfolios) > 1 else 'strategy',
+            len(self.market.symbol_list), 
             self.market.date_from.strftime('%Y-%m-%d'), 
             self.market.date_to.strftime('%Y-%m-%d'),
         ))
-        logging.info("with {} different strategies".format(str(len(self.portfolios))))
         logging.info("Data load took {}".format(str(self.market.load_time)))
 
         if start_automatically:
@@ -100,7 +101,7 @@ class Backtest(object):
             ],
         )
 
-        logging.info("Performance calculated in {}".format(str(datetime.datetime.now()-start_time)))
+        logging.debug("Performance calculated in {}".format(str(datetime.datetime.now()-start_time)))
 
     def plot_open_positions(self):
         import matplotlib.pyplot as plt

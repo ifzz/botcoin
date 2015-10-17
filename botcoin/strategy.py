@@ -22,16 +22,9 @@ class Strategy(object):
     def __str__(self):
         return self.__class__.__name__ + " with parameters " + ", ".join([str(i) for i in self.args])
 
-    def set_market(self, market):
-        # Market data object
-        self.market = market
-        # List of tradable symbols
-        self.symbol_list = self.market.symbol_list
-
-
-    def generate_signals(self):
+    def generate_signals(self, market):
         self.signals_to_execute = {}
-        self.logic()
+        self.logic(market)
 
         signals_queue = queue.Queue()
         for key in sorted(self.signals_to_execute.keys()):
