@@ -6,11 +6,11 @@ import queue
 import numpy as np
 import pandas as pd
 
-from .data import MarketData
-from .event import MarketEvent, SignalEvent, OrderEvent
-from .execution import Execution
-from .strategy import Strategy
-from .trade import Trade
+from data import MarketData
+from event import MarketEvent, SignalEvent, OrderEvent
+from execution import Execution
+from strategy import Strategy
+from trade import Trade
 
 class Portfolio(object):
     """

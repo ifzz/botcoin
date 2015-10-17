@@ -3,15 +3,10 @@ import argparse
 import importlib
 import imp
 import logging
+import os
 import sys
 
-import settings
-from src.data import *
-from src.backtest import *
-from src.event import *
-from src.execution import *
-from src.strategy import *
-from src.portfolio import *
+import botcoin
 
 def find_strategies(module):
     """ Tries to find strategies in file provided to this script in the following ways:
@@ -33,7 +28,6 @@ def find_strategies(module):
         pass
 
 def load_strategies():
-    sys.path.append(settings.BASE_DIR)
 
     parser = argparse.ArgumentParser(description='Botcoin script execution.')
     parser.add_argument('-f', '--file', required=False, nargs='?', help='file with strategy scripts')
@@ -52,7 +46,7 @@ def load_strategies():
 
 
     # Run backtest
-    backtest = Backtest(find_strategies(strategy_module))
+    backtest = botcoin.Backtest(find_strategies(strategy_module))
 
     print(backtest.results)
 
@@ -62,7 +56,7 @@ def load_strategies():
     if args.graph:
         backtest.plot_results()
 
-    return Backtest
+    return backtest
 
 
 if __name__ == '__main__':

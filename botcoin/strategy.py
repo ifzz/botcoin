@@ -3,8 +3,7 @@ import queue
 
 import numpy as np
 
-from .event import SignalEvent
-import settings
+from event import SignalEvent
 
 class Strategy(object):
     """

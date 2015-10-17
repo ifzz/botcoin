@@ -5,7 +5,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from .event import MarketEvent
+from event import MarketEvent
 
 class MarketData(object):
     def update_bars(self):

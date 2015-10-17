@@ -4,10 +4,10 @@ import logging
 
 import pandas as pd
 
-from .data import MarketData, HistoricalCSV
-from .execution import BacktestExecution, Execution
-from .strategy import Strategy
-from .portfolio import Portfolio
+from data import MarketData, HistoricalCSV
+from execution import BacktestExecution, Execution
+from strategy import Strategy
+from portfolio import Portfolio
 import settings
 
 
