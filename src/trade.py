@@ -13,7 +13,7 @@ class Trade(object):
         self.quantity = fill.quantity
         self.open_cost = fill.cost
         self.open_price = math.fabs(fill.cost/self.quantity)
-        self.open_commission = fill.commission
+        self.commission = fill.commission
 
     def __str__(self):
         return "symbol:{}, result:{}, from:{}, to:{}".format(
@@ -28,8 +28,8 @@ class Trade(object):
         self.close_datetime = new_fill.datetime
         self.close_cost = new_fill.cost
         self.close_price = math.fabs(new_fill.cost/self.quantity)
-        self.close_commission = new_fill.commission
-        self.result = -(self.open_cost + self.close_cost - (self.open_commission + self.close_commission))
+        self.commission += new_fill.commission
+        self.result = -(self.open_cost + self.close_cost + self.commission)
         return self
 
     def fake_close_trade(self, close_datetime, close_cost):
@@ -37,5 +37,5 @@ class Trade(object):
         self.close_datetime = close_datetime
         self.close_cost = close_cost
         self.close_price = math.fabs(close_cost/self.quantity)
-        self.result = -(self.open_cost + self.close_cost - self.open_commission)
+        self.result = -(self.open_cost + self.close_cost + self.commission)
         return self

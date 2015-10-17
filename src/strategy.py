@@ -10,8 +10,15 @@ class Strategy(object):
     """
     Strategy root class.
     """
-    def __init__(self):
-        pass
+    def __init__(self, *args):
+        # Open positions. Not connected to Portfolio's open_trades
+        # Used to keep track of current state across all symbols
+        self.positions = {}
+        # Entry price for open positions
+        self.entry_price = {}
+        
+        self.args = args
+        self.initialize()
 
     def __str__(self):
         return self.__class__.__name__ + " with parameters " + ", ".join([str(i) for i in self.args])
@@ -21,11 +28,7 @@ class Strategy(object):
         self.market = market
         # List of tradable symbols
         self.symbol_list = self.market.symbol_list
-        # Open positions. Not connected to Portfolio's open_trades
-        # Used to keep track of current state across all symbols
-        self.positions = {}
-        # Entry price for open positions
-        self.entry_price = {}
+
 
     def generate_signals(self):
         self.signals_to_execute = {}
@@ -99,7 +102,7 @@ def bbands(prices, k):
 
 
 class MACrossStrategy(Strategy):
-    def __init__(self, *args):
+    def initialize(self):
         self.args = args
         self.fast = args[0]
         self.slow = args[1]
@@ -117,7 +120,7 @@ class MACrossStrategy(Strategy):
                         self.buy(s)
 
 class BollingerBandStrategy(Strategy):
-    def __init__(self, *args):
+    def initialize(self):
         self.args = args
         self.length = args[0]
         self.k = args[1]
@@ -140,8 +143,7 @@ class BollingerBandStrategy(Strategy):
                         self.buy(s, lwband)
 
 class DonchianStrategy(Strategy):
-    def __init__(self, *args):
-        self.args = args
+    def initialize(self):
         self.upper = args[0]
         self.lower = args[1]
 

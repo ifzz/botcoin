@@ -57,11 +57,11 @@ class Portfolio(object):
         self.MAX_LONG_POSITIONS = floor(getattr(strategy, 'MAX_LONG_POSITIONS', settings.MAX_LONG_POSITIONS))
         self.MAX_SHORT_POSITIONS = floor(getattr(strategy, 'MAX_SHORT_POSITIONS', settings.MAX_SHORT_POSITIONS))
         self.POSITION_SIZE = getattr(strategy, 'POSITION_SIZE', 1.0/self.MAX_LONG_POSITIONS)
+        self.ADJUST_POSITION_DOWN = getattr(strategy, 'ADJUST_POSITION_DOWN', settings.ADJUST_POSITION_DOWN)
 
         self.COMMISSION_FIXED = getattr(strategy, 'COMMISSION_FIXED', settings.COMMISSION_FIXED)
         self.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
         self.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
-        self.ADJUST_POSITION_DOWN = getattr(strategy, 'ADJUST_POSITION_DOWN', settings.ADJUST_POSITION_DOWN)
 
         self.ROUND_DECIMALS = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
         self.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
@@ -195,7 +195,7 @@ class Portfolio(object):
                 # Sometimes last position is a little over cash available
                 # so we adjust it down a little bit
                 if position_cash > available_cash:
-                    if self.adjust_position_down:
+                    if self.ADJUST_POSITION_DOWN:
                         position_cash = available_cash
                     else:
                         logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-available_cash)))
@@ -367,9 +367,10 @@ class Portfolio(object):
                 t.close_cost,
                 t.open_price,
                 t.close_price,
+                t.commission,
             ) for t in self.all_trades],
             columns=['symbol', 'returns', 'open_datetime', 'close_datetime', 
-                     'open_cost', 'close_cost', 'open_price', 'close_price'],
+                     'open_cost', 'close_cost', 'open_price', 'close_price', 'commission'],
         )
 
         results['dangerous_trades'] = results['all_trades'][
