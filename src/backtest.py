@@ -119,3 +119,7 @@ class Backtest(object):
             ax.set_title(portfolio.strategy)
             plt.grid()  
             plt.show()
+
+    def print_all_trades(self):
+        for port in self.portfolios:
+            print(port.performance['all_trades'])
