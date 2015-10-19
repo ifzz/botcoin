@@ -12,20 +12,30 @@ def find_strategies(module):
     """ Tries to find strategies in file provided to this script in the following ways:
         1) looks for strategies attribute, which shoud be a list of Strategy subclasses
         2) looks for strategy attribute, which should be an instance of a Strategy subclasses
-        3) tries to instantiate a class called TradingStrategy with no parameters        
+        3) tries to instantiate the first subclass of botcoin.Strategy it can find with no parameters
     """
     try:
         return module.strategies
     except AttributeError as e:
         pass        
+
     try:
         return [module.strategy]
     except AttributeError as e:
         pass
+
     try:
-        return [module.TradingStrategy()] 
+        logging.debug("No strategy/strategies attribute found, will instantiate \
+            first subclass of botcoin.Strategy found.")
+        import inspect
+        for name, cls in inspect.getmembers(module, inspect.isclass):
+            if issubclass(cls, botcoin.Strategy):
+                return [cls()]
     except AttributeError as e:
         pass
+
+    raise ValueError('Could not understand your strategy script')
+
 
 def load_strategies():
 

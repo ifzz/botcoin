@@ -10,18 +10,18 @@ class DonchianStrategy(botcoin.Strategy):
         self.upper = self.args[0]
         self.lower = self.args[1]
 
-    def logic(self):
-        for s in self.symbol_list:
-            upper_bars = self.market.past_bars(s, self.upper)
-            lower_bars = self.market.past_bars(s, self.lower)
-            today = self.market.today(s)
+    def logic(self, context):
+        for s in context.market.symbol_list:
+            upper_bars = context.market.past_bars(s, self.upper)
+            lower_bars = context.market.past_bars(s, self.lower)
+            today = context.market.today(s)
 
             if (len(lower_bars) == self.lower and len(upper_bars) == self.upper):
 
                 upband = max(upper_bars.high)
                 lwband = min(lower_bars.low)
 
-                if s in self.positions:
+                if context.positions[s] > 0:
                     if today.low <= lwband:
                         self.sell(s, lwband)
 

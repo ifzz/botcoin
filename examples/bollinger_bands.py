@@ -19,16 +19,16 @@ class TradingStrategy(botcoin.Strategy):
         self.length = self.args[0] if 0 in self.args else 5
         self.k = self.args[1] if 1 in self.args else 3.0
 
-    def logic(self):
-        for s in self.symbol_list:
-            bars = self.market.past_bars(s, self.length)
+    def logic(self, context):
+        for s in context.market.symbol_list:
+            bars = context.market.past_bars(s, self.length)
 
             if len(bars) >= self.length:
                 
                 average, upband, lwband = bbands(bars.close, self.k)
-                today = self.market.today(s)
+                today = context.market.today(s)
 
-                if s in self.positions:
+                if context.positions[s] > 0:
                     if today.high >= average:
                         self.sell(s, average)
 

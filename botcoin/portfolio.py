@@ -20,8 +20,8 @@ class Portfolio(object):
 
         self.all_positions = []
         self.all_holdings = []
-        self.current_positions = None
-        self.current_holdings = None
+        self.positions = None
+        self.holdings = None
 
         # Holds orders while they're being executed
         self.pending_orders = set()
@@ -75,7 +75,7 @@ class Portfolio(object):
 
             if event.type == "MARKET":
                 self.update_from_market()
-                self.signals_queue = self.strategy.generate_signals(self.market)
+                self.signals_queue = self.strategy.generate_signals(self)
                 self.release_signals_to_queue()
 
             elif event.type == "SIGNAL":
@@ -100,53 +100,53 @@ class Portfolio(object):
         cur_datetime = self.market.this_datetime
 
         # If there is no current position and holding, meaning execution just started
-        if not self.current_positions and not self.current_holdings:
+        if not self.positions and not self.holdings:
             self.date_from = cur_datetime
-            self.current_positions = self.construct_position(cur_datetime)
+            self.positions = self.construct_position(cur_datetime)
 
-            self.current_holdings = self.construct_holding(cur_datetime, self.INITIAL_CAPITAL, 0.00, self.INITIAL_CAPITAL)
+            self.holdings = self.construct_holding(cur_datetime, self.INITIAL_CAPITAL, 0.00, self.INITIAL_CAPITAL)
 
         else:
-            if ((cur_datetime <= self.current_positions['datetime']) or 
-                (cur_datetime <= self.current_holdings['datetime'])):
+            if ((cur_datetime <= self.positions['datetime']) or 
+                (cur_datetime <= self.holdings['datetime'])):
                 raise ValueError("New bar arrived with same datetime as previous holding and position. Aborting!")
 
             # open_positions used for graphing and keeping track of open positions over time
-            self.current_positions['open_trades'] = len(self.open_trades)
+            self.positions['open_trades'] = len(self.open_trades)
             
 
-            # Restarts current_holdings 'total' and s based on this_close price and current_position[s]
-            self.current_holdings['total'] = self.current_holdings['cash']
+            # Restarts holdings 'total' and s based on this_close price and current_position[s]
+            self.holdings['total'] = self.holdings['cash']
             open_long,open_short = 0,0
             for s in self.market.symbol_list:
                 # Approximation to the real value
-                market_value = self.current_positions[s] * self.market.today(s).close
+                market_value = self.positions[s] * self.market.today(s).close
                 
                 if market_value < 0:
                     open_short += 1
                 elif market_value > 0:
                     open_long += 1
 
-                self.current_holdings[s] = market_value
-                self.current_holdings['total'] += market_value
+                self.holdings[s] = market_value
+                self.holdings['total'] += market_value
 
             self.verify_consistency(open_long, open_short)
 
 
             # Add current to all lists
-            self.all_positions.append(self.current_positions)
-            self.all_holdings.append(self.current_holdings)
+            self.all_positions.append(self.positions)
+            self.all_holdings.append(self.holdings)
 
 
-            self.current_positions = self.construct_position(
+            self.positions = self.construct_position(
                 cur_datetime, 
-                self.current_positions,
+                self.positions,
             )
-            self.current_holdings = self.construct_holding(
+            self.holdings = self.construct_holding(
                 cur_datetime,
-                self.current_holdings['cash'],
-                self.current_holdings['commission'],
-                self.current_holdings['total']
+                self.holdings['cash'],
+                self.holdings['commission'],
+                self.holdings['total']
             )
 
     def release_signals_to_queue(self):
@@ -176,9 +176,9 @@ class Portfolio(object):
         # Execution price adjusted for slippage
         adj_price = np.round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod),self.ROUND_DECIMALS)
 
-        cur_position = self.current_positions[symbol]
-        available_cash = self.current_holdings['cash'] - sum([i.estimated_cost for i in self.pending_orders])
-        portf_value = self.current_holdings['total']
+        cur_position = self.positions[symbol]
+        available_cash = self.holdings['cash'] - sum([i.estimated_cost for i in self.pending_orders])
+        portf_value = self.holdings['total']
 
         order = None
 
@@ -238,26 +238,27 @@ class Portfolio(object):
             self.all_trades.append(self.open_trades[fill.symbol])
             del self.open_trades[fill.symbol]
 
-        self.current_positions[fill.symbol] += fill.quantity
+        self.positions[fill.symbol] += fill.quantity
 
-        self.current_holdings['commission'] += fill.commission
-        self.current_holdings['cash'] -= (fill.cost + fill.commission)
+        self.holdings['commission'] += fill.commission
+        self.holdings['cash'] -= (fill.cost + fill.commission)
 
-        self.strategy.update_position_from_fill(fill)
+        # Strategy no longer keeps track of positions
+        # self.strategy.update_position_from_fill(fill)
 
     def verify_consistency(self, open_long, open_short):
         """ Checks for problematic values in current holding and position """
 
-        if (self.current_holdings['cash'] < 0 or
-            self.current_holdings['total'] < 0 or
-            self.current_holdings['commission'] < 0):
+        if (self.holdings['cash'] < 0 or
+            self.holdings['total'] < 0 or
+            self.holdings['commission'] < 0):
             logging.critical('Cash, total or commission is a negative value. This shouldn\'t be possible.')
             logging.critical('Cash={}, Total={}, Commission={}'.format(
-                self.current_holdings['cash'],
-                self.current_holdings['total'],
-                self.current_holdings['commission'],
+                self.holdings['cash'],
+                self.holdings['total'],
+                self.holdings['commission'],
             ))
-            raise AssertionError("Inconsistency in Portfolio.current_holdings()")
+            raise AssertionError("Inconsistency in Portfolio.holdings()")
         
         if open_long > self.MAX_LONG_POSITIONS or open_short > self.MAX_SHORT_POSITIONS:
             raise AssertionError("Number of open positions is too high. {}/{} open positions and {}/{} short positions".format(
@@ -268,16 +269,16 @@ class Portfolio(object):
             ))
 
         for s in self.market.symbol_list:
-            if (self.current_positions[s] < 0 or self.current_holdings[s] < 0):
-                logging.info('Do you really have a short position? {}:{}:{}'.format(s, self.current_positions[s]. self.current_holdings[s]))
+            if (self.positions[s] < 0 or self.holdings[s] < 0):
+                logging.info('Do you really have a short position? {}:{}:{}'.format(s, self.positions[s]. self.holdings[s]))
 
     def update_last_positions_and_holdings(self):
         # Adds latest current position and holding into 'all' lists, so they
         # can be part of performance as well
-        if self.current_positions and self.current_holdings:
-            self.all_holdings.append(self.current_holdings)
-            self.all_positions.append(self.current_positions)
-            self.current_holdings, self.current_positions = None, None
+        if self.positions and self.holdings:
+            self.all_holdings.append(self.holdings)
+            self.all_positions.append(self.positions)
+            self.holdings, self.positions = None, None
 
         # "Fake close" trades that are open, so they can be part of trades performance stats
         for trade in self.open_trades.values():
@@ -291,18 +292,18 @@ class Portfolio(object):
                 quantity * bar.close,
             ))
 
-    def construct_position(self, cur_datetime, current_positions={}):
+    def construct_position(self, cur_datetime, positions={}):
         """
         Positions held at a point in time.
         Parameters:
             cur_datetime -- date of the point in time in question
             s -- dictionary with symbols as key and ammount owned as value
         """
-        if not isinstance(cur_datetime, datetime.datetime) or not isinstance(current_positions, dict):
+        if not isinstance(cur_datetime, datetime.datetime) or not isinstance(positions, dict):
             raise TypeError("Improprer parameter type on Portfolio.construct_position()")
 
-        if current_positions:
-            position = dict((k,v) for k, v in [(s, current_positions[s]) for s in self.market.symbol_list])
+        if positions:
+            position = dict((k,v) for k, v in [(s, positions[s]) for s in self.market.symbol_list])
         else:
             position = dict((k,v) for k, v in [(s, 0.0) for s in self.market.symbol_list])
 

@@ -10,21 +10,15 @@ class Strategy(object):
     Strategy root class.
     """
     def __init__(self, *args):
-        # Open positions. Not connected to Portfolio's open_trades
-        # Used to keep track of current state across all symbols
-        self.positions = {}
-        # Entry price for open positions
-        self.entry_price = {}
-        
         self.args = args
         self.initialize()
 
     def __str__(self):
-        return self.__class__.__name__ + " with parameters " + ", ".join([str(i) for i in self.args])
+        return self.__class__.__name__ + "(" + ",".join([str(i) for i in self.args]) + ")"
 
-    def generate_signals(self, market):
+    def generate_signals(self, context):
         self.signals_to_execute = {}
-        self.logic(market)
+        self.logic(context)
 
         signals_queue = queue.Queue()
         for key in sorted(self.signals_to_execute.keys()):
@@ -47,14 +41,6 @@ class Strategy(object):
         price = price or self.market.today(symbol).close
         signal = SignalEvent(symbol, sig_type, price)
         self.signals_to_execute.setdefault(exec_round, []).append(signal)
-
-    def update_position_from_fill(self, fill):
-        if fill.direction in ('BUY', 'SHORT'):
-            self.positions[fill.symbol] = fill.direction
-            self.entry_price[fill.symbol] = fill.price
-        else:
-            del(self.positions[fill.symbol])
-            del(self.entry_price[fill.symbol])
 
     # def take_profit(self, s, profit_pct, entry_price=None, exec_round=0):
     #     entry_price = entry_price or self.entry_price[s]
@@ -79,3 +65,4 @@ class Strategy(object):
     #         exit_price = entry_price*(1+loss_pct)
     #         if self.market.bars(s).this_high >= exit_price:
     #             self.cover(s, exit_price, exec_round)
+
