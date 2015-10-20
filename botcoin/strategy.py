@@ -9,8 +9,9 @@ class Strategy(object):
     """
     Strategy root class.
     """
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         self.args = args
+        self.kwargs = kwargs
         self.initialize()
 
     def __str__(self):
@@ -38,7 +39,6 @@ class Strategy(object):
         self.add_signal_to_queue(symbol, 'COVER', price, exec_round)
 
     def add_signal_to_queue(self, symbol, sig_type, price, exec_round):
-        price = price or self.market.today(symbol).close
         signal = SignalEvent(symbol, sig_type, price)
         self.signals_to_execute.setdefault(exec_round, []).append(signal)
 

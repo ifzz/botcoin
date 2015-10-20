@@ -7,8 +7,8 @@ class TradingStrategy(botcoin.Strategy):
         self.DATE_FROM = '2010'
         self.DATE_TO = '2015'
 
-        self.fast = self.args[0] if 0 in self.args else 10
-        self.slow = self.args[1] if 1 in self.args else 200
+        self.fast = self.args[0]
+        self.slow = self.args[1]
 
     def logic(self, context):
         for s in context.market.symbol_list:
@@ -20,9 +20,9 @@ class TradingStrategy(botcoin.Strategy):
 
                 if context.positions[s] > 0:
                     if fast <= slow:
-                        self.sell(s)
+                        self.sell(s, context.market.today(s).close)
                 else:
                     if fast >= slow:
-                        self.buy(s)
+                        self.buy(s, context.market.today(s).close)
 
 strategies = [TradingStrategy(10,250)]

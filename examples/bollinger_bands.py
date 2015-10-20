@@ -16,8 +16,8 @@ class TradingStrategy(botcoin.Strategy):
         self.DATE_FROM = '2010'
         self.DATE_TO = '2015'
 
-        self.length = self.args[0] if 0 in self.args else 5
-        self.k = self.args[1] if 1 in self.args else 3.0
+        self.length = self.args[0]
+        self.k = self.args[1]
 
     def logic(self, context):
         for s in context.market.symbol_list:
@@ -33,7 +33,7 @@ class TradingStrategy(botcoin.Strategy):
                         self.sell(s, average)
 
                 else:
-                    if today.low <= lwband and today.low > 3.0:
+                    if today.low <= lwband:
                         self.buy(s, lwband)
 
 strategies = [TradingStrategy(30,3)]
