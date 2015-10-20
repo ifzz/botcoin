@@ -80,7 +80,7 @@ class Backtest(object):
         # Calc results dataframe that contains performance for all portfolios
         self.results = pd.DataFrame(
             [[
-                portfolio.strategy.args,
+                str(portfolio.strategy),
                 portfolio.performance['total_return'],
                 portfolio.performance['ann_return'],
                 portfolio.performance['sharpe'],

@@ -25,8 +25,8 @@ def find_strategies(module):
         pass
 
     try:
-        logging.debug("No strategy/strategies attribute found, will instantiate \
-            first subclass of botcoin.Strategy found.")
+        logging.debug("No strategy/strategies attribute found, will instantiate " + 
+            "first subclass of botcoin.Strategy found.")
         import inspect
         for name, cls in inspect.getmembers(module, inspect.isclass):
             if issubclass(cls, botcoin.Strategy):

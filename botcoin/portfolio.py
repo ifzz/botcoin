@@ -91,6 +91,25 @@ class Portfolio(object):
             else:
                 raise TypeError("The fuck is this?")
 
+    @property
+    def long_positions(self):
+        return [trade for trade in self.open_trades if trade.direction in ('BUY')] + \
+            [order for order in self.pending_orders if order.direction in ('BUY')]
+
+    @property
+    def short_positions(self):
+        return [trade for trade in self.open_trades if trade.direction in ('SHORT')] + \
+            [order for order in self.pending_orders if order.direction in ('SHORT')]
+    
+    
+    @property
+    def available_cash(self):
+        # Pending orders that remove cash from account
+        long_pending_orders = [order for order in self.pending_orders if order.direction in ('BUY','COVER')]
+
+        return self.holdings['cash'] - sum([i.estimated_cost for i in long_pending_orders])
+    
+
     def update_from_market(self):
         """Used to add new position and holdings to portfolio, triggered by a new market signal"""
         
@@ -177,45 +196,44 @@ class Portfolio(object):
         adj_price = np.round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod),self.ROUND_DECIMALS)
 
         cur_position = self.positions[symbol]
-        available_cash = self.holdings['cash'] - sum([i.estimated_cost for i in self.pending_orders])
         portf_value = self.holdings['total']
 
         order = None
 
         if direction in ('BUY', 'SHORT') and cur_position == 0:
+            # Cash to be spent on this position
+            position_cash = portf_value*self.POSITION_SIZE
+            # Quantity to BUY or SHORT
+            quantity = 0
 
-            # Check for max positions
-            if (len(self.open_trades) + len(self.pending_orders)) < self.MAX_LONG_POSITIONS:
+            if ((len(self.long_positions) < self.MAX_LONG_POSITIONS and direction == 'BUY') or
+                (len(self.short_positions) < self.MAX_SHORT_POSITIONS and direction == 'SHORT')):
 
-                # Cash to be spent on this position
-                position_cash = portf_value*self.POSITION_SIZE
-
-                # Sometimes last position is a little over cash available
-                # so we adjust it down a little bit
-                if position_cash > available_cash:
-                    if self.ADJUST_POSITION_DOWN:
-                        position_cash = available_cash
-                    else:
-                        logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-available_cash)))
-                        return
-
+                # Adjust position down if not enough money and
+                if direction == 'BUY':
+                    if position_cash > self.available_cash:
+                        if self.ADJUST_POSITION_DOWN:
+                            position_cash = self.available_cash
+                        else:
+                            logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-available_cash)))
+                            return
                 # COMMISSION_FIXED remove the fixed ammount from cash,
                 # and COMMISSION_PCT increases the symbol price to reflect the fee
                 quantity = direction_mod * floor( (position_cash-self.COMMISSION_FIXED) / (adj_price * (1+self.COMMISSION_PCT)) )
 
-                if quantity > 0.0:
-                    commission = self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price)
-                    # TODO check below formula for short positions
-                    estimated_cost = commission + (quantity * adj_price)
-                    order = OrderEvent(signal, symbol, quantity, direction, adj_price, estimated_cost)
+            if quantity != 0.0:
+                commission = self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price)
+                # TODO check below formula for short positions
+                estimated_cost = commission + (quantity * adj_price)
+                order = OrderEvent(signal, symbol, quantity, direction, adj_price, estimated_cost)
 
 
         elif direction in ('SELL', 'COVER') and cur_position != 0:
-            quantity = direction_mod * cur_position
+            quantity = -1 * cur_position
             # Checks if there is a similar order in pending_orders to protect
             # against repeated signals coming from strategy
             if not [order for order in self.pending_orders if (order.symbol == symbol and order.quantity == quantity)]:
-                order = OrderEvent(signal, symbol, quantity, direction, adj_price)
+                order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price)
 
         if order:
             logging.debug(str(order))
@@ -268,9 +286,10 @@ class Portfolio(object):
                 self.MAX_SHORT_POSITIONS,
             ))
 
-        for s in self.market.symbol_list:
-            if (self.positions[s] < 0 or self.holdings[s] < 0):
-                logging.info('Do you really have a short position? {}:{}:{}'.format(s, self.positions[s]. self.holdings[s]))
+        # # Old test
+        # for s in self.market.symbol_list:
+        #     if (self.positions[s] < 0 or self.holdings[s] < 0):
+        #         logging.info('Do you really have a short position? {}:{}:{}'.format(s, self.positions[s]. self.holdings[s]))
 
     def update_last_positions_and_holdings(self):
         # Adds latest current position and holding into 'all' lists, so they
