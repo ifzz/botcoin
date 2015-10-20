@@ -43,7 +43,12 @@ def load_strategies():
     parser.add_argument('-f', '--file', required=False, nargs='?', help='file with strategy scripts')
     parser.add_argument('-g', '--graph', action='store_true', help='graph equity curve')
     parser.add_argument('-a', '--all_trades', action='store_true', help='print all_trades dataframe')
+    parser.add_argument('-d', '--debug', action='store_true', help='debugging (very verbose, be careful)')
     args = parser.parse_args()
+
+    if args.debug:
+        botcoin.settings.VERBOSITY = 10
+    logging.basicConfig(format=botcoin.settings.LOG_FORMAT, level=botcoin.settings.VERBOSITY)
 
 
     # Import file

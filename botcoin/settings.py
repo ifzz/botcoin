@@ -11,7 +11,6 @@ pd.set_option('display.width', 1000)
 # Logging config
 VERBOSITY = 20
 LOG_FORMAT = '# %(levelname)s:%(module)s - %(message)s'
-logging.basicConfig(format=LOG_FORMAT, level=VERBOSITY)
 
 
 # Directories
