@@ -101,7 +101,6 @@ class Portfolio(object):
         return [trade for trade in self.open_trades if trade.direction in ('SHORT')] + \
             [order for order in self.pending_orders if order.direction in ('SHORT')]
     
-    
     @property
     def available_cash(self):
         # Pending orders that remove cash from account

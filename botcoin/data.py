@@ -149,75 +149,69 @@ class HistoricalCSV(MarketData):
         except StopIteration:
             self.continue_execution = False
 
+    def price(self, symbol):
+        """ Returns 'current' price """
+        return self.symbol_data[s]['current_price']
+
     def bars(self, symbol, N=1):
         """
         Returns Bars object containing latest N bars from self._latest_bars
         """
-        return Bars(self.symbol_data[symbol]['latest_bars'][-N:])
+        try:
+            return Bars(self.symbol_data[symbol]['latest_bars'][-N:])
+        except ValueError as e:
+            return {}
 
     def past_bars(self, symbol, N=1):
         """Returns Bars discarding the very last result to simulate data
         past the current date
         """
-        if len(self.symbol_data[symbol]['latest_bars'][-(N+1):-1]) > 0:
+        try:
             return Bars(self.symbol_data[symbol]['latest_bars'][-(N+1):-1])
-        else:
-            return []
+        except ValueError as e:
+            return {}
 
     def today(self, symbol):
         """Returns last Bar in self._latest_bars"""
-        return Bar(self.symbol_data[symbol]['latest_bars'][-1:])
+        try:
+            return Bars(self.symbol_data[symbol]['latest_bars'][-1:])
+        except ValueError as e:
+            return {}
 
     def yesterday(self, symbol):
         """Returns last Bar in self._latest_bars"""
-        if len(self.symbol_data[symbol]['latest_bars'][-2:-1]) > 0:
-            return Bar(self.symbol_data[symbol]['latest_bars'][-2:-1])
-        else:
-            return []
+        try:
+            return Bars(self.symbol_data[symbol]['latest_bars'][-2:-1])
+        except ValueError as e:
+            return {}
 
-class Bar(object):
-    """Represents a single bar, usually today"""
-    def __init__(self,latest_bars):
-        if not latest_bars:
-            raise ValueError("latest_bars needed to create Bars object")
-
-        self.datetime = latest_bars[-1][0]
-        self.open = latest_bars[-1][1]
-        self.high = latest_bars[-1][2]
-        self.low = latest_bars[-1][3]
-        self.close = latest_bars[-1][4]
-        self.vol = latest_bars[-1][5]
-
-    def __len__(self):
-        return 1
 
 class Bars(object):
     """Multiple Bars, usually from past data"""
     def __init__(self,latest_bars):
         if not latest_bars:
             raise ValueError("latest_bars needed to create Bars object")
-        self._latest_bars = latest_bars
 
-        self.datetime = [i[0] for i in latest_bars]
-        self.today_datetime = latest_bars[-1][0]
+        self.length = len(latest_bars)
 
-        self.open = [i[1] for i in latest_bars]
-        self.today_open = self._latest_bars[-1][1]
+        if self.length == 1:
+            self.datetime = latest_bars[-1][0]
+            self.open = latest_bars[-1][1]
+            self.high = latest_bars[-1][2]
+            self.low = latest_bars[-1][3]
+            self.close = latest_bars[-1][4]
+            self.vol = latest_bars[-1][5]
 
-        self.high = [i[2] for i in latest_bars]
-        self.today_high = latest_bars[-1][2]
-
-        self.low = [i[3] for i in latest_bars]
-        self.today_low = latest_bars[-1][3]
-
-        self.close = [i[4] for i in latest_bars]
-        self.today_close = latest_bars[-1][4]
-
-        self.vol = [i[5] for i in latest_bars]
-        self.today_vol = latest_bars[-1][5]
+        else:
+            self.datetime = [i[0] for i in latest_bars]
+            self.open = [i[1] for i in latest_bars]
+            self.high = [i[2] for i in latest_bars]
+            self.low = [i[3] for i in latest_bars]
+            self.close = [i[4] for i in latest_bars]
+            self.vol = [i[5] for i in latest_bars]
 
     def __len__(self):
-        return len(self._latest_bars)
+        return self.length
 
 
 def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=False):
