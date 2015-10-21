@@ -8,7 +8,7 @@ import sys
 
 import botcoin
 
-def find_strategies(module):
+def _find_strategies(module):
     """ Tries to find strategies in file provided to this script in the following ways:
         1) looks for strategies attribute, which shoud be a list of Strategy subclasses
         2) looks for strategy attribute, which should be an instance of a Strategy subclasses
@@ -17,27 +17,24 @@ def find_strategies(module):
     try:
         return module.strategies
     except AttributeError as e:
-        pass        
+        pass
 
     try:
         return [module.strategy]
     except AttributeError as e:
         pass
 
-    try:
-        logging.debug("No strategy/strategies attribute found, will instantiate " + 
-            "first subclass of botcoin.Strategy found.")
-        import inspect
-        for name, cls in inspect.getmembers(module, inspect.isclass):
-            if issubclass(cls, botcoin.Strategy):
-                return [cls()]
-    except AttributeError as e:
-        pass
+    logging.debug("No strategy/strategies attribute found, will instantiate " + 
+        "first subclass of botcoin.Strategy found.")
+    import inspect
+    for name, cls in inspect.getmembers(module, inspect.isclass):
+        if issubclass(cls, botcoin.Strategy):
+            return [cls()]
 
     raise ValueError('Could not understand your strategy script')
 
 
-def load_strategies():
+def load_script(filename=None):
 
     parser = argparse.ArgumentParser(description='Botcoin script execution.')
     parser.add_argument('-f', '--file', required=False, nargs='?', help='file with strategy scripts')
@@ -51,9 +48,10 @@ def load_strategies():
     logging.basicConfig(format=botcoin.settings.LOG_FORMAT, level=botcoin.settings.VERBOSITY)
 
 
+    filename = args.file or filename
     # Import file
-    if args.file:
-        directory, file_to_load = os.path.split(os.path.abspath(args.file))
+    if filename:
+        directory, file_to_load = os.path.split(os.path.abspath(filename))
         sys.path.append(directory)
         strategy_module = __import__(file_to_load.split('.')[0])
     else:
@@ -61,7 +59,7 @@ def load_strategies():
 
 
     # Run backtest
-    backtest = botcoin.Backtest(find_strategies(strategy_module))
+    backtest = botcoin.Backtest(_find_strategies(strategy_module))
 
     print(backtest.results)
 
@@ -76,6 +74,6 @@ def load_strategies():
 
 if __name__ == '__main__':
     try:
-        load_strategies()
+        load_script()
     except KeyboardInterrupt:
         sys.exit("# Execution stopped")
