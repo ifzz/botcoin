@@ -8,8 +8,13 @@ class MarketEvent(Event):
     corresponding bars.
     """
 
-    def __init__(self):
+    def __init__(self, sub_type=None):
         self.type = 'MARKET'
+        
+        if sub_type and sub_type in ('open', 'during' ,'close', 'after_close'):
+            self.sub_type = sub_type
+        elif sub_type:
+            raise ValueError("Wrong type of MarketEvent sub_type.")
 
 
 class SignalEvent(Event):

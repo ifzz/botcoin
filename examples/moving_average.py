@@ -10,7 +10,7 @@ class TradingStrategy(botcoin.Strategy):
         self.fast = self.args[0]
         self.slow = self.args[1]
 
-    def logic(self, context):
+    def close(self, context):
         for s in context.market.symbol_list:
             slow_prices = context.market.bars(s, self.slow).close
             fast_prices = context.market.bars(s, self.fast).close

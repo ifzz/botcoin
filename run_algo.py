@@ -49,7 +49,6 @@ def load_script(filename=None):
 
 
     filename = args.file or filename
-    # Import file
     if filename:
         directory, file_to_load = os.path.split(os.path.abspath(filename))
         sys.path.append(directory)
@@ -76,4 +75,5 @@ if __name__ == '__main__':
     try:
         load_script()
     except KeyboardInterrupt:
-        sys.exit("# Execution stopped")
+        logging.critical("Execution stopped")
+        sys.exit()

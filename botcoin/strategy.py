@@ -17,30 +17,36 @@ class Strategy(object):
     def __str__(self):
         return self.__class__.__name__ + "(" + ",".join([str(i) for i in self.args]) + ")"
 
-    def generate_signals(self, context):
-        self.signals_to_execute = {}
-        self.logic(context)
+    def buy(self, symbol, price=None):
+        self.add_signal_to_queue(symbol, 'BUY', price)
 
-        signals_queue = queue.Queue()
-        for key in sorted(self.signals_to_execute.keys()):
-            signals_queue.put(self.signals_to_execute[key])
-        return signals_queue
+    def sell(self, symbol, price=None):
+        self.add_signal_to_queue(symbol, 'SELL', price)
 
-    def buy(self, symbol, price=None, exec_round=0):
-        self.add_signal_to_queue(symbol, 'BUY', price, exec_round)
+    def short(self, symbol, price=None):
+        self.add_signal_to_queue(symbol, 'SHORT', price)
 
-    def sell(self, symbol, price=None, exec_round=0):
-        self.add_signal_to_queue(symbol, 'SELL', price, exec_round)
+    def cover(self, symbol, price=None):
+        self.add_signal_to_queue(symbol, 'COVER', price)
 
-    def short(self, symbol, price=None, exec_round=0):
-        self.add_signal_to_queue(symbol, 'SHORT', price, exec_round)
+    def add_signal_to_queue(self, symbol, sig_type, price):
+        self.events_queue.put(SignalEvent(symbol, sig_type, price))
 
-    def cover(self, symbol, price=None, exec_round=0):
-        self.add_signal_to_queue(symbol, 'COVER', price, exec_round)
+    def before_open(self, context):
+        pass
 
-    def add_signal_to_queue(self, symbol, sig_type, price, exec_round):
-        signal = SignalEvent(symbol, sig_type, price)
-        self.signals_to_execute.setdefault(exec_round, []).append(signal)
+    def open(self, context):
+        pass
+
+    def during(self, context):
+        pass
+
+    def close(self, context):
+        pass
+
+    def after_close(self, context):
+        pass
+
 
     # def take_profit(self, s, profit_pct, entry_price=None, exec_round=0):
     #     entry_price = entry_price or self.entry_price[s]

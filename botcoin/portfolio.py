@@ -49,6 +49,7 @@ class Portfolio(object):
         self.broker = broker
 
         self.broker.set_queue_and_market(self.events_queue, market)
+        self.strategy.events_queue = self.events_queue
 
         import settings
 
@@ -74,9 +75,7 @@ class Portfolio(object):
                 break
 
             if event.type == "MARKET":
-                self.update_from_market()
-                self.signals_queue = self.strategy.generate_signals(self)
-                self.release_signals_to_queue()
+                self.handle_market_event(event)
 
             elif event.type == "SIGNAL":
                 self.generate_orders(event)
@@ -86,19 +85,35 @@ class Portfolio(object):
 
             elif event.type == "FILL":
                 self.update_from_fill(event)
-                self.release_signals_to_queue()
 
             else:
                 raise TypeError("The fuck is this?")
 
+    def handle_market_event(self, event):
+        if event.sub_type == 'before_open':
+            self.strategy.before_open(self)
+
+        elif event.sub_type == 'open':
+            self.update_from_market()
+            self.strategy.open(self)
+
+        elif event.sub_type == 'during':
+            self.strategy.during(self)
+
+        elif event.sub_type == 'close':
+            self.strategy.close(self)
+
+        elif event.sub_type == 'after_close':
+            self.strategy.after_close(self)
+
     @property
     def long_positions(self):
-        return [trade for trade in self.open_trades if trade.direction in ('BUY')] + \
+        return [trade for trade in self.open_trades.values() if trade.direction in ('BUY')] + \
             [order for order in self.pending_orders if order.direction in ('BUY')]
 
     @property
     def short_positions(self):
-        return [trade for trade in self.open_trades if trade.direction in ('SHORT')] + \
+        return [trade for trade in self.open_trades.values() if trade.direction in ('SHORT')] + \
             [order for order in self.pending_orders if order.direction in ('SHORT')]
     
     @property
@@ -167,13 +182,6 @@ class Portfolio(object):
                 self.holdings['total']
             )
 
-    def release_signals_to_queue(self):
-        if not self.pending_orders:
-            try:
-                for signal in self.signals_queue.get(False):
-                    self.events_queue.put(signal)
-            except queue.Empty:
-                pass
 
     def generate_orders(self, signal):
         logging.debug(str(signal))

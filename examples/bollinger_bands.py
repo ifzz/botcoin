@@ -19,7 +19,7 @@ class TradingStrategy(botcoin.Strategy):
         self.length = self.args[0]
         self.k = self.args[1]
 
-    def logic(self, context):
+    def close(self, context):
         for s in context.market.symbol_list:
             bars = context.market.past_bars(s, self.length)
 

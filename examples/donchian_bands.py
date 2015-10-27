@@ -10,7 +10,7 @@ class DonchianStrategy(botcoin.Strategy):
         self.upper = self.args[0]
         self.lower = self.args[1]
 
-    def logic(self, context):
+    def close(self, context):
         for s in context.market.symbol_list:
             upper_bars = context.market.past_bars(s, self.upper)
             lower_bars = context.market.past_bars(s, self.lower)
