@@ -23,12 +23,17 @@ class SignalEvent(Event):
     Exchanged directly between Portfolio and its strategies.
     Parameters
         datetime - The timestamp at which the signal was generated.
-        signal_type - "BUY", "SELL", "SHORT" or "COVER".
+        direction - "BUY", "SELL", "SHORT" or "COVER".
         price - Target price defined by strategy. 
             If None, last close will be used by portfolio.
     """
     
     def __init__(self, symbol, direction, exec_price):
+        if exec_price == 0.0:
+            raise ValueError("Execution price can't be 0.0. {} {}.".format(symbol, direction))
+        if direction not in ('BUY', 'SELL', 'SHORT', 'COVER'):
+            raise ValueError("Unknown direction - {}".format(direction))
+
         self.type = 'SIGNAL'
         self.symbol = symbol
         self.direction = direction

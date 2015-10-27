@@ -8,11 +8,7 @@ import pandas as pd
 from event import MarketEvent
 
 class MarketData(object):
-    def update_bars(self):
-        logging.critical('This method needs to be implemented by your subclass!')
-    
-    def bars(self, symbol, N=1):
-        logging.critical('This method needs to be implemented by your subclass!')
+    pass
 
 
 class HistoricalCSV(MarketData):
@@ -209,8 +205,10 @@ class HistoricalCSV(MarketData):
 class Bars(object):
     """Multiple Bars, usually from past data"""
     def __init__(self,latest_bars):
-        if not latest_bars:
-            raise ValueError("latest_bars needed to create Bars object")
+        # Check required to filter symbols getting breakout when they begin trading
+        # since any price throws breakout after constant 0.0 
+        if not latest_bars or sum([i[4] for i in latest_bars]) == 0.0:
+            raise ValueError("something wrong with latest_bars")
 
         self.length = len(latest_bars)
 

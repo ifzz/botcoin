@@ -22,12 +22,12 @@ class DonchianStrategy(botcoin.Strategy):
                 lwband = min(lower_bars.low)
 
                 if context.positions[s] > 0:
-                    if today.low <= lwband:
+                    if today.low < lwband:
                         self.sell(s, lwband)
 
                 else:
-                    if today.high >= upband:
-                            self.buy(s, upband)
+                    if today.high > upband:
+                        self.buy(s, upband)
 
 
 strategies = [DonchianStrategy(100,25)]
