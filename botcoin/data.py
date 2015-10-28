@@ -205,9 +205,16 @@ class Bars(object):
     def __init__(self,latest_bars):
         # Check required to filter symbols getting breakout when they begin trading
         # since any price throws breakout after constant 0.0 
-        if not latest_bars or sum([i[4] for i in latest_bars]) == 0.0:
-            raise ValueError("something wrong with latest_bars")
+        if not latest_bars:
+            raise ValueError("Something wrong with latest_bars")
 
+        # Removes bars with 0.0 close price, which most likely means
+        # a symbol which has not yet started trading
+        filtered_latest_bars = [bar for bar in latest_bars if bar[4] > 0.0]
+        # If len has changed because there were 0.0 close prices, raise ValueError
+        if len(filtered_latest_bars) != len(latest_bars):
+            raise ValueError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
+        
         self.length = len(latest_bars)
 
         self.datetime = [i[0] for i in latest_bars]

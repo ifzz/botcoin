@@ -1,7 +1,7 @@
 import numpy as np
 import botcoin 
 
-class TradingStrategy(botcoin.Strategy):
+class MovingAverage(botcoin.Strategy):
     def initialize(self):
         self.SYMBOL_LIST = botcoin.settings.ASX_200
         self.DATE_FROM = '2010'
@@ -25,4 +25,4 @@ class TradingStrategy(botcoin.Strategy):
                     if fast >= slow:
                         self.buy(s, context.market.today(s).close)
 
-strategies = [TradingStrategy(10,250)]
+strategies = [MovingAverage(10,250)]
