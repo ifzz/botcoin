@@ -11,7 +11,7 @@ class MarketEvent(Event):
     def __init__(self, sub_type=None):
         self.type = 'MARKET'
         
-        if sub_type and sub_type in ('open', 'during' ,'close', 'after_close'):
+        if sub_type and sub_type in ('before_open', 'open', 'during' ,'close', 'after_close'):
             self.sub_type = sub_type
         elif sub_type:
             raise ValueError("Wrong type of MarketEvent sub_type.")

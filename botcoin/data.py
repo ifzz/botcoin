@@ -140,27 +140,25 @@ class HistoricalCSV(MarketData):
 
             self.this_datetime = datetime
             
-            # return MarketEvent()
-            try:
-                # On open - open = latest_bars[-1][1]
-                for s in self.symbol_list:
-                    self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][1]
-                yield MarketEvent('open')
+            # Before open
+            yield MarketEvent('before_open')
 
-                # During market day
-                # current price will still be open price, as there is no way to know
-                yield MarketEvent('during')
+            # On open - open = latest_bars[-1][1]
+            for s in self.symbol_list:
+                self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][1]
+            yield MarketEvent('open')
 
-                # On close
-                for s in self.symbol_list:
-                    self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][4]
-                yield MarketEvent('close')
+            # During market day
+            # current price will still be open price, as there is no way to know
+            yield MarketEvent('during')
 
-                # After close, current_price will still be close
-                yield MarketEvent('after_close')
+            # On close
+            for s in self.symbol_list:
+                self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][4]
+            yield MarketEvent('close')
 
-            except StopIteration:
-                pass
+            # After close, current_price will still be close
+            yield MarketEvent('after_close')
 
         except StopIteration:
             self.continue_execution = False
