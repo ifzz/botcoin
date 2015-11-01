@@ -66,6 +66,22 @@ class Portfolio(object):
         self.ROUND_DECIMALS = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
         self.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
 
+    @property
+    def long_positions(self):
+        return [trade for trade in self.open_trades.values() if trade.direction in ('BUY')] + \
+            [order for order in self.pending_orders if order.direction in ('BUY')]
+
+    @property
+    def short_positions(self):
+        return [trade for trade in self.open_trades.values() if trade.direction in ('SHORT')] + \
+            [order for order in self.pending_orders if order.direction in ('SHORT')]
+    
+    @property
+    def available_cash(self):
+        # Pending orders that remove cash from account
+        long_pending_orders = [order for order in self.pending_orders if order.direction in ('BUY','COVER')]
+
+        return self.holdings['cash'] - sum([i.estimated_cost for i in long_pending_orders])
 
     def run_cycle(self):
         while True:
@@ -91,10 +107,10 @@ class Portfolio(object):
 
     def handle_market_event(self, event):
         if event.sub_type == 'before_open':
+            self.market_opened()
             self.strategy.before_open(self)
 
         elif event.sub_type == 'open':
-            self.update_from_market()
             self.strategy.open(self)
 
         elif event.sub_type == 'during':
@@ -105,30 +121,9 @@ class Portfolio(object):
 
         elif event.sub_type == 'after_close':
             self.strategy.after_close(self)
+            self.market_closed()
 
-    @property
-    def long_positions(self):
-        return [trade for trade in self.open_trades.values() if trade.direction in ('BUY')] + \
-            [order for order in self.pending_orders if order.direction in ('BUY')]
-
-    @property
-    def short_positions(self):
-        return [trade for trade in self.open_trades.values() if trade.direction in ('SHORT')] + \
-            [order for order in self.pending_orders if order.direction in ('SHORT')]
-    
-    @property
-    def available_cash(self):
-        # Pending orders that remove cash from account
-        long_pending_orders = [order for order in self.pending_orders if order.direction in ('BUY','COVER')]
-
-        return self.holdings['cash'] - sum([i.estimated_cost for i in long_pending_orders])
-    
-
-    def update_from_market(self):
-        """Used to add new position and holdings to portfolio, triggered by a new market signal"""
-        
-        if self.pending_orders:
-            logging.warning("New market event arrived while there are pending orders. Shouldn't happen in backtesting.")
+    def market_opened(self):
 
         cur_datetime = self.market.this_datetime
 
@@ -144,32 +139,10 @@ class Portfolio(object):
                 (cur_datetime <= self.holdings['datetime'])):
                 raise ValueError("New bar arrived with same datetime as previous holding and position. Aborting!")
 
-            # open_positions used for graphing and keeping track of open positions over time
-            self.positions['open_trades'] = len(self.open_trades)
-            
 
-            # Restarts holdings 'total' and s based on this_close price and current_position[s]
-            self.holdings['total'] = self.holdings['cash']
-            open_long,open_short = 0,0
-            for s in self.market.symbol_list:
-                # Approximation to the real value
-                market_value = self.positions[s] * self.market.today(s).close
-                
-                if market_value < 0:
-                    open_short += 1
-                elif market_value > 0:
-                    open_long += 1
-
-                self.holdings[s] = market_value
-                self.holdings['total'] += market_value
-
-            self.verify_consistency(open_long, open_short)
-
-
-            # Add current to all lists
+            # Add current positions/holdings to all_positions/all_holdings lists
             self.all_positions.append(self.positions)
             self.all_holdings.append(self.holdings)
-
 
             self.positions = self.construct_position(
                 cur_datetime, 
@@ -182,21 +155,39 @@ class Portfolio(object):
                 self.holdings['total']
             )
 
+    def market_closed(self):
+        if self.pending_orders:
+            logging.warning("Market closed while there are pending orders. Shouldn't happen in backtesting.")
+
+        # open_positions used for graphing and keeping track of open positions over time
+        self.positions['open_trades'] = len(self.open_trades)
+        
+        # Restarts holdings 'total' and s based on this_close price and current_position[s]
+        self.holdings['total'] = self.holdings['cash']
+        open_long, open_short = 0,0
+        for s in self.market.symbol_list:
+            
+            if self.positions[s] != 0:
+                # Approximation to the real value
+                market_value = self.positions[s] * self.market.price(s)
+                
+                if market_value < 0:
+                    open_short += 1
+                elif market_value > 0:
+                    open_long += 1
+
+                self.holdings[s] = market_value
+                self.holdings['total'] += market_value
+
+        self.verify_consistency(open_long, open_short)
 
     def generate_orders(self, signal):
         logging.debug(str(signal))
 
         symbol = signal.symbol
         direction = signal.direction
-        exec_price = signal.exec_price
+        exec_price = signal.exec_price or self.market.price(symbol)
         
-        bar = self.market.today(symbol)
-
-        # Not trading if there is no volume, or any price == 0.0
-        if 0.0 in (bar.open, bar.high, bar.low, bar.close, bar.vol):
-            logging.debug('Something wrong with last signal')
-            return
-    
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
         
         # Execution price adjusted for slippage
@@ -268,9 +259,6 @@ class Portfolio(object):
         self.holdings['commission'] += fill.commission
         self.holdings['cash'] -= (fill.cost + fill.commission)
 
-        # Strategy no longer keeps track of positions
-        # self.strategy.update_position_from_fill(fill)
-
     def verify_consistency(self, open_long, open_short):
         """ Checks for problematic values in current holding and position """
 
@@ -293,11 +281,6 @@ class Portfolio(object):
                 self.MAX_SHORT_POSITIONS,
             ))
 
-        # # Old test
-        # for s in self.market.symbol_list:
-        #     if (self.positions[s] < 0 or self.holdings[s] < 0):
-        #         logging.info('Do you really have a short position? {}:{}:{}'.format(s, self.positions[s]. self.holdings[s]))
-
     def update_last_positions_and_holdings(self):
         # Adds latest current position and holding into 'all' lists, so they
         # can be part of performance as well
@@ -308,14 +291,13 @@ class Portfolio(object):
 
         # "Fake close" trades that are open, so they can be part of trades performance stats
         for trade in self.open_trades.values():
-            bar = self.market.today(trade.symbol)
 
             direction = 1 if trade.direction in ('SELL','SHORT') else -1
             quantity = trade.quantity * direction
 
             self.all_trades.append(trade.fake_close_trade(
-                bar.datetime,
-                quantity * bar.close,
+                self.market.this_datetime,
+                quantity * self.market.price(trade.symbol),
             ))
 
     def construct_position(self, cur_datetime, positions={}):

@@ -16,7 +16,7 @@ class Trade(object):
         self.commission = fill.commission
 
     def __str__(self):
-        return "symbol:{}, result:{}, from:{}, to:{}".format(
+        return "Trade symbol:{}, result:{}, from:{}, to:{}".format(
             self.symbol,
             self.result,
             self.open_datetime,

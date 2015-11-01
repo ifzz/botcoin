@@ -33,20 +33,24 @@ class Strategy(object):
         self.events_queue.put(SignalEvent(symbol, sig_type, price))
 
     def before_open(self, context):
+        # Can (but doesn't have to) be implemented on the subclass
         pass
 
     def open(self, context):
+        # Can (but doesn't have to) be implemented on the subclass
         pass
 
     def during(self, context):
+        # Can (but doesn't have to) be implemented on the subclass
         pass
 
     def close(self, context):
+        # Can (but doesn't have to) be implemented on the subclass
         pass
 
     def after_close(self, context):
+        # Can (but doesn't have to) be implemented on the subclass
         pass
-
 
     # def take_profit(self, s, profit_pct, entry_price=None, exec_round=0):
     #     entry_price = entry_price or self.entry_price[s]
