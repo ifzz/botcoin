@@ -14,13 +14,12 @@ class MovingAverage(botcoin.Strategy):
         # for symbol in context.market.symbol_list:
         slow_prices = context.market.bars(symbol, self.slow)
         fast_prices = context.market.bars(symbol, self.fast)
-        if len(slow_prices) == self.slow and len(fast_prices) == self.fast:
-            fast = np.round(np.mean(fast_prices.close),botcoin.settings.ROUND_DECIMALS)
-            slow = np.round(np.mean(slow_prices.close),botcoin.settings.ROUND_DECIMALS)
+        fast = np.round(np.mean(fast_prices.close),botcoin.settings.ROUND_DECIMALS)
+        slow = np.round(np.mean(slow_prices.close),botcoin.settings.ROUND_DECIMALS)
 
-            if context.positions[symbol] > 0:
-                if fast <= slow:
-                    self.sell(symbol, context.market.today(symbol).close)
-            else:
-                if fast >= slow:
-                    self.buy(symbol, context.market.today(symbol).close)
+        if context.positions[symbol] > 0:
+            if fast <= slow:
+                self.sell(symbol, context.market.today(symbol).close)
+        else:
+            if fast >= slow:
+                self.buy(symbol, context.market.today(symbol).close)

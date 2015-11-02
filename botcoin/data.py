@@ -188,32 +188,28 @@ class HistoricalCSV(MarketData):
         return self.bar_dispatcher('yesterday', symbol)
 
     def bar_dispatcher(self, option, symbol, N=1, ):
-        try:
-            if option == 'today':
-                bars = self.symbol_data[symbol]['latest_bars'][-1:]
+        if option == 'today':
+            bars = self.symbol_data[symbol]['latest_bars'][-1:]
 
-            elif option == 'yesterday':
-                bars = self.symbol_data[symbol]['latest_bars'][-2:-1]
+        elif option == 'yesterday':
+            bars = self.symbol_data[symbol]['latest_bars'][-2:-1]
 
-            elif option == 'bars':
-                bars = self.symbol_data[symbol]['latest_bars'][-N:]
+        elif option == 'bars':
+            bars = self.symbol_data[symbol]['latest_bars'][-N:]
 
-            elif option == 'past_bars':
-                bars = self.symbol_data[symbol]['latest_bars'][-(N+1):-1]
+        elif option == 'past_bars':
+            bars = self.symbol_data[symbol]['latest_bars'][-(N+1):-1]
 
-            if not bars:
-                raise ValueError("Something wrong with latest_bars")
+        if not bars:
+            raise ValueError("Something wrong with latest_bars")
 
-            if len(bars) != N:
-                raise ValueError("Not enough bars yet")
+        if len(bars) != N:
+            raise ValueError("Not enough bars yet")
 
-            if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
-                raise ValueError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
+        if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
+            raise ValueError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
 
-            return Bars(bars)
-
-        except ValueError as e:
-            return {}
+        return Bars(bars)
 
 class Bars(object):
     """Multiple Bars, usually from past data"""

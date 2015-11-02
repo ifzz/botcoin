@@ -22,15 +22,13 @@ class BollingerBands(botcoin.Strategy):
     def close(self, context, s):
         bars = context.market.past_bars(s, self.length)
 
-        if len(bars) >= self.length:
-            
-            average, upband, lwband = bbands(bars.close, self.k)
-            today = context.market.today(s)
+        average, upband, lwband = bbands(bars.close, self.k)
+        today = context.market.today(s)
 
-            if context.positions[s] > 0:
-                if today.high >= average:
-                    self.sell(s, average)
+        if context.positions[s] > 0:
+            if today.high >= average:
+                self.sell(s, average)
 
-            else:
-                if today.low <= lwband:
-                    self.buy(s, lwband)
+        else:
+            if today.low <= lwband:
+                self.buy(s, lwband)

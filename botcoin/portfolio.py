@@ -106,22 +106,28 @@ class Portfolio(object):
                 raise TypeError("The fuck is this?")
 
     def handle_market_event(self, event):
-        if event.sub_type == 'before_open':
-            self.market_opened()
-            self.strategy.before_open(self)
+        try:
+            if event.sub_type == 'before_open':
+                self.market_opened()
+                self.strategy.before_open(self)
 
-        elif event.sub_type == 'open':
-            self.strategy.open(self, event.symbol)
+            elif event.sub_type == 'open':
+                self.strategy.open(self, event.symbol)
 
-        elif event.sub_type == 'during':
-            self.strategy.during(self, event.symbol)
+            elif event.sub_type == 'during':
+                self.strategy.during(self, event.symbol)
 
-        elif event.sub_type == 'close':
-            self.strategy.close(self, event.symbol)
+            elif event.sub_type == 'close':
+                self.strategy.close(self, event.symbol)
 
-        elif event.sub_type == 'after_close':
-            self.strategy.after_close(self)
-            self.market_closed()
+            elif event.sub_type == 'after_close':
+                self.strategy.after_close(self)
+                self.market_closed()
+        except ValueError:
+            # Problems in market bars or past_bars would raise ValueError
+            # e.g. nonexisting bars, bars with 0.0 or bars smaller than length requested
+            # should be disconsidered
+            pass
 
     def market_opened(self):
         cur_datetime = self.market.this_datetime
@@ -137,7 +143,6 @@ class Portfolio(object):
             if ((cur_datetime <= self.positions['datetime']) or 
                 (cur_datetime <= self.holdings['datetime'])):
                 raise ValueError("New bar arrived with same datetime as previous holding and position. Aborting!")
-
 
             # Add current positions/holdings to all_positions/all_holdings lists
             self.all_positions.append(self.positions)
