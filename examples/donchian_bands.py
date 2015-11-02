@@ -4,24 +4,20 @@ import botcoin
 class DonchianStrategy(botcoin.Strategy):
     def initialize(self):
         self.SYMBOL_LIST = botcoin.settings.ASX_200
-        self.DATE_FROM = '2010'
+        self.DATE_FROM = '2015'
         self.DATE_TO = '2015'
 
         self.upper = self.get_arg(0, 100)
         self.lower = self.get_arg(1, 25)
 
     def close(self, context, s):
-        upper_bars = context.market.past_bars(s, self.upper)
-        lower_bars = context.market.past_bars(s, self.lower)
+        upband = max(context.market.past_bars(s, self.upper).high)
+        lwband = min(context.market.past_bars(s, self.lower).low)
+        
         today = context.market.today(s)
 
-        upband = max(upper_bars.high)
-        lwband = min(lower_bars.low)
+        if today.high > upband:
+            self.buy(s, upband)
+        if today.low < lwband:
+            self.sell(s, lwband)
 
-        if context.positions[s] > 0:
-            if today.low < lwband:
-                self.sell(s, lwband)
-
-        else:
-            if today.high > upband:
-                self.buy(s, upband)
