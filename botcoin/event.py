@@ -8,9 +8,9 @@ class MarketEvent(Event):
     corresponding bars.
     """
 
-    def __init__(self, sub_type=None):
+    def __init__(self, sub_type, symbol=None):
         self.type = 'MARKET'
-        
+        self.symbol = symbol
         if sub_type and sub_type in ('before_open', 'open', 'during' ,'close', 'after_close'):
             self.sub_type = sub_type
         elif sub_type:

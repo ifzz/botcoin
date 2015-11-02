@@ -146,16 +146,16 @@ class HistoricalCSV(MarketData):
             # On open - open = latest_bars[-1][1]
             for s in self.symbol_list:
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][1]
-            yield MarketEvent('open')
+                yield MarketEvent('open', s)
 
             # During market day
             # current price will still be open price, as there is no way to know
-            yield MarketEvent('during')
+            for s in self.symbol_list: yield MarketEvent('during', s)
 
             # On close
             for s in self.symbol_list:
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][4]
-            yield MarketEvent('close')
+                yield MarketEvent('close', s)
 
             # After close, current_price will still be close
             yield MarketEvent('after_close')
@@ -201,7 +201,6 @@ class HistoricalCSV(MarketData):
             elif option == 'past_bars':
                 bars = self.symbol_data[symbol]['latest_bars'][-(N+1):-1]
 
-
             if not bars:
                 raise ValueError("Something wrong with latest_bars")
 
@@ -211,37 +210,34 @@ class HistoricalCSV(MarketData):
             if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
                 raise ValueError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
 
-            return SingleBar(bars) if option in ('today', 'yesterday') else Bars(bars)
+            return Bars(bars)
 
         except ValueError as e:
             return {}
-
 
 class Bars(object):
     """Multiple Bars, usually from past data"""
     def __init__(self,latest_bars):
         self.length = len(latest_bars)
 
-        self.datetime = [i[0] for i in latest_bars]
-        self.open = [i[1] for i in latest_bars]
-        self.high = [i[2] for i in latest_bars]
-        self.low = [i[3] for i in latest_bars]
-        self.close = [i[4] for i in latest_bars]
-        self.vol = [i[5] for i in latest_bars]
+        if len(latest_bars) == 1:
+            self.datetime = latest_bars[-1][0]
+            self.open = latest_bars[-1][1]
+            self.high = latest_bars[-1][2]
+            self.low = latest_bars[-1][3]
+            self.close = latest_bars[-1][4]
+            self.vol = latest_bars[-1][5]  
+        else:
+            self.datetime = [i[0] for i in latest_bars]
+            self.open = [i[1] for i in latest_bars]
+            self.high = [i[2] for i in latest_bars]
+            self.low = [i[3] for i in latest_bars]
+            self.close = [i[4] for i in latest_bars]
+            self.vol = [i[5] for i in latest_bars]
 
     def __len__(self):
         return self.length
 
-class SingleBar(Bars):
-    def __init__(self, latest_bars):
-        self.length = len(latest_bars)
-
-        self.datetime = latest_bars[-1][0]
-        self.open = latest_bars[-1][1]
-        self.high = latest_bars[-1][2]
-        self.low = latest_bars[-1][3]
-        self.close = latest_bars[-1][4]
-        self.vol = latest_bars[-1][5]
 
 def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=False):
     import urllib.request

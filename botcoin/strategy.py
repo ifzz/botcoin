@@ -17,6 +17,19 @@ class Strategy(object):
     def __str__(self):
         return self.__class__.__name__ + "(" + ",".join([str(i) for i in self.args]) + ")"
 
+    def get_arg(self, index, default=None):
+        if isinstance(index, int):
+            try:
+                return self.args[index]
+            except IndexError:
+                return default
+
+        elif isinstance(index, str):
+            try:
+                return self.kwargs[index]
+            except KeyError:
+                return default
+
     def buy(self, symbol, price=None):
         self.add_signal_to_queue(symbol, 'BUY', price)
 
@@ -36,15 +49,15 @@ class Strategy(object):
         # Can (but doesn't have to) be implemented on the subclass
         pass
 
-    def open(self, context):
+    def open(self, context, symbol):
         # Can (but doesn't have to) be implemented on the subclass
         pass
 
-    def during(self, context):
+    def during(self, context, symbol):
         # Can (but doesn't have to) be implemented on the subclass
         pass
 
-    def close(self, context):
+    def close(self, context, symbol):
         # Can (but doesn't have to) be implemented on the subclass
         pass
 

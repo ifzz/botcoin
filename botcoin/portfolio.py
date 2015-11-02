@@ -111,20 +111,19 @@ class Portfolio(object):
             self.strategy.before_open(self)
 
         elif event.sub_type == 'open':
-            self.strategy.open(self)
+            self.strategy.open(self, event.symbol)
 
         elif event.sub_type == 'during':
-            self.strategy.during(self)
+            self.strategy.during(self, event.symbol)
 
         elif event.sub_type == 'close':
-            self.strategy.close(self)
+            self.strategy.close(self, event.symbol)
 
         elif event.sub_type == 'after_close':
             self.strategy.after_close(self)
             self.market_closed()
 
     def market_opened(self):
-
         cur_datetime = self.market.this_datetime
 
         # If there is no current position and holding, meaning execution just started
