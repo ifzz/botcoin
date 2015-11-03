@@ -1,5 +1,3 @@
-import math
-
 class Trade(object):
     """
     Complete trade (buy/sell or short/cover)
@@ -12,7 +10,7 @@ class Trade(object):
         self.open_datetime = fill.datetime
         self.quantity = fill.quantity
         self.open_cost = fill.cost
-        self.open_price = math.fabs(fill.cost/self.quantity)
+        self.open_price = fill.price
         self.commission = fill.commission
 
     def __str__(self):
@@ -27,7 +25,7 @@ class Trade(object):
         self.open_position = False
         self.close_datetime = new_fill.datetime
         self.close_cost = new_fill.cost
-        self.close_price = math.fabs(new_fill.cost/self.quantity)
+        self.close_price = new_fill.price
         self.commission += new_fill.commission
         self.result = -(self.open_cost + self.close_cost + self.commission)
         return self

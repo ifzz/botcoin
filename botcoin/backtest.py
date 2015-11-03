@@ -12,8 +12,7 @@ import settings
 
 
 class Backtest(object):
-    def __init__(self, strategies, symbol_list=None, date_from=None, 
-                 date_to=None, data_dir=None, start_automatically=True):
+    def __init__(self, strategies, data_dir=None, start_automatically=True):
 
         if not (isinstance(strategies, collections.Iterable) and
                 isinstance(strategies[0], Strategy)):

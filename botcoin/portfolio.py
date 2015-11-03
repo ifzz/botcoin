@@ -106,9 +106,11 @@ class Portfolio(object):
                 raise TypeError("The fuck is this?")
 
     def handle_market_event(self, event):
+        if event.sub_type == 'before_open':
+                self.market_opened()
+
         try:
             if event.sub_type == 'before_open':
-                self.market_opened()
                 self.strategy.before_open(self)
 
             elif event.sub_type == 'open':
@@ -122,12 +124,14 @@ class Portfolio(object):
 
             elif event.sub_type == 'after_close':
                 self.strategy.after_close(self)
-                self.market_closed()
         except ValueError:
             # Problems in market bars or past_bars would raise ValueError
             # e.g. nonexisting bars, bars with 0.0 or bars smaller than length requested
             # should be disconsidered
             pass
+
+        if event.sub_type == 'after_close':
+            self.market_closed()
 
     def market_opened(self):
         cur_datetime = self.market.this_datetime

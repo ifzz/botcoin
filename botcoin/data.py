@@ -76,7 +76,7 @@ class HistoricalCSV(MarketData):
             if normalize_volume:
                 df['volume'] = df['volume']*(df['adj_close']/df['close'])
             if normalize_adj_close:
-                for c in ('open', 'high', 'low', 'volume'):
+                for c in ('open', 'high', 'low'):
                     df[c] = df[c]*(df['adj_close']/df['close'])
                 df['close'] = df['adj_close']
 

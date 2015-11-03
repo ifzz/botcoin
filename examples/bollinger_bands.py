@@ -1,15 +1,6 @@
 import numpy as np
 import botcoin 
 
-def bbands(prices, k):
-    """ returns average, upper band, and lower band"""
-    ave = np.mean(prices)
-    sd = np.std(prices)
-    upband = ave + (sd*k)
-    lwband = ave - (sd*k)
-    round_dec = botcoin.settings.ROUND_DECIMALS
-    return np.round(ave,round_dec), np.round(upband,round_dec), np.round(lwband,round_dec)
-
 class BollingerBands(botcoin.Strategy):
     def initialize(self):
         self.SYMBOL_LIST = botcoin.settings.ASX_200
