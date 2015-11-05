@@ -44,12 +44,14 @@ class Portfolio(object):
 
         # Main events queue shared with Market and Execution
         self.events_queue = queue.Queue()
+        # Queue used to store signals raised by strategy
+        self.signals_queue = queue.Queue()
         self.market = market
         self.strategy = strategy
         self.broker = broker
 
         self.broker.set_queue_and_market(self.events_queue, market)
-        self.strategy.events_queue = self.events_queue
+        self.strategy.signals_queue = self.signals_queue
 
         import settings
 
@@ -75,7 +77,7 @@ class Portfolio(object):
     def short_positions(self):
         return [trade for trade in self.open_trades.values() if trade.direction in ('SHORT')] + \
             [order for order in self.pending_orders if order.direction in ('SHORT')]
-    
+
     @property
     def available_cash(self):
         # Pending orders that remove cash from account
@@ -83,12 +85,23 @@ class Portfolio(object):
 
         return self.holdings['cash'] - sum([i.estimated_cost for i in long_pending_orders])
 
+    @property
+    def portfolio_value(self):
+        value = self.holdings['cash']
+        value += sum([self.positions[s] * self.market.price(s) for s in self.market.symbol_list])
+        return value
+
     def run_cycle(self):
         while True:
             try:
                 event = self.events_queue.get(False)
             except queue.Empty:
-                break
+                # Done this way to be able to execute in between
+                # signals that come all at once from strategy
+                try:
+                    event = self.signals_queue.get(False)
+                except queue.Empty:
+                    break
 
             if event.type == "MARKET":
                 self.handle_market_event(event)
@@ -144,7 +157,7 @@ class Portfolio(object):
             self.holdings = self.construct_holding(cur_datetime, self.INITIAL_CAPITAL, 0.00, self.INITIAL_CAPITAL)
 
         else:
-            if ((cur_datetime <= self.positions['datetime']) or 
+            if ((cur_datetime <= self.positions['datetime']) or
                 (cur_datetime <= self.holdings['datetime'])):
                 raise ValueError("New bar arrived with same datetime as previous holding and position. Aborting!")
 
@@ -153,7 +166,7 @@ class Portfolio(object):
             self.all_holdings.append(self.holdings)
 
             self.positions = self.construct_position(
-                cur_datetime, 
+                cur_datetime,
                 self.positions,
             )
             self.holdings = self.construct_holding(
@@ -169,25 +182,13 @@ class Portfolio(object):
 
         # open_positions used for graphing and keeping track of open positions over time
         self.positions['open_trades'] = len(self.open_trades)
-        
+
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
-        self.holdings['total'] = self.holdings['cash']
-        open_long, open_short = 0,0
+        self.holdings['total'] = self.portfolio_value
         for s in self.market.symbol_list:
-            
-            if self.positions[s] != 0:
-                # Approximation to the real value
-                market_value = self.positions[s] * self.market.price(s)
-                
-                if market_value < 0:
-                    open_short += 1
-                elif market_value > 0:
-                    open_long += 1
+            self.holdings[s] = self.positions[s] * self.market.price(s)
 
-                self.holdings[s] = market_value
-                self.holdings['total'] += market_value
-
-        self.verify_consistency(open_long, open_short)
+        self.verify_consistency()
 
     def generate_orders(self, signal):
         logging.debug(str(signal))
@@ -195,20 +196,18 @@ class Portfolio(object):
         symbol = signal.symbol
         direction = signal.direction
         exec_price = signal.exec_price or self.market.price(symbol)
-        
+
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
-        
+
         # Execution price adjusted for slippage
         adj_price = np.round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod),self.ROUND_DECIMALS)
 
         cur_position = self.positions[symbol]
-        portf_value = self.holdings['total']
-
         order = None
 
         if direction in ('BUY', 'SHORT') and cur_position == 0:
             # Cash to be spent on this position
-            position_cash = portf_value*self.POSITION_SIZE
+            position_cash = self.portfolio_value*self.POSITION_SIZE
             # Quantity to BUY or SHORT
             quantity = 0
 
@@ -229,7 +228,6 @@ class Portfolio(object):
 
             if quantity != 0.0:
                 commission = self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price)
-                # TODO check below formula for short positions
                 estimated_cost = commission + (quantity * adj_price)
                 order = OrderEvent(signal, symbol, quantity, direction, adj_price, estimated_cost)
 
@@ -267,7 +265,7 @@ class Portfolio(object):
         self.holdings['commission'] += fill.commission
         self.holdings['cash'] -= (fill.cost + fill.commission)
 
-    def verify_consistency(self, open_long, open_short):
+    def verify_consistency(self):
         """ Checks for problematic values in current holding and position """
 
         if (self.holdings['cash'] < 0 or
@@ -280,7 +278,10 @@ class Portfolio(object):
                 self.holdings['commission'],
             ))
             raise AssertionError("Inconsistency in Portfolio.holdings()")
-        
+
+        open_long = len(self.long_positions)
+        open_short = len(self.short_positions)
+
         if open_long > self.MAX_LONG_POSITIONS or open_short > self.MAX_SHORT_POSITIONS:
             raise AssertionError("Number of open positions is too high. {}/{} open positions and {}/{} short positions".format(
                 open_long,
@@ -384,7 +385,7 @@ class Portfolio(object):
                 t.close_price,
                 t.commission,
             ) for t in self.all_trades],
-            columns=['symbol', 'returns', 'open_datetime', 'close_datetime', 
+            columns=['symbol', 'returns', 'open_datetime', 'close_datetime',
                      'open_cost', 'close_cost', 'open_price', 'close_price', 'commission'],
         )
 
@@ -395,7 +396,7 @@ class Portfolio(object):
 
         # Saving portfolio.all_positions in performance
         curve = pd.DataFrame(self.all_positions)
-        curve.set_index('datetime', inplace=True) 
+        curve.set_index('datetime', inplace=True)
         results['all_positions'] = curve
 
         # Saving portfolio.all_holdings in performance
@@ -414,7 +415,7 @@ class Portfolio(object):
 
         # Average bars each year, used to calculate sharpe ratio (N)
         avg_bars_per_year = len(curve.index)/years # curve.groupby(curve.index.year).count())
-        
+
         # Total return
         results['total_return'] = ((curve['equity_curve'][-1] - 1.0) * 100.0)
 

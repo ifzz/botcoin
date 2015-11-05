@@ -27,11 +27,11 @@ class HistoricalCSV(MarketData):
             self.symbol_data[s] = {}
             filename = s + '.csv'
             df = self._load_csv(csv_dir, filename, date_from, date_to, normalize_prices, normalize_volume, round_decimals)
-            
+
             # Original dataframe from csv
             self.symbol_data[s]['df'] = df
 
-            # Combine different file indexes to account for nonexistent values 
+            # Combine different file indexes to account for nonexistent values
             # (needs 'is not None' because of Pandas 'The truth value of a DatetimeIndex is ambiguous.' error)
             comb_index = comb_index.union(self.symbol_data[s]['df'].index) if comb_index is not None else self.symbol_data[s]['df'].index
 
@@ -50,7 +50,7 @@ class HistoricalCSV(MarketData):
         self.date_to = self.symbol_data[self.symbol_list[0]]['df'].index[-1]
         self.load_time = datetime.now()-start_load_datetime
 
-    def _load_csv(self, csv_dir, filename, date_from, date_to, 
+    def _load_csv(self, csv_dir, filename, date_from, date_to,
                   normalize_adj_close, normalize_volume, round_decimals):
 
         df = pd.io.parsers.read_csv(
@@ -86,7 +86,7 @@ class HistoricalCSV(MarketData):
 
         df = df[date_from:] if date_from else df
         df = df[:date_to] if date_to else df
-        
+
         if df.empty:
             logging.warning("Empty DataFrame loaded for {}.".format(filename)) # Possibly invalid date ranges?
 
@@ -100,7 +100,7 @@ class HistoricalCSV(MarketData):
         df['close'] = df['close'].ffill()
         # Fill any remaining close NaN in 0 (e.g. beginning of file)
         df['close'] = df['close'].fillna(0)
-        
+
         # Fill open high and low NaN with close price
         for col in ['open', 'high', 'low']:
             df[col] = df[col].fillna(df['close'])
@@ -121,10 +121,10 @@ class HistoricalCSV(MarketData):
 
                 if not (highp>=lowp and highp>=openp and highp>=closep and
                     lowp<=openp and lowp<=closep):
-                    raise ValueError("Data inconsistency on " + s + " at " + 
+                    raise ValueError("Data inconsistency on " + s + " at " +
                         str(datetime) + ". OHLC is " + str(openp) + " " +
                         str(highp) + " " + str(lowp) + " " + str(closep) +
-                        ". High price must be >= all other prices" + 
+                        ". High price must be >= all other prices" +
                         " and low price must be <= all other prices"
                     )
 
@@ -140,13 +140,17 @@ class HistoricalCSV(MarketData):
                 self.symbol_data[s]['latest_bars'].append(bar)
 
             self.this_datetime = datetime
-            
+
             # Before open
             yield MarketEvent('before_open')
 
             # On open - open = latest_bars[-1][1]
             for s in self.symbol_list:
+                # First all prices need to be updated to maintain consistency
+                # otherwise portfolio_value will be calculated based on open price
+                # and it will influence position size calculation
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][1]
+            for s in self.symbol_list:
                 yield MarketEvent('open', s)
 
             # During market day
@@ -155,7 +159,11 @@ class HistoricalCSV(MarketData):
 
             # On close
             for s in self.symbol_list:
+                # First all prices need to be updated to maintain consistency
+                # otherwise portfolio_value will be calculated based on open price
+                # and it will influence position size calculation
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][4]
+            for s in self.symbol_list:
                 yield MarketEvent('close', s)
 
             # After close, current_price will still be close
@@ -210,14 +218,15 @@ class HistoricalCSV(MarketData):
         if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
             raise ValueError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
 
-        return Bars(bars)
+        result = Bars(bars, True) if option in ('today', 'yesterday') else Bars(bars)
+        return result
 
 class Bars(object):
     """Multiple Bars, usually from past data"""
-    def __init__(self,latest_bars):
+    def __init__(self,latest_bars, single_bar=False):
         self.length = len(latest_bars)
 
-        if len(latest_bars) == 1:
+        if single_bar:
             self.datetime = latest_bars[-1][0]
             self.open = latest_bars[-1][1]
             self.high = latest_bars[-1][2]

@@ -43,7 +43,7 @@ class Strategy(object):
         self.add_signal_to_queue(symbol, 'COVER', price)
 
     def add_signal_to_queue(self, symbol, sig_type, price):
-        self.events_queue.put(SignalEvent(symbol, sig_type, price))
+        self.signals_queue.put(SignalEvent(symbol, sig_type, price))
 
     def before_open(self, context):
         # Can (but doesn't have to) be implemented on the subclass
@@ -88,4 +88,3 @@ class Strategy(object):
     #         exit_price = entry_price*(1+loss_pct)
     #         if self.market.bars(s).this_high >= exit_price:
     #             self.cover(s, exit_price, exec_round)
-
