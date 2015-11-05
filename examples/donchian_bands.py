@@ -1,5 +1,5 @@
 import numpy as np
-import botcoin 
+import botcoin
 
 class DonchianStrategy(botcoin.Strategy):
     def initialize(self):
@@ -13,11 +13,10 @@ class DonchianStrategy(botcoin.Strategy):
     def close(self, context, s):
         upband = max(context.market.past_bars(s, self.upper).high)
         lwband = min(context.market.past_bars(s, self.lower).low)
-        
+
         today = context.market.today(s)
 
         if today.high > upband:
             self.buy(s, upband)
         if today.low < lwband:
             self.sell(s, lwband)
-

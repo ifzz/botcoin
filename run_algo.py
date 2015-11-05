@@ -24,7 +24,7 @@ def _find_strategies(module):
     except AttributeError as e:
         pass
 
-    logging.debug("No strategy/strategies attribute found, will instantiate " + 
+    logging.debug("No strategy/strategies attribute found, will instantiate " +
         "first subclass of botcoin.Strategy found.")
     import inspect
     for name, cls in inspect.getmembers(module, inspect.isclass):

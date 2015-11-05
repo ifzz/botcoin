@@ -1,5 +1,5 @@
 import numpy as np
-import botcoin 
+import botcoin
 
 class BollingerBands(botcoin.Strategy):
     def initialize(self):

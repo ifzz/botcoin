@@ -40,8 +40,8 @@ class Backtest(object):
         logging.info("Backtesting {} {} with {} symbols from {} to {}".format(
             len(self.portfolios),
             'strategies' if len(self.portfolios) > 1 else 'strategy',
-            len(self.market.symbol_list), 
-            self.market.date_from.strftime('%Y-%m-%d'), 
+            len(self.market.symbol_list),
+            self.market.date_from.strftime('%Y-%m-%d'),
             self.market.date_to.strftime('%Y-%m-%d'),
         ))
         logging.info("Data load took {}".format(str(self.market.load_time)))
@@ -108,7 +108,7 @@ class Backtest(object):
         for portfolio in self.portfolios:
             ax = portfolio.performance['all_positions']['open_trades'].plot()
             ax.set_title(portfolio.strategy)
-            plt.grid()  
+            plt.grid()
             plt.show()
 
     def plot_results(self):
@@ -117,7 +117,7 @@ class Backtest(object):
         for portfolio in self.portfolios:
             ax = portfolio.performance['equity_curve'].plot()
             ax.set_title(portfolio.strategy)
-            plt.grid()  
+            plt.grid()
             plt.show()
 
     def print_all_trades(self):

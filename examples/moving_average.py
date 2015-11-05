@@ -1,5 +1,5 @@
 import numpy as np
-import botcoin 
+import botcoin
 
 class MovingAverage(botcoin.Strategy):
     def initialize(self):

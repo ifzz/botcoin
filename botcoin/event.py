@@ -4,7 +4,7 @@ class Event(object):
 
 class MarketEvent(Event):
     """
-    Handles the event of receiving a new market update with 
+    Handles the event of receiving a new market update with
     corresponding bars.
     """
 
@@ -24,10 +24,10 @@ class SignalEvent(Event):
     Parameters
         datetime - The timestamp at which the signal was generated.
         direction - "BUY", "SELL", "SHORT" or "COVER".
-        price - Target price defined by strategy. 
+        price - Target price defined by strategy.
             If None, last close will be used by portfolio.
     """
-    
+
     def __init__(self, symbol, direction, exec_price):
         if exec_price == 0.0:
             raise ValueError("Execution price can't be 0.0. {} {}.".format(symbol, direction))
@@ -50,7 +50,7 @@ class OrderEvent(Event):
     quantity and a direction.
     """
 
-    def __init__(self, signal, symbol, quantity, direction, limit_price, 
+    def __init__(self, signal, symbol, quantity, direction, limit_price,
                  estimated_cost=0.0):
         """
         Initialises a Limit order order, has a quantity (integer)
@@ -61,7 +61,7 @@ class OrderEvent(Event):
         quantity - Non-negative integer for quantity.
         direction - 'BUY' or 'SELL' for long or short.
         limit_price - Limit price to be used for execution.
-        estimated_cost -How much the order is expected to cost, used 
+        estimated_cost -How much the order is expected to cost, used
             to calculate money locked in before order is executed.
         """
         if not isinstance(signal, SignalEvent):
@@ -79,7 +79,7 @@ class OrderEvent(Event):
         self.estimated_cost = estimated_cost
 
     def __str__(self):
-        return "Order - {}:{}:{}".format(self.symbol,self.direction,str(self.quantity),str(self.estimated_cost))
+        return "Order - {} : {} : {} : {}".format(self.symbol,self.direction,str(self.quantity),str(self.estimated_cost))
 
 class FillEvent(Event):
     """
@@ -93,7 +93,7 @@ class FillEvent(Event):
                  quantity, cost, price, commission):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
-        quantity, direction, cost of fill and an optional 
+        quantity, direction, cost of fill and an optional
         commission.
 
         Parameters:

@@ -1,3 +1,3 @@
 # botcoin
 
-Attempt of a ~~Bitcoin~~ backtesting engine / trading bot. 
+Attempt of a ~~Bitcoin~~ backtesting engine / trading bot.

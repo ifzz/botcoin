@@ -1,3 +1,4 @@
+import math
 class Trade(object):
     """
     Complete trade (buy/sell or short/cover)
