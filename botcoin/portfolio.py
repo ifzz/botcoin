@@ -50,8 +50,11 @@ class Portfolio(object):
         self.strategy = strategy
         self.broker = broker
 
-        self.broker.set_queue_and_market(self.events_queue, market)
+        self.broker.events_queue = self.events_queue
+        self.broker.market = self.market
+
         self.strategy.signals_queue = self.signals_queue
+        self.strategy.market = self.market
 
         import settings
 
@@ -147,7 +150,7 @@ class Portfolio(object):
             self.market_closed()
 
     def market_opened(self):
-        cur_datetime = self.market.this_datetime
+        cur_datetime = self.market.datetime
 
         # If there is no current position and holding, meaning execution just started
         if not self.positions and not self.holdings:
@@ -196,6 +199,7 @@ class Portfolio(object):
         symbol = signal.symbol
         direction = signal.direction
         exec_price = signal.exec_price or self.market.price(symbol)
+        date = self.market.datetime
 
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
 
@@ -229,7 +233,7 @@ class Portfolio(object):
             if quantity != 0.0:
                 commission = self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price)
                 estimated_cost = commission + (quantity * adj_price)
-                order = OrderEvent(signal, symbol, quantity, direction, adj_price, estimated_cost)
+                order = OrderEvent(signal, symbol, quantity, direction, adj_price, estimated_cost, date)
 
 
         elif direction in ('SELL', 'COVER') and cur_position != 0:
@@ -237,7 +241,7 @@ class Portfolio(object):
             # Checks if there is a similar order in pending_orders to protect
             # against repeated signals coming from strategy
             if not [order for order in self.pending_orders if (order.symbol == symbol and order.quantity == quantity)]:
-                order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price)
+                order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price, date)
 
         if order:
             logging.debug(str(order))
@@ -305,7 +309,7 @@ class Portfolio(object):
             quantity = trade.quantity * direction
 
             self.all_trades.append(trade.fake_close_trade(
-                self.market.this_datetime,
+                self.market.datetime,
                 quantity * self.market.price(trade.symbol),
             ))
 

@@ -139,7 +139,7 @@ class HistoricalCSV(MarketData):
 
                 self.symbol_data[s]['latest_bars'].append(bar)
 
-            self.this_datetime = datetime
+            self.datetime = datetime
 
             # Before open
             yield MarketEvent('before_open')

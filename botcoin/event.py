@@ -28,7 +28,7 @@ class SignalEvent(Event):
             If None, last close will be used by portfolio.
     """
 
-    def __init__(self, symbol, direction, exec_price):
+    def __init__(self, symbol, direction, exec_price, created_at):
         if exec_price == 0.0:
             raise ValueError("Execution price can't be 0.0. {} {}.".format(symbol, direction))
         if direction not in ('BUY', 'SELL', 'SHORT', 'COVER'):
@@ -38,6 +38,7 @@ class SignalEvent(Event):
         self.symbol = symbol
         self.direction = direction
         self.exec_price = exec_price
+        self.created_at = created_at
 
     def __str__(self):
         return "Signal - {}:{}:{}".format(self.symbol,self.direction,str(self.exec_price))
@@ -51,7 +52,7 @@ class OrderEvent(Event):
     """
 
     def __init__(self, signal, symbol, quantity, direction, limit_price,
-                 estimated_cost=0.0):
+                 estimated_cost, created_at):
         """
         Initialises a Limit order order, has a quantity (integer)
         and its direction ('BUY', 'SELL', 'SHORT' and 'COVER' ).
@@ -73,6 +74,7 @@ class OrderEvent(Event):
         self.quantity = quantity
         self.direction = direction
         self.limit_price = limit_price
+        self.created_at = created_at
 
         if direction in ('BUY', 'COVER') and not estimated_cost:
             raise ValueError("BUY or COVER require estimated_cost")
@@ -89,8 +91,8 @@ class FillEvent(Event):
     the commission of the trade from the brokerage.
     """
 
-    def __init__(self, order, datetime, direction,
-                 quantity, cost, price, commission):
+    def __init__(self, order, direction, quantity,
+                 cost, price, commission, created_at):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
         quantity, direction, cost of fill and an optional
@@ -110,12 +112,12 @@ class FillEvent(Event):
         self.type = 'FILL'
         self.order = order
         self.symbol = order.symbol
-        self.datetime = datetime
         self.direction = direction
         self.quantity = quantity
         self.cost = cost
         self.price = price
         self.commission = commission
+        self.created_at = created_at
 
     def __str__(self):
         return "Fill - {}:{}:{}".format(self.symbol,str(self.quantity),str(self.cost))
