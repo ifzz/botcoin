@@ -127,19 +127,19 @@ class Portfolio(object):
 
         try:
             if event.sub_type == 'before_open':
-                self.strategy.before_open(self)
+                self.strategy.before_open()
 
             elif event.sub_type == 'open':
-                self.strategy.open(self, event.symbol)
+                self.strategy.open(event.symbol)
 
             elif event.sub_type == 'during':
-                self.strategy.during(self, event.symbol)
+                self.strategy.during(event.symbol)
 
             elif event.sub_type == 'close':
-                self.strategy.close(self, event.symbol)
+                self.strategy.close(event.symbol)
 
             elif event.sub_type == 'after_close':
-                self.strategy.after_close(self)
+                self.strategy.after_close()
         except ValueError:
             # Problems in market bars or past_bars would raise ValueError
             # e.g. nonexisting bars, bars with 0.0 or bars smaller than length requested

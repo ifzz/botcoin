@@ -10,11 +10,11 @@ class DonchianStrategy(botcoin.Strategy):
         self.upper = self.get_arg(0, 100)
         self.lower = self.get_arg(1, 25)
 
-    def close(self, context, s):
-        upband = max(context.market.past_bars(s, self.upper).high)
-        lwband = min(context.market.past_bars(s, self.lower).low)
+    def close(self, s):
+        upband = max(self.market.past_bars(s, self.upper).high)
+        lwband = min(self.market.past_bars(s, self.lower).low)
 
-        today = context.market.today(s)
+        today = self.market.today(s)
 
         if today.high > upband:
             self.buy(s, upband)
