@@ -210,13 +210,13 @@ class HistoricalCSV(MarketData):
             bars = self.symbol_data[symbol]['latest_bars'][-(N+1):-1]
 
         if not bars:
-            raise ValueError("Something wrong with latest_bars")
+            raise NoBarsException("Something wrong with latest_bars")
 
         if len(bars) != N:
-            raise ValueError("Not enough bars yet")
+            raise NotEnoughBarsException("Not enough bars yet")
 
         if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
-            raise ValueError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
+            raise EmptyBarsException("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
 
         result = Bars(bars, True) if option in ('today', 'yesterday') else Bars(bars)
         return result
@@ -274,3 +274,15 @@ def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=Fals
         if remove_adj_close:
             df.drop('Adj Close', axis=1, inplace=True)
         df.to_csv(os.path.join(DATA_DIR, s+'.csv'), header=False)
+
+class BarValidationError(Exception):
+    pass
+
+class NoBarsException(BarValidationError):
+    pass
+
+class NotEnoughBarsException(BarValidationError):
+    pass
+
+class EmptyBarsException(BarValidationError):
+    pass

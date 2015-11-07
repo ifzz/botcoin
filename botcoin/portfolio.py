@@ -6,7 +6,7 @@ import queue
 import numpy as np
 import pandas as pd
 
-from data import MarketData
+from data import MarketData, BarValidationError
 from event import MarketEvent, SignalEvent, OrderEvent
 from execution import Execution
 from strategy import Strategy
@@ -140,10 +140,10 @@ class Portfolio(object):
 
             elif event.sub_type == 'after_close':
                 self.strategy.after_close()
-        except ValueError:
-            # Problems in market bars or past_bars would raise ValueError
-            # e.g. nonexisting bars, bars with 0.0 or bars smaller than length requested
-            # should be disconsidered
+        except BarValidationError:
+            # Problems in market bars or past_bars would raise BarValidationError
+            # e.g. nonexisting bars, bars with 0.0 or bars smaller than length
+            # requested should be disconsidered
             pass
 
         if event.sub_type == 'after_close':
