@@ -28,6 +28,7 @@ class Backtest(object):
             normalize_prices = getattr(strategies[0], 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES),
             normalize_volume = getattr(strategies[0], 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME),
             round_decimals = getattr(strategies[0], 'ROUND_DECIMALS', settings.ROUND_DECIMALS),
+            download_data_yahoo = getattr(strategies[0], 'DOWNLOAD_DATA_YAHOO', settings.DOWNLOAD_DATA_YAHOO),
         )
 
         self.portfolios = []

@@ -22,7 +22,7 @@ SRC_DIR = os.path.join(BASE_DIR, 'src/')
 # Data APIs
 YAHOO_CHART_API = 'http://chartapi.finance.yahoo.com/instrument/1.0/{}/chartdata;type=quote;range={}/csv'
 YAHOO_API = 'http://ichart.finance.yahoo.com/table.csv?s={}&c={}&g={}'
-
+YAHOO_API_2 = 'http://download.finance.yahoo.com/d/quotes.csv?s={}&f=sl1d1t1c1ohgv&e=.csv'
 
 # Backtesting specific configuration
 
@@ -35,6 +35,10 @@ NORMALIZE_VOLUME = False
 # Dates to start and finish backtest
 DATE_TO = datetime.now()
 DATE_FROM = DATE_TO - timedelta(weeks=52)
+
+# If True, all symbols in SYMBOL_LIST will be downloaded 
+# from Yahoo prior to backtesting
+DOWNLOAD_DATA_YAHOO = False
 
 # Initial portfolio capital
 INITIAL_CAPITAL = 100000.00

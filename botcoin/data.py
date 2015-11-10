@@ -15,7 +15,11 @@ class MarketData(object):
 class HistoricalCSV(MarketData):
 
     def __init__(self, csv_dir, symbol_list, date_from='', date_to='',
-                 normalize_prices=True, normalize_volume=True, round_decimals=2):
+                 normalize_prices=True, normalize_volume=True, round_decimals=2,
+                 download_data_yahoo=False):
+
+        if download_data_yahoo:
+            yahoo_api(symbol_list)
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
@@ -263,7 +267,8 @@ def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=Fals
     import urllib.request
     from urllib.request import HTTPError
     from settings import DATA_DIR, YAHOO_API
-
+    logging.warning("Downloading {} symbols from Yahoo. Please wait.".format(len(list_of_symbols)))
+    
     for s in list_of_symbols:
         try:
             csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')
