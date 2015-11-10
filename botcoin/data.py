@@ -261,19 +261,24 @@ class Bars(object):
 
 def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=False):
     import urllib.request
+    from urllib.request import HTTPError
     from settings import DATA_DIR, YAHOO_API
 
     for s in list_of_symbols:
-        csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')
-        df = pd.io.parsers.read_csv(
-            csv,
-            header=0,
-            index_col=0,
-        )
-        df = df.reindex(index=df.index[::-1])
-        if remove_adj_close:
-            df.drop('Adj Close', axis=1, inplace=True)
-        df.to_csv(os.path.join(DATA_DIR, s+'.csv'), header=False)
+        try:
+            csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')
+            df = pd.io.parsers.read_csv(
+                csv,
+                header=0,
+                index_col=0,
+            )
+            df = df.reindex(index=df.index[::-1])
+            if remove_adj_close:
+                df.drop('Adj Close', axis=1, inplace=True)
+            df.to_csv(os.path.join(DATA_DIR, s+'.csv'), header=False)
+        except HTTPError:
+            logging.error('Failed to fetch {}'.format(s))
+
 
 class BarValidationError(Exception):
     pass
