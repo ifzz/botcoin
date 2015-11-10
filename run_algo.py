@@ -47,6 +47,8 @@ def load_script(filename=None):
     if args.graph:
         backtest.plot_results()
 
+    backtest.strategy_finishing_methods()
+
     return backtest
 
 def _find_strategies(module):
@@ -57,12 +59,12 @@ def _find_strategies(module):
     """
     try:
         return module.strategies
-    except AttributeError as e:
+    except AttributeError:
         pass
 
     try:
         return [module.strategy]
-    except AttributeError as e:
+    except AttributeError:
         pass
 
     logging.debug("No strategy/strategies attribute found, will instantiate " +

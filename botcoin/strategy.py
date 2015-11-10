@@ -74,6 +74,10 @@ class Strategy(object):
     def after_close(self):
         pass
 
+    def backtest_done(self):
+        pass
+
+    # Symbol state methods and properties
     @property
     def long_symbols(self):
         return [s for s in self.positions if self.positions[s].status == 'BUY']

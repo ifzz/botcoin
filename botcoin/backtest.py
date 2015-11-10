@@ -123,3 +123,7 @@ class Backtest(object):
     def print_all_trades(self):
         for port in self.portfolios:
             print(port.performance['all_trades'])
+
+    def strategy_finishing_methods(self):
+        [portfolio.strategy.backtest_done() for portfolio in self.portfolios]
+
