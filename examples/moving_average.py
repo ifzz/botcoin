@@ -7,8 +7,8 @@ class MovingAverage(botcoin.Strategy):
         self.DATE_FROM = '2015'
         self.DATE_TO = '2015'
 
-        self.fast = self.get_arg(0, 50)
-        self.slow = self.get_arg(1, 70)
+        self.fast = self.get_arg(0, 5)
+        self.slow = self.get_arg(1, 15)
 
     def close(self, symbol):
         slow = self.market.bars(symbol, self.slow).mavg('close')
@@ -16,5 +16,5 @@ class MovingAverage(botcoin.Strategy):
 
         if fast > slow:
             self.buy(symbol)
-        else:
+        if fast < slow:
             self.sell(symbol)

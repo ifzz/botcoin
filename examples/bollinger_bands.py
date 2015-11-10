@@ -16,5 +16,6 @@ class BollingerBands(botcoin.Strategy):
 
         if today.low <= lwband:
             self.buy(s, lwband)
+
         if today.high >= average:
             self.sell(s, average)

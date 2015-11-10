@@ -32,16 +32,20 @@ class Strategy(object):
                 return default
 
     def buy(self, symbol, price=None):
-        self._signal_dispatcher('BUY', symbol, price)
+        if self.is_neutral(symbol):
+            self._signal_dispatcher('BUY', symbol, price)
 
     def sell(self, symbol, price=None):
-        self._signal_dispatcher('SELL', symbol, price)
+        if self.is_long(symbol):
+            self._signal_dispatcher('SELL', symbol, price)
 
     def short(self, symbol, price=None):
-        self._signal_dispatcher('SHORT', symbol, price)
+        if self.is_neutral(symbol):
+            self._signal_dispatcher('SHORT', symbol, price)
 
     def cover(self, symbol, price=None):
-        self._signal_dispatcher('COVER', symbol, price)
+        if self.is_short(symbol):
+            self._signal_dispatcher('COVER', symbol, price)
 
     def _signal_dispatcher(self, operation, symbol, price=None):
         if operation not in ('BUY', 'SELL', 'SHORT', 'COVER'):
@@ -83,6 +87,9 @@ class Strategy(object):
 
     def is_short(self, symbol):
         return True if self.positions[symbol].status == 'SHORT' else False
+
+    def is_neutral(self, symbol):
+        return True if self.positions[symbol].status == '' else False
 
 class SymbolStatus(object):
     def __init__(self, status=''):
