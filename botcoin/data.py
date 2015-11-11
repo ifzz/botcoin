@@ -157,8 +157,18 @@ class HistoricalCSV(MarketData):
             for s in self.symbol_list:
                 yield MarketEvent('open', s)
 
-            # During market day
-            # current price will still be open price, as there is no way to know
+
+            # During market day, prices will:
+            # open->low->high->close for positive days
+            # open->high->low->close for negative days
+            for s in self.symbol_list:
+                d = self.symbol_data[s]['latest_bars']
+                self.symbol_data[s]['current_price'] = d[-1][3] if closep>openp else d[-1][2]
+            for s in self.symbol_list: yield MarketEvent('during', s)
+
+            for s in self.symbol_list:
+                d = self.symbol_data[s]['latest_bars']
+                self.symbol_data[s]['current_price'] = d[-1][2] if closep>openp else d[-1][3]
             for s in self.symbol_list: yield MarketEvent('during', s)
 
             # On close
@@ -268,7 +278,7 @@ def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=Fals
     from urllib.request import HTTPError
     from settings import DATA_DIR, YAHOO_API
     logging.warning("Downloading {} symbols from Yahoo. Please wait.".format(len(list_of_symbols)))
-    
+
     for s in list_of_symbols:
         try:
             csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')
