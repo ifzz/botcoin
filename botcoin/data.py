@@ -157,18 +157,17 @@ class HistoricalCSV(MarketData):
             for s in self.symbol_list:
                 yield MarketEvent('open', s)
 
-
             # During market day, prices will:
             # open->low->high->close for positive days
             # open->high->low->close for negative days
             for s in self.symbol_list:
-                d = self.symbol_data[s]['latest_bars']
-                self.symbol_data[s]['current_price'] = d[-1][3] if closep>openp else d[-1][2]
+                d = self.symbol_data[s]['latest_bars'][-1]
+                self.symbol_data[s]['current_price'] = d[3] if closep>openp else d[2]
             for s in self.symbol_list: yield MarketEvent('during', s)
 
             for s in self.symbol_list:
-                d = self.symbol_data[s]['latest_bars']
-                self.symbol_data[s]['current_price'] = d[-1][2] if closep>openp else d[-1][3]
+                d = self.symbol_data[s]['latest_bars'][-1]
+                self.symbol_data[s]['current_price'] = d[2] if closep>openp else d[3]
             for s in self.symbol_list: yield MarketEvent('during', s)
 
             # On close

@@ -124,12 +124,10 @@ class Portfolio(object):
     def handle_market_event(self, event):
         if event.sub_type == 'before_open':
                 self.market_opened()
-
-        try:
-            if event.sub_type == 'before_open':
                 self.strategy.before_open()
 
-            elif event.sub_type == 'open':
+        try:
+            if event.sub_type == 'open':
                 self.strategy.open(event.symbol)
 
             elif event.sub_type == 'during':
@@ -138,8 +136,6 @@ class Portfolio(object):
             elif event.sub_type == 'close':
                 self.strategy.close(event.symbol)
 
-            elif event.sub_type == 'after_close':
-                self.strategy.after_close()
         except BarValidationError:
             # Problems in market bars or past_bars would raise BarValidationError
             # e.g. nonexisting bars, bars with 0.0 or bars smaller than length
@@ -148,6 +144,7 @@ class Portfolio(object):
 
         if event.sub_type == 'after_close':
             self.market_closed()
+            self.strategy.after_close()
 
     def market_opened(self):
         cur_datetime = self.market.datetime
