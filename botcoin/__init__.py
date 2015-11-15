@@ -1,10 +1,7 @@
-import os
-import sys
+from . backtest import Backtest
+from . data import yahoo_api, BarValidationError
+from . strategy import Strategy
+from . utils import optimize
+from . import settings
 
-sys.path.append(os.path.dirname(__file__))
-
-from backtest import Backtest
-from data import yahoo_api, BarValidationError
-from strategy import Strategy
-from utils import optimize
-import settings
+__version__ = '0.0.5'

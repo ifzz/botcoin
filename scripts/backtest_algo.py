@@ -29,15 +29,19 @@ def load_script(filename=None):
         sys.path.append(directory)
         strategy_module = __import__(file_to_load.split('.')[0])
     else:
-        try:
-            import custom as strategy_module
-        except ImportError:
-            logging.critical("No strategy found")
-            sys.exit()
+        logging.critical('No strategy file identified')
+        sys.exit()
+    #     try:
+    #         import custom as strategy_module
+    #     except ImportError:
+    #         logging.critical("No strategy found")
+    #         sys.exit()
 
+
+    data_dir = os.path.join(os.getcwd(),'data/')
 
     # Run backtest
-    backtest = botcoin.Backtest(_find_strategies(strategy_module))
+    backtest = botcoin.Backtest(_find_strategies(strategy_module), data_dir)
 
     print(backtest.results)
 

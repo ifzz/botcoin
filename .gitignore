@@ -1,5 +1,10 @@
 *.pyc
 __pycache__
-data/
-strategies/
-custom.py
+build
+dist
+*.egg
+*.egg-info
+
+
+data
+strategies

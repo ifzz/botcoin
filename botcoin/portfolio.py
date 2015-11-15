@@ -6,11 +6,11 @@ import queue
 import numpy as np
 import pandas as pd
 
-from data import MarketData, BarValidationError
-from event import MarketEvent, SignalEvent, OrderEvent
-from execution import Execution
-from strategy import Strategy
-from trade import Trade
+from . data import MarketData, BarValidationError
+from . event import MarketEvent, SignalEvent, OrderEvent
+from . execution import Execution
+from . strategy import Strategy
+from . trade import Trade
 
 class Portfolio(object):
     """
@@ -56,7 +56,7 @@ class Portfolio(object):
         self.strategy.signals_queue = self.signals_queue
         self.strategy.market = self.market
 
-        import settings
+        from . import settings
 
         self.INITIAL_CAPITAL = getattr(strategy, 'INITIAL_CAPITAL', settings.INITIAL_CAPITAL)
         self.MAX_LONG_POSITIONS = floor(getattr(strategy, 'MAX_LONG_POSITIONS', settings.MAX_LONG_POSITIONS))

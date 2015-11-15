@@ -5,8 +5,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from event import MarketEvent
-import settings
+from . event import MarketEvent
+from . import settings
 
 class MarketData(object):
     pass

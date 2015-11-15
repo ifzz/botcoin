@@ -4,15 +4,15 @@ import logging
 
 import pandas as pd
 
-from data import MarketData, HistoricalCSV
-from execution import BacktestExecution, Execution
-from strategy import Strategy
-from portfolio import Portfolio
-import settings
+from . data import MarketData, HistoricalCSV
+from . execution import BacktestExecution, Execution
+from . strategy import Strategy
+from . portfolio import Portfolio
+from . import settings
 
 
 class Backtest(object):
-    def __init__(self, strategies, data_dir=None, start_automatically=True):
+    def __init__(self, strategies, data_dir, start_automatically=True):
 
         if not (isinstance(strategies, collections.Iterable) and
                 isinstance(strategies[0], Strategy)):
@@ -127,4 +127,3 @@ class Backtest(object):
 
     def strategy_finishing_methods(self):
         [portfolio.strategy.backtest_done() for portfolio in self.portfolios]
-
