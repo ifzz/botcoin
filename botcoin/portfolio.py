@@ -6,11 +6,12 @@ import queue
 import numpy as np
 import pandas as pd
 
-from . data import MarketData, BarValidationError
-from . event import MarketEvent, SignalEvent, OrderEvent
-from . execution import Execution
-from . strategy import Strategy
-from . trade import Trade
+from botcoin.backtest.execution import Execution
+from botcoin.data import MarketData
+from botcoin.errors import BarValidationError
+from botcoin.event import MarketEvent, SignalEvent, OrderEvent
+from botcoin.strategy import Strategy
+from botcoin.trade import Trade
 
 class Portfolio(object):
     """

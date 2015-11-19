@@ -4,11 +4,11 @@ import logging
 
 import pandas as pd
 
-from . data import MarketData, HistoricalCSV
-from . execution import BacktestExecution, Execution
-from . strategy import Strategy
-from . portfolio import Portfolio
-from . import settings
+from botcoin.backtest.data import HistoricalCSV
+from botcoin.backtest.execution import BacktestExecution, Execution
+from botcoin.strategy import Strategy
+from botcoin.portfolio import Portfolio
+from botcoin import settings
 
 
 class Backtest(object):

@@ -1,5 +1,5 @@
-from . backtest import Backtest
-from . data import yahoo_api, BarValidationError
+from . backtest.engine import Backtest
+from . errors import BarValidationError
 from . strategy import Strategy
 from . utils import optimize
 from . import settings

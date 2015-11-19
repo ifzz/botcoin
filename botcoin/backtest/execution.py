@@ -1,5 +1,5 @@
-from . event import FillEvent
-from . import settings
+from botcoin.event import FillEvent
+from botcoin import settings
 
 class Execution(object):
     pass
