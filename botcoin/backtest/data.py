@@ -117,8 +117,12 @@ class HistoricalCSV(MarketData):
         self.subscribed_symbols.add(symbol)
 
     def unsubscribe(self, symbol):
-        """ Implement. """
-        pass
+        """ Unsubscribes from symbol. If subscribed_symbols is empty, will
+        start it based on SYMBOL_LIST and remove symbol from it. """
+        if not self.subscribed_symbols:
+            self.subscribed_symbols = set(self.symbol_list)
+
+        self.subscribed_symbols.remove(symbol)
 
     def _update_bars(self):
         """

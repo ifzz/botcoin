@@ -184,7 +184,8 @@ class Portfolio(object):
         self.positions['open_trades'] = len(self.open_trades)
         # subscribed_symbols used for keeping track of how many
         # symbols were subscribed to each day
-        self.positions['subscribed_symbols'] = len(self.market.subscribed_symbols)
+        self.positions['subscribed_symbols'] = len(self.market.subscribed_symbols) \
+            if self.market.subscribed_symbols else len(self.strategy.SYMBOL_LIST)
 
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
         self.holdings['total'] = self.portfolio_value
