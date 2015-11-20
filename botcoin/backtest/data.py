@@ -51,6 +51,7 @@ class HistoricalCSV(MarketData):
         self.date_from = self.symbol_data[self.symbol_list[0]]['df'].index[0]
         self.date_to = self.symbol_data[self.symbol_list[0]]['df'].index[-1]
         self.load_time = datetime.now()-start_load_datetime
+        self.subscription_list = []
 
     def _load_csv(self, csv_dir, filename, date_from, date_to,
                   normalize_adj_close, normalize_volume, round_decimals):
@@ -109,7 +110,16 @@ class HistoricalCSV(MarketData):
 
         return df
 
-    def update_bars(self):
+    def subscribe(self, symbol):
+        """ Once subscried, this symbol's MarketEvents will be raised on
+        open, during_low, during_high and close. This is used to simulate
+        a real time feed on a live trading algorithm. """
+        self.subscribed_symbols.add(symbol)
+
+    def _update_bars(self):
+        # Resets subscribed_symbols (see self.subscribe() comments)
+        self.subscribed_symbols = set()
+
         try:
             for s in self.symbol_list:
                 new_row = next(self.symbol_data[s]['bars']) #df.iterows
@@ -153,7 +163,8 @@ class HistoricalCSV(MarketData):
                 # and it will influence position size calculation
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][1]
             for s in self.symbol_list:
-                yield MarketEvent('open', s)
+                if s in self.subscribed_symbols or not self.subscribed_symbols:
+                    yield MarketEvent('open', s)
 
             # During market day, prices will:
             # open->low->high->close for positive days
@@ -161,12 +172,16 @@ class HistoricalCSV(MarketData):
             for s in self.symbol_list:
                 d = self.symbol_data[s]['latest_bars'][-1]
                 self.symbol_data[s]['current_price'] = d[3] if closep>openp else d[2]
-            for s in self.symbol_list: yield MarketEvent('during', s)
+            for s in self.symbol_list:
+                if s in self.subscribed_symbols or not self.subscribed_symbols:
+                    yield MarketEvent('during', s)
 
             for s in self.symbol_list:
                 d = self.symbol_data[s]['latest_bars'][-1]
                 self.symbol_data[s]['current_price'] = d[2] if closep>openp else d[3]
-            for s in self.symbol_list: yield MarketEvent('during', s)
+            for s in self.symbol_list:
+                if s in self.subscribed_symbols or not self.subscribed_symbols:
+                    yield MarketEvent('during', s)
 
             # On close
             for s in self.symbol_list:
@@ -175,7 +190,10 @@ class HistoricalCSV(MarketData):
                 # and it will influence position size calculation
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][4]
             for s in self.symbol_list:
-                yield MarketEvent('close', s)
+                if s in self.subscribed_symbols or not self.subscribed_symbols:
+                    yield MarketEvent('close', s)
+
+            self.subscription_list.append(len(self.subscribed_symbols))
 
             # After close, current_price will still be close
             yield MarketEvent('after_close')

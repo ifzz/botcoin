@@ -16,13 +16,11 @@ def load_script(filename, datadir, graph=False, all_trades=False, verbose=False)
 
     directory, file_to_load = os.path.split(os.path.abspath(filename))
     sys.path.append(directory)
-    try:
-        strategy_module = __import__(file_to_load.split('.')[0])
-    except ImportError:
-        pass
 
-    if 'strategy_module' not in locals():
-        raise ValueError('Could not understand your strategy file')
+    # try:
+    strategy_module = __import__(file_to_load.split('.')[0])
+    # except ImportError:
+        # raise ValueError('Could not understand your strategy file')
 
     datadir = os.path.expanduser(datadir)
 

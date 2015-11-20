@@ -124,8 +124,8 @@ class Portfolio(object):
 
     def handle_market_event(self, event):
         if event.sub_type == 'before_open':
-                self.market_opened()
-                self.strategy.before_open()
+            self.market_opened()
+            self.strategy.before_open()
 
         try:
             if event.sub_type == 'open':
