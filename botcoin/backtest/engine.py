@@ -126,4 +126,4 @@ class Backtest(object):
             print(port.performance['all_trades'])
 
     def strategy_finishing_methods(self):
-        [portfolio.strategy.backtest_done() for portfolio in self.portfolios]
+        [portfolio.strategy.backtest_done(portfolio.performance) for portfolio in self.portfolios]

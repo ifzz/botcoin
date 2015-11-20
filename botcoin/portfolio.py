@@ -6,6 +6,7 @@ import queue
 import numpy as np
 import pandas as pd
 
+from botcoin import settings
 from botcoin.backtest.execution import Execution
 from botcoin.data import MarketData
 from botcoin.errors import BarValidationError
@@ -56,8 +57,6 @@ class Portfolio(object):
 
         self.strategy.signals_queue = self.signals_queue
         self.strategy.market = self.market
-
-        from . import settings
 
         self.INITIAL_CAPITAL = getattr(strategy, 'INITIAL_CAPITAL', settings.INITIAL_CAPITAL)
         self.MAX_LONG_POSITIONS = floor(getattr(strategy, 'MAX_LONG_POSITIONS', settings.MAX_LONG_POSITIONS))
@@ -181,8 +180,11 @@ class Portfolio(object):
         if self.pending_orders:
             logging.warning("Market closed while there are pending orders. Shouldn't happen in backtesting.")
 
-        # open_positions used for graphing and keeping track of open positions over time
+        # open_positions used for keeping track of open positions over time
         self.positions['open_trades'] = len(self.open_trades)
+        # subscribed_symbols used for keeping track of how many
+        # symbols were subscribed to each day
+        self.positions['subscribed_symbols'] = len(self.market.subscribed_symbols)
 
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
         self.holdings['total'] = self.portfolio_value
@@ -436,7 +438,12 @@ class Portfolio(object):
         # Dangerous trades that constitute more than THRESHOLD_DANGEROUS_TRADE of returns
         results['dangerous'] = True if not results['dangerous_trades'].empty else False
 
+        # Drawdown
         results['dd_max'], results['dd_duration'] = drawdown(results['equity_curve'])
+
+        # Subscribed symbols
+        results['subscribed_symbols'] = results['all_positions']['subscribed_symbols']
+        results['avg_subscribed_symbols'] = results['all_positions']['subscribed_symbols'].mean()
 
         self.performance = results
         return results

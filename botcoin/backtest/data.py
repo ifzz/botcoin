@@ -183,7 +183,7 @@ class HistoricalCSV(MarketData):
                 if s in self.subscribed_symbols or not self.subscribed_symbols:
                     yield MarketEvent('open', s)
 
-            # During #2
+            # During #1
             for s in self.symbol_list:
                 d = self.symbol_data[s]['latest_bars'][-1]
                 self.symbol_data[s]['current_price'] = d[3] if d[4]>d[1] else d[2]
@@ -191,7 +191,7 @@ class HistoricalCSV(MarketData):
                 if s in self.subscribed_symbols or not self.subscribed_symbols:
                     yield MarketEvent('during', s)
 
-            # During #1
+            # During #2
             for s in self.symbol_list:
                 d = self.symbol_data[s]['latest_bars'][-1]
                 self.symbol_data[s]['current_price'] = d[2] if d[4]>d[1] else d[3]
@@ -205,8 +205,6 @@ class HistoricalCSV(MarketData):
             for s in self.symbol_list:
                 if s in self.subscribed_symbols or not self.subscribed_symbols:
                     yield MarketEvent('close', s)
-
-            self.subscription_list.append(len(self.subscribed_symbols))
 
             # After close, current_price will still be close
             yield MarketEvent('after_close')
