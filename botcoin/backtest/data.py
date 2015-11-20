@@ -116,9 +116,25 @@ class HistoricalCSV(MarketData):
         a real time feed on a live trading algorithm. """
         self.subscribed_symbols.add(symbol)
 
+    def unsubscribe(self, symbol):
+        """ Implement. """
+        pass
+
     def _update_bars(self):
-        # Resets subscribed_symbols (see self.subscribe() comments)
-        self.subscribed_symbols = set()
+        """
+        Generator that updates all prices based on historical data and raises
+        MarketEvents to simulate live trading. The order of events is:
+            before_open - single event
+            open - one event per symbol
+            during - two events per symbol (low and high, depending if positive
+                     negative day)
+            close - one event per symbol
+            after_close - single event
+
+        Before raising MarketEvents, all prices need to be updated to maintain
+        consistency otherwise portfolio_value will be calculated based on open price
+        and it will influence position size calculation
+        """
 
         try:
             for s in self.symbol_list:
@@ -153,41 +169,38 @@ class HistoricalCSV(MarketData):
 
             self.datetime = datetime
 
+
+            # Resets subscribed_symbols (see self.subscribe() comments)
+            self.subscribed_symbols = set()
+
             # Before open
             yield MarketEvent('before_open')
 
             # On open - open = latest_bars[-1][1]
             for s in self.symbol_list:
-                # First all prices need to be updated to maintain consistency
-                # otherwise portfolio_value will be calculated based on open price
-                # and it will influence position size calculation
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][1]
             for s in self.symbol_list:
                 if s in self.subscribed_symbols or not self.subscribed_symbols:
                     yield MarketEvent('open', s)
 
-            # During market day, prices will:
-            # open->low->high->close for positive days
-            # open->high->low->close for negative days
+            # During #2
             for s in self.symbol_list:
                 d = self.symbol_data[s]['latest_bars'][-1]
-                self.symbol_data[s]['current_price'] = d[3] if closep>openp else d[2]
+                self.symbol_data[s]['current_price'] = d[3] if d[4]>d[1] else d[2]
             for s in self.symbol_list:
                 if s in self.subscribed_symbols or not self.subscribed_symbols:
                     yield MarketEvent('during', s)
 
+            # During #1
             for s in self.symbol_list:
                 d = self.symbol_data[s]['latest_bars'][-1]
-                self.symbol_data[s]['current_price'] = d[2] if closep>openp else d[3]
+                self.symbol_data[s]['current_price'] = d[2] if d[4]>d[1] else d[3]
             for s in self.symbol_list:
                 if s in self.subscribed_symbols or not self.subscribed_symbols:
                     yield MarketEvent('during', s)
 
             # On close
             for s in self.symbol_list:
-                # First all prices need to be updated to maintain consistency
-                # otherwise portfolio_value will be calculated based on open price
-                # and it will influence position size calculation
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][4]
             for s in self.symbol_list:
                 if s in self.subscribed_symbols or not self.subscribed_symbols:
