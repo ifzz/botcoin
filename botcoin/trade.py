@@ -30,6 +30,9 @@ class Trade(object):
         self.close_price = new_fill.price
         self.commission += new_fill.commission
         self.result = -(self.open_cost + self.close_cost + self.commission)
+
+        assert(math.fabs(self.close_cost) ==  self.quantity*self.close_price)
+        assert(math.fabs(self.open_cost) ==  self.quantity*self.open_price)
         return self
 
     def fake_close_trade(self, created_at, close_cost):

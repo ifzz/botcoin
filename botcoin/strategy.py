@@ -74,7 +74,7 @@ class Strategy(object):
     def after_close(self):
         pass
 
-    def backtest_done(self):
+    def backtest_done(self, performance):
         pass
 
     # Symbol state methods and properties

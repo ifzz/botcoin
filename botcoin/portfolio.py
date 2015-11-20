@@ -384,14 +384,13 @@ class Portfolio(object):
                 t.result,
                 t.open_datetime,
                 t.close_datetime,
-                t.open_cost,
-                t.close_cost,
+                t.quantity,
                 t.open_price,
                 t.close_price,
                 t.commission,
             ) for t in self.all_trades],
             columns=['symbol', 'returns', 'open_datetime', 'close_datetime',
-                     'open_cost', 'close_cost', 'open_price', 'close_price', 'commission'],
+                     'quantity', 'open_price', 'close_price', 'commission'],
         )
 
         results['dangerous_trades'] = results['all_trades'][
