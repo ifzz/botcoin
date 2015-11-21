@@ -69,6 +69,7 @@ class Portfolio(object):
         self.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
 
         self.ROUND_DECIMALS = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
+        self.ROUND_LOT_SIZE = getattr(strategy, 'ROUND_LOT_SIZE', settings.ROUND_LOT_SIZE)
         self.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
 
     @property
@@ -229,7 +230,9 @@ class Portfolio(object):
                             return
                 # COMMISSION_FIXED remove the fixed ammount from cash,
                 # and COMMISSION_PCT increases the symbol price to reflect the fee
-                quantity = direction_mod * floor( (position_cash-self.COMMISSION_FIXED) / (adj_price * (1+self.COMMISSION_PCT)) )
+                quantity = direction_mod * (position_cash-self.COMMISSION_FIXED) / (adj_price * (1+self.COMMISSION_PCT))
+                if self.ROUND_LOT_SIZE:
+                    quantity = floor(quantity/self.ROUND_LOT_SIZE) * self.ROUND_LOT_SIZE
 
             if quantity != 0.0:
                 commission = self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price)
