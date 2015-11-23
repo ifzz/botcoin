@@ -17,7 +17,7 @@ class HistoricalCSV(MarketData):
                  download_data_yahoo=False):
 
         if download_data_yahoo:
-            yahoo_api(symbol_list)
+            yahoo_api(symbol_list, csv_dir)
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
@@ -303,10 +303,10 @@ class Bars(object):
         return self.length
 
 
-def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=False):
+def yahoo_api(list_of_symbols, data_dir, year_from=1900, period='d', remove_adj_close=False):
     import urllib.request
     from urllib.request import HTTPError
-    from settings import DATA_DIR, YAHOO_API
+    from botcoin.settings import YAHOO_API
     logging.warning("Downloading {} symbols from Yahoo. Please wait.".format(len(list_of_symbols)))
 
     for s in list_of_symbols:
@@ -320,6 +320,6 @@ def yahoo_api(list_of_symbols, year_from=1900, period='d', remove_adj_close=Fals
             df = df.reindex(index=df.index[::-1])
             if remove_adj_close:
                 df.drop('Adj Close', axis=1, inplace=True)
-            df.to_csv(os.path.join(DATA_DIR, s+'.csv'), header=False)
+            df.to_csv(os.path.join(data_dir, s+'.csv'), header=False)
         except HTTPError:
             logging.error('Failed to fetch {}'.format(s))
