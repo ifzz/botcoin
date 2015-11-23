@@ -1,4 +1,4 @@
-from . backtest.engine import Backtest
+from . historical.backtest import Backtest
 from . errors import BarValidationError
 from . strategy import Strategy
 from . utils import optimize

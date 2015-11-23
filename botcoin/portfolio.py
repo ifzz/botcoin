@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from botcoin import settings
-from botcoin.backtest.execution import Execution
+from botcoin.historical.execution import Execution
 from botcoin.data import MarketData
 from botcoin.errors import BarValidationError
 from botcoin.event import MarketEvent, SignalEvent, OrderEvent

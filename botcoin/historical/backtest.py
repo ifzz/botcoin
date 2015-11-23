@@ -4,8 +4,8 @@ import logging
 
 import pandas as pd
 
-from botcoin.backtest.data import HistoricalCSV
-from botcoin.backtest.execution import BacktestExecution, Execution
+from botcoin.historical.data import HistoricalCSV
+from botcoin.historical.execution import BacktestExecution, Execution
 from botcoin.strategy import Strategy
 from botcoin.portfolio import Portfolio
 from botcoin import settings
