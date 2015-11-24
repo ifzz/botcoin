@@ -205,7 +205,16 @@ class Portfolio(object):
 
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
 
-        # Execution price adjusted for slippage
+        # Check for negative execution price
+        if exec_price < 0:
+            raise ValueError("Can't execute Signal with negative price. " +
+                "Strategy {}, date {}, symbol {}, price {}.".format(
+                    date,
+                    symbol,
+                    exec_price,
+            ))
+
+        # Adjusted execution price for slippage
         adj_price = np.round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod),self.ROUND_DECIMALS)
 
         cur_position = self.positions[symbol]
