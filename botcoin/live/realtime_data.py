@@ -1,0 +1,3 @@
+
+class RealtimeMarketData(object):
+    pass

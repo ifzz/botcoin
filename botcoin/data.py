@@ -1,5 +1,68 @@
+from botcoin.errors import NoBarsException, NotEnoughBarsException, EmptyBarsException
+
 class MarketData(object):
-    pass
+    def subscribe(self, symbol):
+        """ Once subscried, this symbol's MarketEvents will be raised on
+        open, during_low, during_high and close. This is used to simulate
+        a real time feed on a live trading algorithm. """
+        self.subscribed_symbols.add(symbol)
+
+    def unsubscribe(self, symbol):
+        """ Unsubscribes from symbol. If subscribed_symbols is empty, will
+        start it based on SYMBOL_LIST and remove symbol from it. """
+        if not self.subscribed_symbols:
+            self.subscribed_symbols = set(self.symbol_list)
+
+        self.subscribed_symbols.remove(symbol)
+
+    def price(self, symbol):
+        """ Returns 'current' price """
+        return self.symbol_data[symbol]['current_price']
+
+    def bars(self, symbol, N=1):
+        """
+        Returns Bars object containing latest N bars from self._latest_bars
+        """
+        return self.bar_dispatcher('bars', symbol, N)
+
+    def past_bars(self, symbol, N=1):
+        """Returns Bars discarding the very last result to simulate data
+        past the current date
+        """
+        return self.bar_dispatcher('past_bars', symbol, N)
+
+    def today(self, symbol):
+        """Returns last Bar in self._latest_bars"""
+        return self.bar_dispatcher('today', symbol)
+
+    def yesterday(self, symbol):
+        """Returns last Bar in self._latest_bars"""
+        return self.bar_dispatcher('yesterday', symbol)
+
+    def bar_dispatcher(self, option, symbol, N=1, ):
+        if option == 'today':
+            bars = self.symbol_data[symbol]['latest_bars'][-1:]
+
+        elif option == 'yesterday':
+            bars = self.symbol_data[symbol]['latest_bars'][-2:-1]
+
+        elif option == 'bars':
+            bars = self.symbol_data[symbol]['latest_bars'][-N:]
+
+        elif option == 'past_bars':
+            bars = self.symbol_data[symbol]['latest_bars'][-(N+1):-1]
+
+        if not bars:
+            raise NoBarsException("Something wrong with latest_bars")
+
+        if len(bars) != N:
+            raise NotEnoughBarsException("Not enough bars yet")
+
+        if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
+            raise EmptyBarsException("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
+
+        result = Bars(bars, True) if option in ('today', 'yesterday') else Bars(bars)
+        return result
 
 class Bars(object):
     """Multiple Bars, usually from past data"""

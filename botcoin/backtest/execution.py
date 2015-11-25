@@ -1,8 +1,6 @@
 from botcoin.event import FillEvent
+from botcoin.execution import Execution
 from botcoin import settings
-
-class Execution(object):
-    pass
 
 class BacktestExecution(Execution):
     def __init__(self):
