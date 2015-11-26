@@ -13,7 +13,6 @@ class MarketData(object):
         start it based on SYMBOL_LIST and remove symbol from it. """
         if not self.subscribed_symbols:
             self.subscribed_symbols = set(self.symbol_list)
-
         self.subscribed_symbols.remove(symbol)
 
     def price(self, symbol):
@@ -27,7 +26,7 @@ class MarketData(object):
         # In case execution just started and there is no current price
         if not 'current_price' in self.symbol_data[symbol]:
             raise NoBarsError
-        last_close = self.yesterday(self.symbol).close
+        last_close = self.yesterday(symbol).close
         return self.symbol_data[symbol]['current_price']/last_close - 1
 
     def bars(self, symbol, N=1):

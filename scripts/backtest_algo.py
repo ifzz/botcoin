@@ -53,4 +53,3 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         logging.critical("Execution stopped")
-        sys.exit()

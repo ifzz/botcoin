@@ -215,6 +215,7 @@ class Portfolio(object):
                 )
 
         # Check for negative execution price
+        # Should stop execution during backtesting, but not on live exec
         if exec_price < 0:
             raise NegativeExecutionPriceError(self.strategy, date, symbol, exec_price)
 
