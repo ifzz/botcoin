@@ -9,7 +9,7 @@ import pandas as pd
 from botcoin import settings
 from botcoin.backtest.execution import Execution
 from botcoin.data import MarketData
-from botcoin.errors import BarValidationError
+from botcoin.errors import BarValidationError, NegativeExecutionPriceError, ExecutionPriceOutOfBandError
 from botcoin.event import MarketEvent, SignalEvent, OrderEvent
 from botcoin.strategy import Strategy
 from botcoin.trade import Trade
@@ -200,19 +200,23 @@ class Portfolio(object):
 
         symbol = signal.symbol
         direction = signal.direction
-        exec_price = signal.exec_price or self.market.price(symbol)
+        today = self.market.today(symbol)
         date = self.market.datetime
-
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
+
+        exec_price = signal.exec_price or self.market.price(symbol)
+
+        # Checks for execution prices above today.high or below today.low
+        # Should stop execution during backtesting, but not on live exec
+        if exec_price:
+            if not (exec_price <= today.high and exec_price >= today.low):
+                raise ExecutionPriceOutOfBandError(self.strategy, date, symbol,
+                    exec_price, today.high, today.low,
+                )
 
         # Check for negative execution price
         if exec_price < 0:
-            raise ValueError("Can't execute Signal with negative price. " +
-                "Strategy {}, date {}, symbol {}, price {}.".format(
-                    date,
-                    symbol,
-                    exec_price,
-            ))
+            raise NegativeExecutionPriceError(self.strategy, date, symbol, exec_price)
 
         # Adjusted execution price for slippage
         adj_price = np.round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod),self.ROUND_DECIMALS)

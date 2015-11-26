@@ -1,6 +1,7 @@
-from botcoin.errors import NoBarsException, NotEnoughBarsException, EmptyBarsException
+from botcoin.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
 
 class MarketData(object):
+
     def subscribe(self, symbol):
         """ Once subscried, this symbol's MarketEvents will be raised on
         open, during_low, during_high and close. This is used to simulate
@@ -17,7 +18,17 @@ class MarketData(object):
 
     def price(self, symbol):
         """ Returns 'current' price """
+        if not 'current_price' in self.symbol_data[symbol]:
+            raise NoBarsError
         return self.symbol_data[symbol]['current_price']
+
+    def change(self, symbol):
+        """ Returns change between last close and 'current' price """
+        # In case execution just started and there is no current price
+        if not 'current_price' in self.symbol_data[symbol]:
+            raise NoBarsError
+        last_close = self.yesterday(self.symbol).close
+        return self.symbol_data[symbol]['current_price']/last_close - 1
 
     def bars(self, symbol, N=1):
         """
@@ -53,13 +64,13 @@ class MarketData(object):
             bars = self.symbol_data[symbol]['latest_bars'][-(N+1):-1]
 
         if not bars:
-            raise NoBarsException("Something wrong with latest_bars")
+            raise NoBarsError("Something wrong with latest_bars")
 
         if len(bars) != N:
-            raise NotEnoughBarsException("Not enough bars yet")
+            raise NotEnoughBarsError("Not enough bars yet")
 
         if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
-            raise EmptyBarsException("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
+            raise EmptyBarsError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
 
         result = Bars(bars, True) if option in ('today', 'yesterday') else Bars(bars)
         return result
