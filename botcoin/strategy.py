@@ -14,6 +14,7 @@ class Strategy(object):
         self.kwargs = kwargs
         self.initialize()
         self.positions = {s:SymbolStatus() for s in self.SYMBOL_LIST}
+        self.subscribed_symbols = set()
 
     def __str__(self):
         return self.__class__.__name__ + "(" + ",".join([str(i) for i in self.args]) + ")"
@@ -58,6 +59,9 @@ class Strategy(object):
         sig = SignalEvent(symbol, operation, price, current_datetime)
         self.signals_queue.put(sig)
 
+    def market_opened(self):
+        self.subscribed_symbols = set()
+
     # Methods that should be overrided by each algorithm
     def before_open(self):
         pass
@@ -94,6 +98,19 @@ class Strategy(object):
 
     def is_neutral(self, symbol):
         return True if self.positions[symbol].status == '' else False
+
+    def subscribe(self, symbol):
+        """ Once subscried, this symbol's MarketEvents will be raised on
+        open, during_low, during_high and close. This is used to simulate
+        a real time feed on a live trading algorithm. """
+        self.subscribed_symbols.add(symbol)
+
+    def unsubscribe(self, symbol):
+        """ Unsubscribes from symbol. If subscribed_symbols is empty, will
+        start it based on SYMBOL_LIST and remove symbol from it. """
+        if not self.subscribed_symbols:
+            self.subscribed_symbols = set(self.market.symbol_list)
+        self.subscribed_symbols.remove(symbol)
 
 class SymbolStatus(object):
     def __init__(self, status=''):

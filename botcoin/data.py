@@ -2,19 +2,6 @@ from botcoin.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
 
 class MarketData(object):
 
-    def subscribe(self, symbol):
-        """ Once subscried, this symbol's MarketEvents will be raised on
-        open, during_low, during_high and close. This is used to simulate
-        a real time feed on a live trading algorithm. """
-        self.subscribed_symbols.add(symbol)
-
-    def unsubscribe(self, symbol):
-        """ Unsubscribes from symbol. If subscribed_symbols is empty, will
-        start it based on SYMBOL_LIST and remove symbol from it. """
-        if not self.subscribed_symbols:
-            self.subscribed_symbols = set(self.symbol_list)
-        self.subscribed_symbols.remove(symbol)
-
     def price(self, symbol):
         """ Returns 'current' price """
         if not 'current_price' in self.symbol_data[symbol]:

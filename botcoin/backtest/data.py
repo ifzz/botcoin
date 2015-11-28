@@ -160,7 +160,7 @@ class HistoricalCSV(MarketData):
 
 
             # Resets subscribed_symbols (see self.subscribe() comments)
-            self.subscribed_symbols = set()
+            # self.subscribed_symbols = set()
 
             # Before open
             yield MarketEvent('before_open')
@@ -169,31 +169,31 @@ class HistoricalCSV(MarketData):
             for s in self.symbol_list:
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][1]
             for s in self.symbol_list:
-                if s in self.subscribed_symbols or not self.subscribed_symbols:
-                    yield MarketEvent('open', s)
+                # if s in self.subscribed_symbols or not self.subscribed_symbols:
+                yield MarketEvent('open', s)
 
             # During #1
             for s in self.symbol_list:
                 d = self.symbol_data[s]['latest_bars'][-1]
                 self.symbol_data[s]['current_price'] = d[3] if d[4]>d[1] else d[2]
             for s in self.symbol_list:
-                if s in self.subscribed_symbols or not self.subscribed_symbols:
-                    yield MarketEvent('during', s)
+                # if s in self.subscribed_symbols or not self.subscribed_symbols:
+                yield MarketEvent('during', s)
 
             # During #2
             for s in self.symbol_list:
                 d = self.symbol_data[s]['latest_bars'][-1]
                 self.symbol_data[s]['current_price'] = d[2] if d[4]>d[1] else d[3]
             for s in self.symbol_list:
-                if s in self.subscribed_symbols or not self.subscribed_symbols:
-                    yield MarketEvent('during', s)
+                # if s in self.subscribed_symbols or not self.subscribed_symbols:
+                yield MarketEvent('during', s)
 
             # On close
             for s in self.symbol_list:
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][4]
             for s in self.symbol_list:
-                if s in self.subscribed_symbols or not self.subscribed_symbols:
-                    yield MarketEvent('close', s)
+                # if s in self.subscribed_symbols or not self.subscribed_symbols:
+                yield MarketEvent('close', s)
 
             # After close, current_price will still be close
             yield MarketEvent('after_close')

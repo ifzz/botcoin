@@ -125,27 +125,32 @@ class Portfolio(object):
     def handle_market_event(self, event):
         if event.sub_type == 'before_open':
             self.market_opened()
+            self.strategy.market_opened()
             self.strategy.before_open()
 
-        try:
-            if event.sub_type == 'open':
-                self.strategy.open(event.symbol)
-
-            elif event.sub_type == 'during':
-                self.strategy.during(event.symbol)
-
-            elif event.sub_type == 'close':
-                self.strategy.close(event.symbol)
-
-        except BarValidationError:
-            # Problems in market bars or past_bars would raise BarValidationError
-            # e.g. nonexisting bars, bars with 0.0 or bars smaller than length
-            # requested should be disconsidered
-            pass
-
-        if event.sub_type == 'after_close':
+        elif event.sub_type == 'after_close':
             self.market_closed()
             self.strategy.after_close()
+
+        else:
+            # No need for this if in live algo
+            ssymbols = self.strategy.subscribed_symbols
+            if event.symbol in ssymbols or not ssymbols:
+                try:
+                    if event.sub_type == 'open':
+                        self.strategy.open(event.symbol)
+
+                    elif event.sub_type == 'during':
+                        self.strategy.during(event.symbol)
+
+                    elif event.sub_type == 'close':
+                        self.strategy.close(event.symbol)
+
+                except BarValidationError:
+                    # Problems in market bars or past_bars would raise BarValidationError
+                    # e.g. nonexisting bars, bars with 0.0 or bars smaller than length
+                    # requested should be disconsidered
+                    pass
 
     def market_opened(self):
         cur_datetime = self.market.datetime
@@ -185,8 +190,8 @@ class Portfolio(object):
         self.positions['open_trades'] = len(self.open_trades)
         # subscribed_symbols used for keeping track of how many
         # symbols were subscribed to each day
-        self.positions['subscribed_symbols'] = len(self.market.subscribed_symbols) \
-            if self.market.subscribed_symbols else len(self.strategy.SYMBOL_LIST)
+        self.positions['subscribed_symbols'] = len(self.strategy.subscribed_symbols) \
+            if self.strategy.subscribed_symbols else len(self.market.symbol_list)
 
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
         self.holdings['total'] = self.portfolio_value
@@ -210,7 +215,8 @@ class Portfolio(object):
         # Should stop execution during backtesting, but not on live exec
         if exec_price:
             if not (exec_price <= today.high and exec_price >= today.low):
-                raise ExecutionPriceOutOfBandError(self.strategy, date, symbol,
+                raise ExecutionPriceOutOfBandError(
+                    self.strategy, date, symbol,
                     exec_price, today.high, today.low,
                 )
 
