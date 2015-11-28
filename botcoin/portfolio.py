@@ -135,7 +135,8 @@ class Portfolio(object):
         else:
             # No need for this if in live algo
             ssymbols = self.strategy.subscribed_symbols
-            if event.symbol in ssymbols or not ssymbols:
+            flag = self.strategy.unsubscribe_all
+            if not flag and (event.symbol in ssymbols or not ssymbols):
                 try:
                     if event.sub_type == 'open':
                         self.strategy.open(event.symbol)
@@ -190,8 +191,13 @@ class Portfolio(object):
         self.positions['open_trades'] = len(self.open_trades)
         # subscribed_symbols used for keeping track of how many
         # symbols were subscribed to each day
-        self.positions['subscribed_symbols'] = len(self.strategy.subscribed_symbols) \
-            if self.strategy.subscribed_symbols else len(self.market.symbol_list)
+        if self.strategy.unsubscribe_all:
+            self.positions['subscribed_symbols'] = 0
+        else:
+            if self.strategy.subscribed_symbols:
+                self.positions['subscribed_symbols'] = len(self.strategy.subscribed_symbols)
+            else:
+                self.positions['subscribed_symbols'] = len(self.market.symbol_list)
 
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
         self.holdings['total'] = self.portfolio_value
@@ -401,7 +407,7 @@ class Portfolio(object):
         results = {}
 
         # Saving all trades
-        results['all_trades'] =pd.DataFrame(
+        results['all_trades'] = pd.DataFrame(
             [(
                 t.symbol,
                 t.result,

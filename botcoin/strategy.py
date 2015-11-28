@@ -15,6 +15,7 @@ class Strategy(object):
         self.initialize()
         self.positions = {s:SymbolStatus() for s in self.SYMBOL_LIST}
         self.subscribed_symbols = set()
+        self.unsubscribe_all = False
 
     def __str__(self):
         return self.__class__.__name__ + "(" + ",".join([str(i) for i in self.args]) + ")"
@@ -60,7 +61,9 @@ class Strategy(object):
         self.signals_queue.put(sig)
 
     def market_opened(self):
+        # Restart symbol subscriptions
         self.subscribed_symbols = set()
+        self.unsubscribe_all = False
 
     # Methods that should be overrided by each algorithm
     def before_open(self):
@@ -105,12 +108,15 @@ class Strategy(object):
         a real time feed on a live trading algorithm. """
         self.subscribed_symbols.add(symbol)
 
-    def unsubscribe(self, symbol):
+    def unsubscribe(self, symbol=None):
         """ Unsubscribes from symbol. If subscribed_symbols is empty, will
         start it based on SYMBOL_LIST and remove symbol from it. """
-        if not self.subscribed_symbols:
-            self.subscribed_symbols = set(self.market.symbol_list)
-        self.subscribed_symbols.remove(symbol)
+        if not symbol:
+            self.unsubscribe_all = True
+        else:
+            if not self.subscribed_symbols:
+                self.subscribed_symbols = set(self.market.symbol_list)
+            self.subscribed_symbols.remove(symbol)
 
 class SymbolStatus(object):
     def __init__(self, status=''):
