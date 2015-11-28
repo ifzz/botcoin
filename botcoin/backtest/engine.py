@@ -121,6 +121,13 @@ class Backtest(object):
             plt.grid()
             plt.show()
 
+    def plot_symbol_subscriptions(self):
+        import matplotlib.pyplot as plt
+
+        for portfolio in self.portfolios:
+            portfolio.performance['subscribed_symbols'].plot()
+            plt.show()
+
     def print_all_trades(self):
         for port in self.portfolios:
             print(port.performance['all_trades'])
