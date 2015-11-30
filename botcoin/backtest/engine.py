@@ -4,7 +4,7 @@ import logging
 
 import pandas as pd
 
-from botcoin.backtest.data import HistoricalCSV
+from botcoin.backtest.data import HistoricalCSVData
 from botcoin.backtest.execution import BacktestExecution, Execution
 from botcoin.strategy import Strategy
 from botcoin.portfolio import Portfolio
@@ -20,7 +20,7 @@ class Backtest(object):
 
 
         # Single market object will be used for all backtesting instances
-        self.market = HistoricalCSV(
+        self.market = HistoricalCSVData(
             data_dir or settings.DATA_DIR, #should come from script loader
             getattr(strategies[0], 'SYMBOL_LIST', []),
             date_from = getattr(strategies[0], 'DATE_FROM', settings.DATE_FROM),
@@ -28,7 +28,6 @@ class Backtest(object):
             normalize_prices = getattr(strategies[0], 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES),
             normalize_volume = getattr(strategies[0], 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME),
             round_decimals = getattr(strategies[0], 'ROUND_DECIMALS', settings.ROUND_DECIMALS),
-            download_data_yahoo = getattr(strategies[0], 'DOWNLOAD_DATA_YAHOO', settings.DOWNLOAD_DATA_YAHOO),
         )
 
         self.portfolios = []

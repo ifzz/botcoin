@@ -1,45 +1,22 @@
-from datetime import datetime
-import logging
-import os
-
-import numpy as np
-import pandas as pd
-
 from botcoin.data import MarketData, Bars
 from botcoin.event import MarketEvent
 from botcoin import settings
 
-class HistoricalCSV(MarketData):
+class HistoricalCSVData(MarketData):
 
     def __init__(self, csv_dir, symbol_list, date_from='', date_to='',
-                 normalize_prices=True, normalize_volume=True, round_decimals=2,
-                 download_data_yahoo=False):
+                 normalize_prices=True, normalize_volume=True, round_decimals=2):
 
-        if download_data_yahoo:
-            yahoo_api(symbol_list, csv_dir)
-
-        # To keep track how long loading everything took
-        start_load_datetime = datetime.now()
-        self.symbol_list = sorted(list(set(symbol_list)))
-        self.symbol_data = {}
-        comb_index = None
+        super(HistoricalCSVData, self).__init__(csv_dir,symbol_list,normalize_prices,normalize_volume,round_decimals)
 
         for s in symbol_list:
-            self.symbol_data[s] = {}
-            filename = s + '.csv'
-            df = self._load_csv(csv_dir, filename, date_from, date_to, normalize_prices, normalize_volume, round_decimals)
+            # Limit between date_From and date_to
+            self.symbol_data[s]['df'] = self.symbol_data[s]['df'][date_from:] if date_from else self.symbol_data[s]['df']
+            self.symbol_data[s]['df'] = self.symbol_data[s]['df'][:date_to] if date_to else self.symbol_data[s]['df']
 
-            # Original dataframe from csv
-            self.symbol_data[s]['df'] = df
-
-            # Combine different file indexes to account for nonexistent values
-            # (needs 'is not None' because of Pandas 'The truth value of a DatetimeIndex is ambiguous.' error)
-            comb_index = comb_index.union(self.symbol_data[s]['df'].index) if comb_index is not None else self.symbol_data[s]['df'].index
-
-        # After combining all indexes, we can run iterrows in each df
-        for s in symbol_list:
-            # Original dataframe, padded
-            self.symbol_data[s]['df'] = self._pad_empty_values(self.symbol_data[s]['df'].reindex(index=comb_index, method=None))
+            # Check for empty dfs
+            if self.symbol_data[s]['df'].empty:
+                logging.warning("Empty DataFrame loaded for {}.".format(filename)) # Possibly invalid date ranges?
 
             # Dataframe iterrows  generator
             self.symbol_data[s]['bars'] = self.symbol_data[s]['df'].iterrows()
@@ -49,65 +26,6 @@ class HistoricalCSV(MarketData):
         self.continue_execution = True
         self.date_from = self.symbol_data[self.symbol_list[0]]['df'].index[0]
         self.date_to = self.symbol_data[self.symbol_list[0]]['df'].index[-1]
-        self.load_time = datetime.now()-start_load_datetime
-        self.subscription_list = []
-
-    def _load_csv(self, csv_dir, filename, date_from, date_to,
-                  normalize_adj_close, normalize_volume, round_decimals):
-
-        df = pd.io.parsers.read_csv(
-            os.path.expanduser(csv_dir+filename),
-            header=None,
-            index_col=0,
-            names=['datetime', 'open', 'high', 'low', 'close', 'volume', 'adj_close']
-        )
-
-        try:
-            # Tries to index with %Y-%m-%d %H:%M:%S format
-            df.index = pd.to_datetime(df.index, format='%Y-%m-%d %H:%M:%S')
-        except ValueError:
-            # On ValueError try again with %Y-%m-%d
-            df.index = pd.to_datetime(df.index, format='%Y-%m-%d')
-
-
-        if not df['adj_close'].empty:
-            # Rounding adj_close to prevent rounding problems when low == close
-            df['adj_close'] = df['adj_close'].round(round_decimals)
-
-            # Normalizing prices and volume based on adj_close prices
-            if normalize_volume:
-                df['volume'] = df['volume']*(df['adj_close']/df['close'])
-            if normalize_adj_close:
-                for c in ('open', 'high', 'low'):
-                    df[c] = df[c]*(df['adj_close']/df['close'])
-                df['close'] = df['adj_close']
-
-        # Rounding prices
-        for c in ('open', 'high', 'low', 'close', 'adj_close'):
-            df[c] = df[c].round(round_decimals)
-
-        df = df[date_from:] if date_from else df
-        df = df[:date_to] if date_to else df
-
-        if df.empty:
-            logging.warning("Empty DataFrame loaded for {}.".format(filename)) # Possibly invalid date ranges?
-
-        return df
-
-    @staticmethod
-    def _pad_empty_values(df):
-        # Fill NaN with 0 in volume column
-        df['volume'] = df['volume'].fillna(0)
-        # Pad close price forward
-        df['close'] = df['close'].ffill()
-        # Fill any remaining close NaN in 0 (e.g. beginning of file)
-        df['close'] = df['close'].fillna(0)
-
-        # Fill open high and low NaN with close price
-        for col in ['open', 'high', 'low']:
-            df[col] = df[col].fillna(df['close'])
-
-        return df
 
     def _update_bars(self):
         """
@@ -200,24 +118,3 @@ class HistoricalCSV(MarketData):
 
         except StopIteration:
             self.continue_execution = False
-
-def yahoo_api(list_of_symbols, data_dir, year_from=1900, period='d', remove_adj_close=False):
-    import urllib.request
-    from urllib.request import HTTPError
-    from botcoin.settings import YAHOO_API
-    logging.warning("Downloading {} symbols from Yahoo. Please wait.".format(len(list_of_symbols)))
-
-    for s in list_of_symbols:
-        try:
-            csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')
-            df = pd.io.parsers.read_csv(
-                csv,
-                header=0,
-                index_col=0,
-            )
-            df = df.reindex(index=df.index[::-1])
-            if remove_adj_close:
-                df.drop('Adj Close', axis=1, inplace=True)
-            df.to_csv(os.path.join(data_dir, s+'.csv'), header=False)
-        except HTTPError:
-            logging.error('Failed to fetch {}'.format(s))

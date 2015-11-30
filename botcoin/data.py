@@ -1,6 +1,122 @@
+from datetime import datetime
+import logging
+import numpy as np
+import os
+import pandas as pd
+import urllib.request
+from urllib.request import HTTPError
+
+from botcoin import settings
 from botcoin.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
+from botcoin.settings import YAHOO_API
 
 class MarketData(object):
+
+    def __init__(self, csv_dir, symbol_list, normalize_prices=True, normalize_volume=True, round_decimals=2):
+
+        # To keep track how long loading everything took
+        start_load_datetime = datetime.now()
+        self.symbol_list = sorted(list(set(symbol_list)))
+        self.symbol_data = {}
+
+        self._read_all_csvs(csv_dir, normalize_prices, normalize_volume, round_decimals)
+
+        self._pad_empty_values()
+
+        self.load_time = datetime.now()-start_load_datetime
+
+    def _read_all_csvs(self, csv_dir, normalize_prices, normalize_volume, round_decimals):
+
+        comb_index = None
+
+        for s in self.symbol_list:
+
+            self.symbol_data[s] = {}
+            filename = s + '.csv'
+
+            self.symbol_data[s]['df'] = self._read_csv(csv_dir, filename, normalize_prices, normalize_volume, round_decimals)
+
+            # Combine different file indexes to account for nonexistent values
+            # (needs 'is not None' because of Pandas 'The truth value of a DatetimeIndex is ambiguous.' error)
+            comb_index = comb_index.union(self.symbol_data[s]['df'].index) if comb_index is not None else self.symbol_data[s]['df'].index
+
+        # Reindex
+        for s in self.symbol_list:
+            self.symbol_data[s]['df'] = self.symbol_data[s]['df'].reindex(index=comb_index, method=None)
+
+    @staticmethod
+    def _read_csv(csv_dir, filename, normalize_prices,
+                  normalize_volume, round_decimals):
+
+        df = pd.io.parsers.read_csv(
+            os.path.expanduser(csv_dir+filename),
+            header=None,
+            index_col=0,
+            names=['datetime', 'open', 'high', 'low', 'close', 'volume', 'adj_close']
+        )
+
+        try:
+            # Tries to index with %Y-%m-%d %H:%M:%S format
+            df.index = pd.to_datetime(df.index, format='%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            # On ValueError try again with %Y-%m-%d
+            df.index = pd.to_datetime(df.index, format='%Y-%m-%d')
+
+
+        if not df['adj_close'].empty:
+            # Rounding adj_close to prevent rounding problems when low == close
+            df['adj_close'] = df['adj_close'].round(round_decimals)
+
+            # Normalizing prices and volume based on adj_close prices
+            if normalize_volume:
+                df['volume'] = df['volume']*(df['adj_close']/df['close'])
+            if normalize_prices:
+                for c in ('open', 'high', 'low'):
+                    df[c] = df[c]*(df['adj_close']/df['close'])
+                df['close'] = df['adj_close']
+
+        # Rounding prices
+        for c in ('open', 'high', 'low', 'close', 'adj_close'):
+            df[c] = df[c].round(round_decimals)
+
+        return df
+
+    def _pad_empty_values(self):
+
+        for s in self.symbol_list:
+            df = self.symbol_data[s]['df']
+
+            # Fill NaN with 0 in volume column
+            df['volume'] = df['volume'].fillna(0)
+            # Pad close price forward
+            df['close'] = df['close'].ffill()
+            # Fill any remaining close NaN in 0 (e.g. beginning of file)
+            df['close'] = df['close'].fillna(0)
+
+            # Fill open high and low NaN with close price
+            for col in ['open', 'high', 'low']:
+                df[col] = df[col].fillna(df['close'])
+
+            self.symbol_data[s]['df'] = df
+
+    def yahoo_api(list_of_symbols, data_dir, year_from=1900, period='d', remove_adj_close=False):
+
+        logging.warning("Downloading {} symbols from Yahoo. Please wait.".format(len(list_of_symbols)))
+
+        for s in list_of_symbols:
+            try:
+                csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')
+                df = pd.io.parsers.read_csv(
+                    csv,
+                    header=0,
+                    index_col=0,
+                )
+                df = df.reindex(index=df.index[::-1])
+                if remove_adj_close:
+                    df.drop('Adj Close', axis=1, inplace=True)
+                df.to_csv(os.path.join(data_dir, s+'.csv'), header=False)
+            except HTTPError:
+                logging.error('Failed to fetch {}'.format(s))
 
     def price(self, symbol):
         """ Returns 'current' price """
@@ -60,6 +176,7 @@ class MarketData(object):
 
         result = Bars(bars, True) if option in ('today', 'yesterday') else Bars(bars)
         return result
+
 
 class Bars(object):
     """Multiple Bars, usually from past data"""
