@@ -1,6 +1,13 @@
 from botcoin.data import MarketData, Bars
 
+# edemo
+# demouser
+
 class RealTimeMarketData(MarketData):
+    def __init__(self, debug_mode):
+
+
+class SOMEOLDFUCKINGSHIT(MarketData):
     def __init__(self, debug_mode=False):
         self.tws_conn = ibConnection()
 
@@ -15,6 +22,7 @@ class RealTimeMarketData(MarketData):
 
     def connect(self):
         self.tws_conn.connect()
+
     def disconnect(self):
         self.tws_conn.disconnect()
 

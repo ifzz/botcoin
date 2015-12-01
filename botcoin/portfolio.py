@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from botcoin import settings
-from botcoin.backtest.execution import Execution
+from botcoin.execution import Execution
 from botcoin.data import MarketData
 from botcoin.errors import BarValidationError, NegativeExecutionPriceError, ExecutionPriceOutOfBandError
 from botcoin.event import MarketEvent, SignalEvent, OrderEvent
@@ -37,7 +37,7 @@ class Portfolio(object):
         if (not isinstance(market, MarketData) or
             not isinstance(strategy, Strategy) or
             not isinstance(broker, Execution)):
-            raise TypeError("Improper parameter type on TradingEngine.__init__()")
+            raise TypeError("Improper parameter type on Portfolio.__init__()")
 
         # check for symbol names that would conflict with columns used in holdings and positions
         for symbol in market.symbol_list:
@@ -222,7 +222,7 @@ class Portfolio(object):
         if exec_price:
             if not (exec_price <= today.high and exec_price >= today.low):
                 raise ExecutionPriceOutOfBandError(
-                    self.strategy, date, symbol,
+                    self.strategy, date, symbol, direction,
                     exec_price, today.high, today.low,
                 )
 

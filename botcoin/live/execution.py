@@ -1,4 +1,4 @@
 from botcoin.execution import Execution
 
-class LiveExecution(object):
+class LiveExecution(Execution):
     pass

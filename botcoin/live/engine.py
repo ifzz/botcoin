@@ -1,22 +1,18 @@
-from ib.ext.Contract import Contract
-from ib.ext.Order import Order
-from ib.opt import ibConnection, message
-from time import sleep
-
-# edemo
-# demouser
+from botcoin.data import MarketData
+from botcoin.live.execution import LiveExecution
+from botcoin.portfolio import settings, Portfolio
 
 class LiveEngine(object):
-    def __init__(self, strategy, data_dir, start_automatically=True):
+    def __init__(self, strategy, data_dir):
 
         # Single market object will be used for all backtesting instances
-        self.market = HistoricalCSVData(
+        self.market = MarketData(
             data_dir or settings.DATA_DIR, #should come from script loader
-            getattr(strategies[0], 'SYMBOL_LIST', []),
-            normalize_prices = getattr(strategies[0], 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES),
-            normalize_volume = getattr(strategies[0], 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME),
-            round_decimals = getattr(strategies[0], 'ROUND_DECIMALS', settings.ROUND_DECIMALS),
+            getattr(strategy, 'SYMBOL_LIST', []),
+            normalize_prices = getattr(strategy, 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES),
+            normalize_volume = getattr(strategy, 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME),
+            round_decimals = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS),
         )
-
+        print(self.market, strategy, LiveExecution())
         self.portfolio = Portfolio()
-        port.set_modules(self.market, strategy, BacktestExecution())
+        self.portfolio.set_modules(self.market, strategy, LiveExecution())
