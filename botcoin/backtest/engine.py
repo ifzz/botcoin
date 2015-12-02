@@ -4,20 +4,19 @@ import logging
 
 import pandas as pd
 
+from botcoin import settings
 from botcoin.backtest.data import HistoricalCSVData
 from botcoin.backtest.execution import BacktestExecution, Execution
 from botcoin.strategy import Strategy
 from botcoin.portfolio import Portfolio
-from botcoin import settings
 
 
 class Backtest(object):
     def __init__(self, strategies, data_dir, start_automatically=True):
 
-        if not (isinstance(strategies, collections.Iterable) and
-                isinstance(strategies[0], Strategy)):
-            raise TypeError("Improper parameter type on BacktestManager.__init__()")
-
+        settings.NORMALIZE_PRICES = getattr(strategies[0], 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES)
+        settings.NORMALIZE_VOLUME = getattr(strategies[0], 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME)
+        settings.ROUND_DECIMALS = getattr(strategies[0], 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
 
         # Single market object will be used for all backtesting instances
         self.market = HistoricalCSVData(
@@ -25,9 +24,6 @@ class Backtest(object):
             getattr(strategies[0], 'SYMBOL_LIST', []),
             date_from = getattr(strategies[0], 'DATE_FROM', settings.DATE_FROM),
             date_to = getattr(strategies[0], 'DATE_TO', settings.DATE_TO),
-            normalize_prices = getattr(strategies[0], 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES),
-            normalize_volume = getattr(strategies[0], 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME),
-            round_decimals = getattr(strategies[0], 'ROUND_DECIMALS', settings.ROUND_DECIMALS),
         )
 
         self.portfolios = []

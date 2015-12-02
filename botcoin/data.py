@@ -11,17 +11,20 @@ from botcoin.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
 from botcoin.settings import YAHOO_API
 
 class MarketData(object):
+    """ General MarketData that is subclassed in both live and backtest modes. """
 
-    def __init__(self, csv_dir, symbol_list, normalize_prices=True, normalize_volume=True, round_decimals=2):
+    def __init__(self, csv_dir, symbol_list):
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
         self.symbol_list = sorted(list(set(symbol_list)))
         self.symbol_data = {}
 
-        self._read_all_csvs(csv_dir, normalize_prices, normalize_volume, round_decimals)
+        self._read_all_csvs(csv_dir, settings.NORMALIZE_PRICES, settings.NORMALIZE_VOLUME, settings.ROUND_DECIMALS)
 
         self._pad_empty_values()
+
+        # self._populate_latest_bars()
 
         self.load_time = datetime.now()-start_load_datetime
 
@@ -117,6 +120,7 @@ class MarketData(object):
                 df.to_csv(os.path.join(data_dir, s+'.csv'), header=False)
             except HTTPError:
                 logging.error('Failed to fetch {}'.format(s))
+
 
     def price(self, symbol):
         """ Returns 'current' price """

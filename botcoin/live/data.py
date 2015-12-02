@@ -3,9 +3,12 @@ from botcoin.data import MarketData, Bars
 # edemo
 # demouser
 
-class RealTimeMarketData(MarketData):
-    def __init__(self, debug_mode):
 
+class LiveMarketData(MarketData):
+    def __init__(self, csv_dir, symbol_list, normalize_prices=True, normalize_volume=True, round_decimals=2):
+    def _populate_latest_bars(self):
+        # self.symbol_data[s]['bars']
+        pass
 
 class SOMEOLDFUCKINGSHIT(MarketData):
     def __init__(self, debug_mode=False):

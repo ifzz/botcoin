@@ -4,10 +4,9 @@ from botcoin import settings
 
 class HistoricalCSVData(MarketData):
 
-    def __init__(self, csv_dir, symbol_list, date_from='', date_to='',
-                 normalize_prices=True, normalize_volume=True, round_decimals=2):
+    def __init__(self, csv_dir, symbol_list, date_from='', date_to=''):
 
-        super(HistoricalCSVData, self).__init__(csv_dir,symbol_list,normalize_prices,normalize_volume,round_decimals)
+        super(HistoricalCSVData, self).__init__(csv_dir,symbol_list)
 
         for s in symbol_list:
             # Limit between date_From and date_to
@@ -20,6 +19,7 @@ class HistoricalCSVData(MarketData):
 
             # Dataframe iterrows  generator
             self.symbol_data[s]['bars'] = self.symbol_data[s]['df'].iterrows()
+
             # List that will hold all rows from iterrows, one at a time
             self.symbol_data[s]['latest_bars'] = []
 
@@ -77,9 +77,6 @@ class HistoricalCSVData(MarketData):
             self.datetime = datetime
 
 
-            # Resets subscribed_symbols (see self.subscribe() comments)
-            # self.subscribed_symbols = set()
-
             # Before open
             yield MarketEvent('before_open')
 
@@ -87,7 +84,6 @@ class HistoricalCSVData(MarketData):
             for s in self.symbol_list:
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][1]
             for s in self.symbol_list:
-                # if s in self.subscribed_symbols or not self.subscribed_symbols:
                 yield MarketEvent('open', s)
 
             # During #1
@@ -95,7 +91,6 @@ class HistoricalCSVData(MarketData):
                 d = self.symbol_data[s]['latest_bars'][-1]
                 self.symbol_data[s]['current_price'] = d[3] if d[4]>d[1] else d[2]
             for s in self.symbol_list:
-                # if s in self.subscribed_symbols or not self.subscribed_symbols:
                 yield MarketEvent('during', s)
 
             # During #2
@@ -103,14 +98,12 @@ class HistoricalCSVData(MarketData):
                 d = self.symbol_data[s]['latest_bars'][-1]
                 self.symbol_data[s]['current_price'] = d[2] if d[4]>d[1] else d[3]
             for s in self.symbol_list:
-                # if s in self.subscribed_symbols or not self.subscribed_symbols:
                 yield MarketEvent('during', s)
 
             # On close
             for s in self.symbol_list:
                 self.symbol_data[s]['current_price'] = self.symbol_data[s]['latest_bars'][-1][4]
             for s in self.symbol_list:
-                # if s in self.subscribed_symbols or not self.subscribed_symbols:
                 yield MarketEvent('close', s)
 
             # After close, current_price will still be close
