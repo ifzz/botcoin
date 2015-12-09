@@ -53,19 +53,19 @@ class Portfolio(object):
         self.broker = broker
 
         # Grabbing config from strategy
-        self.NORMALIZE_PRICES = getattr(strategy, 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES)
-        self.NORMALIZE_VOLUME = getattr(strategy, 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME)
-        self.ROUND_DECIMALS = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
-        self.ROUND_LOT_SIZE = getattr(strategy, 'ROUND_LOT_SIZE', settings.ROUND_LOT_SIZE)
-        self.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
-        self.INITIAL_CAPITAL = getattr(strategy, 'INITIAL_CAPITAL', settings.INITIAL_CAPITAL)
-        self.MAX_LONG_POSITIONS = floor(getattr(strategy, 'MAX_LONG_POSITIONS', settings.MAX_LONG_POSITIONS))
-        self.MAX_SHORT_POSITIONS = floor(getattr(strategy, 'MAX_SHORT_POSITIONS', settings.MAX_SHORT_POSITIONS))
-        self.POSITION_SIZE = getattr(strategy, 'POSITION_SIZE', 1.0/self.MAX_LONG_POSITIONS)
-        self.ADJUST_POSITION_DOWN = getattr(strategy, 'ADJUST_POSITION_DOWN', settings.ADJUST_POSITION_DOWN)
-        self.COMMISSION_FIXED = getattr(strategy, 'COMMISSION_FIXED', settings.COMMISSION_FIXED)
-        self.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
-        self.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
+        self.NORMALIZE_PRICES = settings.NORMALIZE_PRICES = getattr(strategy, 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES)
+        self.NORMALIZE_VOLUME = settings.NORMALIZE_VOLUME = getattr(strategy, 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME)
+        self.ROUND_DECIMALS = settings.ROUND_DECIMALS = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
+        self.ROUND_LOT_SIZE = settings.ROUND_LOT_SIZE = getattr(strategy, 'ROUND_LOT_SIZE', settings.ROUND_LOT_SIZE)
+        self.THRESHOLD_DANGEROUS_TRADE = settings.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
+        self.INITIAL_CAPITAL = settings.INITIAL_CAPITAL = getattr(strategy, 'INITIAL_CAPITAL', settings.INITIAL_CAPITAL)
+        self.MAX_LONG_POSITIONS = settings.MAX_LONG_POSITIONS = floor(getattr(strategy, 'MAX_LONG_POSITIONS', settings.MAX_LONG_POSITIONS))
+        self.MAX_SHORT_POSITIONS = settings.MAX_SHORT_POSITIONS = floor(getattr(strategy, 'MAX_SHORT_POSITIONS', settings.MAX_SHORT_POSITIONS))
+        self.POSITION_SIZE = settings.POSITION_SIZE = getattr(strategy, 'POSITION_SIZE', 1.0/self.MAX_LONG_POSITIONS)
+        self.ADJUST_POSITION_DOWN = settings.ADJUST_POSITION_DOWN = getattr(strategy, 'ADJUST_POSITION_DOWN', settings.ADJUST_POSITION_DOWN)
+        self.COMMISSION_FIXED = settings.COMMISSION_FIXED = getattr(strategy, 'COMMISSION_FIXED', settings.COMMISSION_FIXED)
+        self.COMMISSION_PCT = settings.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
+        self.MAX_SLIPPAGE = settings.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
 
         # Settings attributes in execution broker
         self.broker.events_queue = self.events_queue
@@ -76,6 +76,7 @@ class Portfolio(object):
         # Settings attributes in strategy
         self.strategy.signals_queue = self.signals_queue
         self.strategy.market = self.market
+
 
     @property
     def long_positions(self):

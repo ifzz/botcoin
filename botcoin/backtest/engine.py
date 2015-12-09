@@ -21,6 +21,9 @@ class Backtest(object):
             strategies[0].SYMBOL_LIST,
             date_from = getattr(strategies[0], 'DATE_FROM', datetime.now() - timedelta(weeks=52)),
             date_to = getattr(strategies[0], 'DATE_TO', datetime.now()),
+            normalize_prices = getattr(strategies[0], 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES),
+            normalize_volume = getattr(strategies[0], 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME),
+            round_decimals = getattr(strategies[0], 'ROUND_DECIMALS', settings.ROUND_DECIMALS),
         )
 
         self.portfolios = []

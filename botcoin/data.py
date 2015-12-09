@@ -13,14 +13,14 @@ from botcoin.settings import YAHOO_API
 class MarketData(object):
     """ General MarketData that is subclassed in both live and backtest modes. """
 
-    def __init__(self, csv_dir, symbol_list):
+    def __init__(self, csv_dir, symbol_list, normalize_prices, normalize_volume, round_decimals):
 
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
         self.symbol_list = sorted(list(set(symbol_list)))
         self.symbol_data = {}
 
-        self._read_all_csvs(csv_dir, settings.NORMALIZE_PRICES, settings.NORMALIZE_VOLUME, settings.ROUND_DECIMALS)
+        self._read_all_csvs(csv_dir, normalize_prices, normalize_volume, round_decimals)
 
         self._pad_empty_values()
 

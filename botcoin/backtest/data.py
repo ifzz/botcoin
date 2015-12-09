@@ -3,9 +3,10 @@ from botcoin.event import MarketEvent
 
 class HistoricalCSVData(MarketData):
 
-    def __init__(self, csv_dir, symbol_list, date_from='', date_to=''):
+    def __init__(self, csv_dir, symbol_list, normalize_prices, normalize_volume,
+                 round_decimals, date_from='', date_to=''):
 
-        super(HistoricalCSVData, self).__init__(csv_dir,symbol_list)
+        super(HistoricalCSVData, self).__init__(csv_dir,symbol_list, normalize_prices, normalize_volume, round_decimals)
 
         for s in symbol_list:
             # Limit between date_From and date_to
