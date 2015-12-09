@@ -8,8 +8,6 @@ from botcoin.portfolio import settings, Portfolio
 class LiveEngine(object):
     def __init__(self, strategy, data_dir):
 
-        settings.fetch_parameters_from_strategy(strategy)
-
         # Single market object will be used for all backtesting instances
         self.market = MarketData(
             data_dir or settings.DATA_DIR, #should come from script loader

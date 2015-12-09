@@ -1,5 +1,5 @@
 import collections
-import datetime
+from datetime import timedelta, datetime
 import logging
 
 import pandas as pd
@@ -15,12 +15,12 @@ from botcoin.portfolio import Portfolio
 class Backtest(object):
     def __init__(self, strategies, data_dir, start_automatically=True):
 
-        settings.fetch_parameters_from_strategy(strategies[0])
-
         # Single market object will be used for all backtesting instances
         self.market = HistoricalCSVData(
             data_dir or settings.DATA_DIR, #should come from script loader
             strategies[0].SYMBOL_LIST,
+            date_from = getattr(strategies[0], 'DATE_FROM', datetime.now() - timedelta(weeks=52)),
+            date_to = getattr(strategies[0], 'DATE_TO', datetime.now()),
         )
 
         self.portfolios = []
@@ -49,7 +49,7 @@ class Backtest(object):
         New market events are handled on this level to allow for multiple portfolios
         to run simultaneously with a single market object
         """
-        start_time = datetime.datetime.now()
+        start_time = datetime.now()
         while self.market.continue_execution:
             for new_market_event in self.market._update_bars():
                 if new_market_event:
@@ -59,10 +59,10 @@ class Backtest(object):
 
         [portfolio.update_last_positions_and_holdings() for portfolio in self.portfolios]
 
-        logging.info("Backtest took " + str((datetime.datetime.now()-start_time)))
+        logging.info("Backtest took " + str((datetime.now()-start_time)))
 
     def calc_performance(self, order_by='sharpe'):
-        start_time = datetime.datetime.now()
+        start_time = datetime.now()
 
         [portfolio.calc_performance() for portfolio in self.portfolios]
 
@@ -93,7 +93,7 @@ class Backtest(object):
             ],
         )
 
-        logging.debug("Performance calculated in {}".format(str(datetime.datetime.now()-start_time)))
+        logging.debug("Performance calculated in {}".format(str(datetime.now()-start_time)))
 
     def plot_open_positions(self):
         import matplotlib.pyplot as plt

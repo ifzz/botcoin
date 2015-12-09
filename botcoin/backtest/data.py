@@ -1,17 +1,16 @@
 from botcoin.data import MarketData, Bars
 from botcoin.event import MarketEvent
-from botcoin import settings
 
 class HistoricalCSVData(MarketData):
 
-    def __init__(self, csv_dir, symbol_list):
+    def __init__(self, csv_dir, symbol_list, date_from='', date_to=''):
 
         super(HistoricalCSVData, self).__init__(csv_dir,symbol_list)
 
         for s in symbol_list:
             # Limit between date_From and date_to
-            self.symbol_data[s]['df'] = self.symbol_data[s]['df'][settings.DATE_FROM:] if settings.DATE_FROM else self.symbol_data[s]['df']
-            self.symbol_data[s]['df'] = self.symbol_data[s]['df'][:settings.DATE_TO] if settings.DATE_TO else self.symbol_data[s]['df']
+            self.symbol_data[s]['df'] = self.symbol_data[s]['df'][date_from:] if date_from else self.symbol_data[s]['df']
+            self.symbol_data[s]['df'] = self.symbol_data[s]['df'][:date_to] if date_to else self.symbol_data[s]['df']
 
             # Check for empty dfs
             if self.symbol_data[s]['df'].empty:

@@ -1,14 +1,11 @@
 from botcoin.event import FillEvent
 from botcoin.execution import Execution
-from botcoin import settings
 
 class BacktestExecution(Execution):
-    def __init__(self):
-        pass
 
     def execute_order(self, order):
         cost = order.quantity * order.limit_price
-        commission = (settings.COMMISSION_PCT * order.limit_price * abs(order.quantity)) + settings.COMMISSION_FIXED
+        commission = (self.commmission_pct * order.limit_price * abs(order.quantity)) + self.commission_fixed
 
         fill_event = FillEvent(
             order,
