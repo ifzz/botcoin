@@ -40,7 +40,6 @@ def load_script(filename, datadir, graph_equity=False, graph_subscriptions=False
     logging.basicConfig(format=botcoin.settings.LOG_FORMAT, level=botcoin.settings.VERBOSITY)
 
 
-
     # Run backtest
     backtest = botcoin.Backtest(find_strategies(filename, datadir), datadir)
 

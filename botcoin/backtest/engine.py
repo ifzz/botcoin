@@ -4,6 +4,7 @@ import logging
 
 import pandas as pd
 
+import botcoin
 from botcoin import settings
 from botcoin.backtest.data import HistoricalCSVData
 from botcoin.backtest.execution import BacktestExecution, Execution
@@ -14,16 +15,12 @@ from botcoin.portfolio import Portfolio
 class Backtest(object):
     def __init__(self, strategies, data_dir, start_automatically=True):
 
-        settings.NORMALIZE_PRICES = getattr(strategies[0], 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES)
-        settings.NORMALIZE_VOLUME = getattr(strategies[0], 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME)
-        settings.ROUND_DECIMALS = getattr(strategies[0], 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
+        settings.fetch_parameters_from_strategy(strategies[0])
 
         # Single market object will be used for all backtesting instances
         self.market = HistoricalCSVData(
             data_dir or settings.DATA_DIR, #should come from script loader
-            getattr(strategies[0], 'SYMBOL_LIST', []),
-            date_from = getattr(strategies[0], 'DATE_FROM', settings.DATE_FROM),
-            date_to = getattr(strategies[0], 'DATE_TO', settings.DATE_TO),
+            strategies[0].SYMBOL_LIST,
         )
 
         self.portfolios = []

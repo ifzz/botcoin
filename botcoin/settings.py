@@ -1,6 +1,8 @@
 from datetime import timedelta, datetime
 import logging
+from math import floor
 import os
+import sys
 import pandas as pd
 
 # Pandas config
@@ -17,9 +19,6 @@ LOG_FORMAT = '# %(levelname)s - %(message)s'
 YAHOO_CHART_API = 'http://chartapi.finance.yahoo.com/instrument/1.0/{}/chartdata;type=quote;range={}/csv'
 YAHOO_API = 'http://ichart.finance.yahoo.com/table.csv?s={}&c={}&g={}'
 YAHOO_API_2 = 'http://download.finance.yahoo.com/d/quotes.csv?s={}&f=sl1d1t1c1ohgv&e=.csv'
-# If True, all symbols in SYMBOL_LIST will be downloaded
-# from Yahoo prior to backtesting
-DOWNLOAD_DATA_YAHOO = False
 
 
 # Backtesting specific configuration
@@ -80,3 +79,25 @@ NZX_50 = ['AIA.NZ','AIR.NZ','ANZ.NZ','ARG.NZ','ATM.NZ','CEN.NZ','CNU.NZ','COA.NZ
 NZX_ALL_SECURITIES = ['ABA.NZ','AFI.NZ','AIA.NZ','AIR.NZ','ALF.NZ','AMP.NZ','ANZ.NZ','AOR.NZ','AORWA.NZ','APA.NZ','APN.NZ','ARG.NZ','ARV.NZ','ASBPA.NZ','ASBPB.NZ','ASD.NZ','ASF.NZ','ASP.NZ','ASR.NZ','ATM.NZ','AUG.NZ','AWF.NZ','AWK.NZ','BGR.NZ','BIL.NZ','BILRA.NZ','BIT.NZ','BLT.NZ','BRM.NZ','BRMWC.NZ','CAV.NZ','CDI.NZ','CEN.NZ','CMO.NZ','CNU.NZ','COA.NZ','CVT.NZ','DGL.NZ','DIL.NZ','DIV.NZ','DNZ.NZ','DOW.NZ','EBO.NZ','EMF.NZ','ERD.NZ','EUF.NZ','EUT.NZ','EVO.NZ','FBU.NZ','FCT.NZ','FIN.NZ','FLI.NZ','FNZ.NZ','FPH.NZ','FRE.NZ','FSF.NZ','GMT.NZ','GNE.NZ','GTK.NZ','GXH.NZ','HBY.NZ','HFL.NZ','HLG.NZ','HNZ.NZ','IFT.NZ','IKE.NZ','IQE.NZ','JFJ.NZ','JMO.NZ','JMOOA.NZ','KFL.NZ','KFLWC.NZ','KMD.NZ','KPG.NZ','KRK.NZ','MAD.NZ','MCK.NZ','MCKPA.NZ','MDZ.NZ','MEL.NZ','MET.NZ','MFT.NZ','MGL.NZ','MHI.NZ','MLN.NZ','MLNWB.NZ','MMH.NZ','MOA.NZ','MPG.NZ','MRP.NZ','MVN.NZ','MVT.NZ','MZY.NZ','NPT.NZ','NPX.NZ','NTL.NZ','NTLOA.NZ','NWF.NZ','NZF.NZ','NZO.NZ','NZR.NZ','NZX.NZ','OGC.NZ','OHE.NZ','OIC.NZ','OZY.NZ','PAY.NZ','PBG.NZ','PCT.NZ','PEB.NZ','PFI.NZ','PFIRG.NZ','PGC.NZ','PGW.NZ','PIL.NZ','POT.NZ','PPL.NZ','PPP.NZ','RAK.NZ','RBC.NZ','RBD.NZ','RYM.NZ','SAN.NZ','SCL.NZ','SCT.NZ','SCY.NZ','SEA.NZ','SEARA.NZ','SEK.NZ','SKC.NZ','SKL.NZ','SKO.NZ','SKT.NZ','SLG.NZ','SLI.NZ','SML.NZ','SPK.NZ','SPN.NZ','SPY.NZ','STU.NZ','SUM.NZ','TCL.NZ','TEM.NZ','TEN.NZ','TGG.NZ','THL.NZ','TIL.NZ','TLS.NZ','TME.NZ','TNR.NZ','TNZ.NZ','TPI.NZ','TPW.NZ','TRS.NZ','TTK.NZ','TWF.NZ','TWR.NZ','USF.NZ','USG.NZ','USM.NZ','USS.NZ','USV.NZ','VCT.NZ','VGL.NZ','VHP.NZ','VIL.NZ','WBC.NZ','WDT.NZ','WDTPA.NZ','WHS.NZ','WYN.NZ','XRO.NZ','ZEL.NZ']
 
 IBOVESPA = ['ABEV3.SA','BBAS3.SA','BBDC3.SA','BBDC4.SA','BBSE3.SA','BRAP4.SA','BRFS3.SA','BRKM5.SA','BRML3.SA','BRPR3.SA','BVMF3.SA','CCRO3.SA','CESP6.SA','CIEL3.SA','CMIG4.SA','CPFE3.SA','CPLE6.SA','CRUZ3.SA','CSAN3.SA','CSNA3.SA','CTIP3.SA','CYRE3.SA','DTEX3.SA','ECOR3.SA','ELET3.SA','ELET6.SA','EMBR3.SA','ENBR3.SA','ESTC3.SA','FIBR3.SA','GFSA3.SA','GGBR4.SA','GOAU4.SA','GOLL4.SA','HGTX3.SA','HYPE3.SA','ITSA4.SA','ITUB4.SA','JBSS3.SA','KLBN11.SA','KROT3.SA','LAME4.SA','LREN3.SA','MRFG3.SA','MRVE3.SA','MULT3.SA','NATU3.SA','OIBR4.SA','PCAR4.SA','PETR3.SA','PETR4.SA','POMO4.SA','QUAL3.SA','RENT3.SA','RUMO3.SA','SANB11.SA','SBSP3.SA','SMLE3.SA','SUZB5.SA','TBLE3.SA','TIMP3.SA','UGPA3.SA','USIM5.SA','VALE3.SA','VALE5.SA','VIVT4.SA']
+
+def fetch_parameters_from_strategy(strategy):
+    thismodule = sys.modules[__name__]
+
+    setattr(thismodule, 'DATE_FROM', getattr(strategy, 'DATE_FROM', DATE_FROM))
+    setattr(thismodule, 'DATE_TO', getattr(strategy, 'DATE_TO', DATE_TO))
+
+    setattr(thismodule, 'NORMALIZE_PRICES', getattr(strategy, 'NORMALIZE_PRICES', NORMALIZE_PRICES))
+    setattr(thismodule, 'NORMALIZE_VOLUME', getattr(strategy, 'NORMALIZE_VOLUME', NORMALIZE_VOLUME))
+    setattr(thismodule, 'ROUND_DECIMALS', getattr(strategy, 'ROUND_DECIMALS', ROUND_DECIMALS))
+    setattr(thismodule, 'ROUND_LOT_SIZE', getattr(strategy, 'ROUND_LOT_SIZE', ROUND_LOT_SIZE))
+    setattr(thismodule, 'THRESHOLD_DANGEROUS_TRADE', getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', THRESHOLD_DANGEROUS_TRADE))
+
+    setattr(thismodule, 'INITIAL_CAPITAL', getattr(strategy, 'INITIAL_CAPITAL', INITIAL_CAPITAL))
+    setattr(thismodule, 'MAX_LONG_POSITIONS', floor(getattr(strategy, 'MAX_LONG_POSITIONS', MAX_LONG_POSITIONS)))
+    setattr(thismodule, 'MAX_SHORT_POSITIONS', floor(getattr(strategy, 'MAX_SHORT_POSITIONS', MAX_SHORT_POSITIONS)))
+    setattr(thismodule, 'POSITION_SIZE', getattr(strategy, 'POSITION_SIZE', 1.0/MAX_LONG_POSITIONS))
+    setattr(thismodule, 'ADJUST_POSITION_DOWN', getattr(strategy, 'ADJUST_POSITION_DOWN', ADJUST_POSITION_DOWN))
+
+    setattr(thismodule, 'COMMISSION_FIXED', getattr(strategy, 'COMMISSION_FIXED', COMMISSION_FIXED))
+    setattr(thismodule, 'COMMISSION_PCT', getattr(strategy, 'COMMISSION_PCT', COMMISSION_PCT))
+    setattr(thismodule, 'MAX_SLIPPAGE', getattr(strategy, 'MAX_SLIPPAGE', MAX_SLIPPAGE))
