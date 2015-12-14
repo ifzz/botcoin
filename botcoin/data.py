@@ -6,7 +6,6 @@ import pandas as pd
 import urllib.request
 from urllib.request import HTTPError
 
-from botcoin import settings
 from botcoin.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
 from botcoin.settings import YAHOO_API
 
@@ -24,9 +23,8 @@ class MarketData(object):
 
         self._pad_empty_values()
 
-        # self._populate_latest_bars()
-
         self.load_time = datetime.now()-start_load_datetime
+        self.round_decimals = round_decimals
 
     def _read_all_csvs(self, csv_dir, normalize_prices, normalize_volume, round_decimals):
 
@@ -178,14 +176,15 @@ class MarketData(object):
         if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
             raise EmptyBarsError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
 
-        result = Bars(bars, True) if option in ('today', 'yesterday') else Bars(bars)
+        result = Bars(bars, self.round_decimals, True) if option in ('today', 'yesterday') else Bars(bars, self.round_decimals, )
         return result
 
 
 class Bars(object):
     """Multiple Bars, usually from past data"""
-    def __init__(self,latest_bars, single_bar=False):
+    def __init__(self, latest_bars, round_decimals, single_bar=False):
         self.length = len(latest_bars)
+        self.round_decimals = round_decimals
 
         if single_bar:
             self.datetime = latest_bars[-1][0]
@@ -205,7 +204,7 @@ class Bars(object):
     def mavg(self, price_type='close'):
         return np.round(
             np.mean(getattr(self, price_type)),
-            settings.ROUND_DECIMALS
+            self.round_decimals
         )
 
     def bollingerbands(self, k, price_type='close'):
@@ -213,8 +212,7 @@ class Bars(object):
         sd = np.std(getattr(self, price_type))
         upband = ave + (sd*k)
         lwband = ave - (sd*k)
-        round_dec = settings.ROUND_DECIMALS
-        return np.round(ave,round_dec), np.round(upband,round_dec), np.round(lwband,round_dec)
+        return np.round(ave,self.round_decimals), np.round(upband,self.round_decimals), np.round(lwband,self.round_decimals)
 
     def __len__(self):
         return self.length

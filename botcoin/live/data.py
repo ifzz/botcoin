@@ -5,10 +5,13 @@ from botcoin.data import MarketData, Bars
 
 
 class LiveMarketData(MarketData):
-    def __init__(self, csv_dir, symbol_list, normalize_prices=True, normalize_volume=True, round_decimals=2):
-    def _populate_latest_bars(self):
-        # self.symbol_data[s]['bars']
-        pass
+    def __init__(self, csv_dir, symbol_list, normalize_prices, normalize_volume, round_decimals):
+        super(LiveMarketData, self).__init__(csv_dir,symbol_list, normalize_prices, normalize_volume, round_decimals)
+
+        # Adds 'df' to 'latest_bars' as list of lists, just as in historical update_bars
+        for s in self.symbol_list:
+            self.symbol_data[s]['latest_bars'] = self.symbol_data[s]['df'].reset_index()[['index', 'open', 'high', 'low', 'close', 'volume']].values.tolist()
+
 
 class SOMEOLDFUCKINGSHIT(MarketData):
     def __init__(self, debug_mode=False):
