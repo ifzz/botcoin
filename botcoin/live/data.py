@@ -1,5 +1,8 @@
+import datetime
+import logging
 import time
 
+import pandas as pd
 from swigibpy import EPosixClientSocket, EWrapperVerbose, Contract
 
 from botcoin.data import MarketData, Bars
@@ -23,9 +26,14 @@ class LiveMarketData(MarketData):
         self.live.eConnect("", 7497, 0)
         self.live.reqCurrentTime()
 
-        time.sleep(10)
+        time.sleep(2)
+
         self.live.eDisconnect()
 
+    def current_time(self, timestamp):
+        self.datetime = pd.Timestamp(datetime.datetime.fromtimestamp(timestamp))
+        if self.datetime-self.last_datetime > datetime.timedelta(days=3):
+            logging.critical('More than 3 days of delta between last historical datetime and current datetime')
 
 class IbHandler(EWrapperVerbose):
 
@@ -33,16 +41,15 @@ class IbHandler(EWrapperVerbose):
         super(IbHandler, self).__init__()
         self.market = market
 
-    def currentTime(self, current_time):
+    def currentTime(self, current_timestamp):
         """ Response from reqCurrentTime(). """
-        self.market.datetime = current_time
-        print(self.market.datetime)
+        self.market.current_time(current_timestamp)
 
-    # def managedAccounts(self, openOrderEnd):
-    #     pass
+    def managedAccounts(self, openOrderEnd):
+        pass
 
-    # def nextValidId(self, orderId):
-    #     pass
+    def nextValidId(self, orderId):
+        self.market.next_valid_id = orderId
 
     # def orderStatus(self, id, status, filled, remaining, avgFillPrice, permId,
     #                 parentId, lastFilledPrice, clientId, whyHeld):
@@ -50,8 +57,6 @@ class IbHandler(EWrapperVerbose):
     #
     # def openOrder(self, orderID, contract, order, orderState):
     #     pass
-    #
-
     #
     # def openOrderEnd(self):
     #     pass
