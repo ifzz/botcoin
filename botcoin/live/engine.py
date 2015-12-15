@@ -8,7 +8,6 @@ from botcoin.portfolio import settings, Portfolio
 class LiveEngine(object):
     def __init__(self, strategy, data_dir):
 
-
         # Single market object will be used for all backtesting instances
         self.market = LiveMarketData(
             data_dir or settings.DATA_DIR, #should come from script loader
@@ -21,6 +20,8 @@ class LiveEngine(object):
         self.portfolio = Portfolio()
         self.portfolio.set_modules(self.market, strategy, LiveExecution())
         self.strategy = strategy
+
+
 
         # print(self.market.past_bars('CBA.AX', 5).bollingerbands(2))
 

@@ -14,12 +14,6 @@ VERBOSITY = 20
 LOG_FORMAT = '# %(levelname)s - %(message)s'
 
 
-# Data APIs
-YAHOO_CHART_API = 'http://chartapi.finance.yahoo.com/instrument/1.0/{}/chartdata;type=quote;range={}/csv'
-YAHOO_API = 'http://ichart.finance.yahoo.com/table.csv?s={}&c={}&g={}'
-YAHOO_API_2 = 'http://download.finance.yahoo.com/d/quotes.csv?s={}&f=sl1d1t1c1ohgv&e=.csv'
-
-
 # Backtesting specific configuration
 
 # Normalize all prices based on relation between adj_close and close

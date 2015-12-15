@@ -3,11 +3,8 @@ import logging
 import numpy as np
 import os
 import pandas as pd
-import urllib.request
-from urllib.request import HTTPError
 
 from botcoin.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
-from botcoin.settings import YAHOO_API
 
 class MarketData(object):
     """ General MarketData that is subclassed in both live and backtest modes. """
@@ -99,26 +96,6 @@ class MarketData(object):
                 df[col] = df[col].fillna(df['close'])
 
             self.symbol_data[s]['df'] = df
-
-    def yahoo_api(list_of_symbols, data_dir, year_from=1900, period='d', remove_adj_close=False):
-
-        logging.warning("Downloading {} symbols from Yahoo. Please wait.".format(len(list_of_symbols)))
-
-        for s in list_of_symbols:
-            try:
-                csv = urllib.request.urlopen(YAHOO_API.format(s,year_from,period))#.read().decode('utf-8')
-                df = pd.io.parsers.read_csv(
-                    csv,
-                    header=0,
-                    index_col=0,
-                )
-                df = df.reindex(index=df.index[::-1])
-                if remove_adj_close:
-                    df.drop('Adj Close', axis=1, inplace=True)
-                df.to_csv(os.path.join(data_dir, s+'.csv'), header=False)
-            except HTTPError:
-                logging.error('Failed to fetch {}'.format(s))
-
 
     def price(self, symbol):
         """ Returns 'current' price """
