@@ -32,7 +32,7 @@ setup(
                     'matplotlib>=1.4.3',
                     'numpy==1.9.2',
                     ],
-    scripts = ['scripts/live_algo.py', 'scripts/backtest_algo.py'],
+    scripts = ['scripts/live_algo.py', 'scripts/backtest_algo.py', 'scripts/download_symbols.py'],
     author_email='luis@teix.co',
     description='Tradingzzz',
     packages=['botcoin'],

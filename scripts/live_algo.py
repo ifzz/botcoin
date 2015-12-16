@@ -3,6 +3,7 @@ import argparse
 import logging
 import os
 import botcoin
+from botcoin.utils import _find_strategies
 
 
 def main():

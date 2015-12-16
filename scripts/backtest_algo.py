@@ -3,6 +3,7 @@ import argparse
 import logging
 import os
 import botcoin
+from botcoin.utils import _find_strategies
 
 
 def main():
@@ -22,7 +23,7 @@ def main():
 
 
     # Run backtest
-    backtest = botcoin.Backtest(botcoin.utils._find_strategies(args.algo_file[0], args.datadir), args.datadir)
+    backtest = botcoin.Backtest(_find_strategies(args.algo_file[0], args.datadir), args.datadir)
 
     print(backtest.results)
 
