@@ -34,7 +34,7 @@ class LiveMarketData(MarketData):
 
     def current_time(self, timestamp):
         self.datetime = pd.Timestamp(datetime.datetime.fromtimestamp(timestamp))
-        if self.datetime-self.last_datetime > datetime.timedelta(days=3):
+        if self.datetime-self.last_datetime >= datetime.timedelta(days=4):
             logging.critical('More than 3 days of delta between last historical datetime and current datetime')
 
 class IbHandler(EWrapperVerbose):

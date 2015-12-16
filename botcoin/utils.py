@@ -62,3 +62,8 @@ def _find_strategies(filename, datadir, load_default_only=False):
             return [cls()]
 
     raise ValueError('Could not understand your strategy script')
+
+def _config_logging(verbose):
+    verbosity = 10 if verbose else 20
+    log_format = '# %(levelname)s - %(message)s'
+    logging.basicConfig(format=log_format, level=verbosity)

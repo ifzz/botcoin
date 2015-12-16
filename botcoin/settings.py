@@ -9,11 +9,6 @@ pd.set_option('display.max_rows', 200)
 pd.set_option('display.width', 1000)
 
 
-# Logging config
-VERBOSITY = 20
-LOG_FORMAT = '# %(levelname)s - %(message)s'
-
-
 # Backtesting specific configuration
 
 # Normalize all prices based on relation between adj_close and close
