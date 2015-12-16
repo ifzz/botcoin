@@ -10,7 +10,7 @@ from botcoin.data import MarketData, Bars
 
 class LiveMarketData(MarketData):
     def __init__(self, csv_dir, symbol_list, normalize_prices, normalize_volume, round_decimals):
-        super(LiveMarketData, self).__init__(csv_dir,symbol_list, normalize_prices, normalize_volume, round_decimals)
+        super(LiveMarketData, self).__init__(csv_dir, symbol_list, normalize_prices, normalize_volume, round_decimals)
 
         # Adds 'df' to 'latest_bars' as list of lists, just as in historical update_bars
         for s in self.symbol_list:
@@ -22,9 +22,11 @@ class LiveMarketData(MarketData):
 
 
         # Connect to IB tws (edemo/demouser)
-        self.live = EPosixClientSocket(IbHandler(self), reconnect_auto=True)
+        self.ib_handler = IbHandler(self)
+        self.live = EPosixClientSocket(self.ib_handler, reconnect_auto=True)
         self.live.eConnect("", 7497, 0)
         self.live.reqCurrentTime()
+
 
         time.sleep(2)
 
