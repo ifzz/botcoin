@@ -31,7 +31,7 @@ def optimize(*args):
         return list(itertools.product(*lists_of_elements))
 
 
-def _find_strategies(filename, datadir, load_default_only=False):
+def _find_strategies(filename, load_default_only=False):
     """ Tries to find strategies in the module provided in the following ways:
         1) looks for strategies attribute, which shoud be a list of Strategy subclasses
         2) looks for strategy attribute, which should be an instance of a Strategy subclasses
@@ -43,8 +43,6 @@ def _find_strategies(filename, datadir, load_default_only=False):
     sys.path.append(directory)
 
     strategy_module = __import__(file_to_load.split('.')[0])
-
-    datadir = os.path.expanduser(datadir)
 
     if not load_default_only:
         try:

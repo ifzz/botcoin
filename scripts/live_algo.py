@@ -3,7 +3,6 @@ import argparse
 import logging
 import os
 import botcoin
-from botcoin.utils import _find_strategies, _config_logging
 
 
 def main():
@@ -13,9 +12,9 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose (very chatty, be careful)')
     args = parser.parse_args()
 
-    _config_logging(args.verbose)
+    botcoin.utils._config_logging(args.verbose)
 
-    live = botcoin.LiveEngine(botcoin.utils._find_strategies(args.algo_file[0], args.data_dir, True)[0], args.data_dir)
+    live = botcoin.LiveEngine(botcoin.utils._find_strategies(args.algo_file[0], True)[0], args.data_dir)
 
     live.start()
 
