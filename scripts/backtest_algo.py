@@ -17,23 +17,25 @@ def main():
 
     botcoin.utils._config_logging(args.verbose)
 
-    # Run backtest
-    backtest = botcoin.Backtest(botcoin.utils._find_strategies(args.algo_file[0]), args.data_dir)
+    for f in args.algo_file:
 
-    print(backtest.results)
+        logging.info("Reading strategies from {}".format(f))
 
-    if args.all_trades:
-        backtest.print_all_trades()
+        # Run backtest
+        backtest = botcoin.Backtest(botcoin.utils._find_strategies(f), args.data_dir)
 
-    if args.graph_equity:
-        backtest.plot_results()
+        print(backtest.results)
 
-    if args.graph_subscriptions:
-        backtest.plot_symbol_subscriptions()
+        if args.all_trades:
+            backtest.print_all_trades()
 
-    backtest.strategy_finishing_methods()
+        if args.graph_equity:
+            backtest.plot_results()
 
-    return backtest
+        if args.graph_subscriptions:
+            backtest.plot_symbol_subscriptions()
+
+        backtest.strategy_finishing_methods()
 
 
 if __name__ == '__main__':

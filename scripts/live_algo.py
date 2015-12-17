@@ -15,7 +15,10 @@ def main():
 
     botcoin.utils._config_logging(args.verbose)
 
-    live = botcoin.LiveEngine(botcoin.utils._find_strategies(args.algo_file[0], True)[0], args.data_dir)
+    f = args.algo_file[0]
+    logging.info("Reading strategies from {}".format(f))
+
+    live = botcoin.LiveEngine(botcoin.utils._find_strategies(f, True)[0], args.data_dir)
 
     try:
         live.start()
