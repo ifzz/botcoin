@@ -25,12 +25,57 @@ class LiveMarketData(MarketData):
         self.ib_handler = IbHandler(self)
         self.live = EPosixClientSocket(self.ib_handler, reconnect_auto=True)
         self.live.eConnect("", 7497, 0)
+        while not self.live.isConnected():
+            logging.critical("Failed to connect to tws. Trying again in 5 seconds.")
+            time.sleep(5)
+            self.live.eConnect("", 7497, 0)
+
         self.live.reqCurrentTime()
 
+        self.live_symbols = {}
+        self.next_ticker_id = 0
 
-        time.sleep(2)
+        for s in self.symbol_list:
+            self.subscribe(s.split('.')[0])
 
+    def stop(self):
         self.live.eDisconnect()
+
+    def subscribe(self, symbol, sec_type='STK', exchange='ASX', currency='AUD'):
+        c = Contract()
+        c.symbol = symbol
+        c.secType = sec_type
+        c.exchange = exchange
+        c.currency = currency
+
+        self.live.reqMktData(self.next_ticker_id, c, "", False, None)
+
+        self.live_symbols[self.next_ticker_id] = symbol
+        self.next_ticker_id += 1
+
+    def update_last_price(self, ticker_id, price):
+        print('price', self.live_symbols[ticker_id], price)
+
+    def update_volume(self, ticker_id, size):
+        print('volume', self.live_symbols[ticker_id], size)
+
+    def update_ask_price(self, ticker_id, price):
+        print('ask', self.live_symbols[ticker_id], price)
+
+    def update_bid_price(self, ticker_id, price):
+        print('bid', self.live_symbols[ticker_id], price)
+
+    def update_high(self, ticker_id, price):
+        print('high', self.live_symbols[ticker_id], price)
+
+    def update_low(self, ticker_id, price):
+        print('low', self.live_symbols[ticker_id], price)
+
+    def update_open(self, ticker_id, price):
+        print('open', self.live_symbols[ticker_id], price)
+
+    def update_last_timestamp(self, ticker_id, timestamp):
+        print('last timestamp', self.live_symbols[ticker_id], timestamp)
 
     def current_time(self, timestamp):
         self.datetime = pd.Timestamp(datetime.datetime.fromtimestamp(timestamp))
@@ -43,6 +88,7 @@ class IbHandler(EWrapperVerbose):
         super(IbHandler, self).__init__()
         self.market = market
 
+    # IB related methods
     def currentTime(self, current_timestamp):
         """ Response from reqCurrentTime(). """
         self.market.current_time(current_timestamp)
@@ -52,6 +98,53 @@ class IbHandler(EWrapperVerbose):
 
     def nextValidId(self, orderId):
         self.market.next_valid_id = orderId
+
+    """
+        https://www.interactivebrokers.com/en/software/api/apiguide/tables/tick_types.htm
+        0   BID_SIZE	tickSize()
+        1   BID_PRICE	tickPrice()
+        2   ASK_PRICE	tickPrice()
+        3   ASK_SIZE	tickSize()
+        4   LAST_PRICE	tickPrice()
+        5   LAST_SIZE	tickSize()
+        6   HIGH	tickPrice()
+        7   LOW	tickPrice()
+        8   VOLUME	tickSize()
+        9   CLOSE_PRICE	tickPrice()
+        14  OPEN_TICK	tickPrice()
+        21  AVG_VOLUME	tickSize()
+        37  MARK_PRICE	tickPrice()
+        45  LAST_TIMESTAMP	tickString()
+        46  SHORTABLE	tickString()
+    """
+
+    def tickString(self, ticker_id, tick_type, value):
+        if tick_type == 45:  # LAST_TIMESTAMP
+            self.market.update_last_timestamp(ticker_id, value)
+
+    def tickSize(self, ticker_id, tick_type, size):
+        if tick_type == 8:  # VOLUME
+            self.market.update_volume(ticker_id, size)
+
+    def tickPrice(self, ticker_id, tick_type, price, canAutoExecute):
+        if tick_type == 4:  # LAST_PRICE
+            self.market.update_last_price(ticker_id, price)
+
+        elif tick_type == 1:  # BID_PRICE
+            self.market.update_bid_price(ticker_id, price)
+
+        elif tick_type == 2:  # ASK_PRICE
+            self.market.update_ask_price(ticker_id, price)
+        #
+        elif tick_type == 6:  # HIGH
+            print('HIGH', self.market.live_symbols[ticker_id], price)
+
+        elif tick_type == 7:  # LOW
+            print('LOW', self.market.live_symbols[ticker_id], price)
+
+        elif tick_type == 14:  # OPEN_TICK
+            print('OPEN_TICK', self.market.live_symbols[ticker_id], price)
+
 
     # def orderStatus(self, id, status, filled, remaining, avgFillPrice, permId,
     #                 parentId, lastFilledPrice, clientId, whyHeld):

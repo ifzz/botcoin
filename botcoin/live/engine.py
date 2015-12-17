@@ -21,12 +21,11 @@ class LiveEngine(object):
         self.portfolio.set_modules(self.market, strategy, LiveExecution())
         self.strategy = strategy
 
-
-
-        # print(self.market.past_bars('CBA.AX', 5).bollingerbands(2))
-
-    def start(self):
         logging.info("Live execution with strategy {}.".format(self.portfolio.strategy))
 
-        # while True:
-        self.portfolio.run_cycle
+    def start(self):
+        while True:
+            self.portfolio.run_cycle
+
+    def stop(self):
+        self.market.stop()

@@ -118,8 +118,8 @@ class MarketData(object):
         return self.bar_dispatcher('bars', symbol, N)
 
     def past_bars(self, symbol, N=1):
-        """Returns Bars discarding the very last result to simulate data
-        past the current date
+        """
+        Returns Bars discarding the very last result to simulate data past the current date
         """
         return self.bar_dispatcher('past_bars', symbol, N)
 
