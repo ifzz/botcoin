@@ -98,7 +98,7 @@ class Portfolio(object):
     @property
     def portfolio_value(self):
         value = self.holdings['cash']
-        value += sum([self.positions[s] * self.market.price(s) for s in self.market.symbol_list])
+        value += sum([self.positions[s] * self.market.last_price(s) for s in self.market.symbol_list])
         return value
 
     def run_cycle(self):
@@ -208,7 +208,7 @@ class Portfolio(object):
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
         self.holdings['total'] = self.portfolio_value
         for s in self.market.symbol_list:
-            self.holdings[s] = self.positions[s] * self.market.price(s)
+            self.holdings[s] = self.positions[s] * self.market.last_price(s)
 
         self.verify_consistency()
 
@@ -221,7 +221,7 @@ class Portfolio(object):
         date = self.market.datetime
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
 
-        exec_price = signal.exec_price or self.market.price(symbol)
+        exec_price = signal.exec_price or self.market.last_price(symbol)
 
         # Checks for execution prices above today.high or below today.low
         # Should stop execution during backtesting, but not on live exec
@@ -346,7 +346,7 @@ class Portfolio(object):
 
             self.all_trades.append(trade.fake_close_trade(
                 self.market.datetime,
-                quantity * self.market.price(trade.symbol),
+                quantity * self.market.last_price(trade.symbol),
             ))
 
     def construct_position(self, cur_datetime, positions={}):

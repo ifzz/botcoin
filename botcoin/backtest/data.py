@@ -47,25 +47,18 @@ class HistoricalCSVData(MarketData):
             for s in self.symbol_list:
                 new_row = next(self._data[s]['bars']) #df.iterows
 
-                datetime = new_row[0]
-                openp = new_row[1][0]
-                highp = new_row[1][1]
-                lowp = new_row[1][2]
-                closep = new_row[1][3]
-                volume = new_row[1][4]
-
                 bar = tuple([
-                    datetime,
-                    openp,
-                    highp,
-                    lowp,
-                    closep,
-                    volume,
+                    new_row[0],  # datetime
+                    new_row[1][0],  # open,
+                    new_row[1][1],  # high
+                    new_row[1][2],  # low
+                    new_row[1][3],  # close
+                    new_row[1][4],  # volume
                 ])
 
                 self._data[s]['latest_bars'].append(bar)
 
-            self.datetime = datetime
+            self.datetime = new_row[0]
 
 
             # Before open
@@ -73,31 +66,31 @@ class HistoricalCSVData(MarketData):
 
             # On open - open = latest_bars[-1][1]
             for s in self.symbol_list:
-                self._data[s]['current_price'] = self._data[s]['latest_bars'][-1][1]
+                self._data[s]['last_price'] = self._data[s]['latest_bars'][-1][1]
             for s in self.symbol_list:
                 yield MarketEvent('open', s)
 
             # During #1
             for s in self.symbol_list:
                 d = self._data[s]['latest_bars'][-1]
-                self._data[s]['current_price'] = d[3] if d[4]>d[1] else d[2]
+                self._data[s]['last_price'] = d[3] if d[4]>d[1] else d[2]
             for s in self.symbol_list:
                 yield MarketEvent('during', s)
 
             # During #2
             for s in self.symbol_list:
                 d = self._data[s]['latest_bars'][-1]
-                self._data[s]['current_price'] = d[2] if d[4]>d[1] else d[3]
+                self._data[s]['last_price'] = d[2] if d[4]>d[1] else d[3]
             for s in self.symbol_list:
                 yield MarketEvent('during', s)
 
             # On close
             for s in self.symbol_list:
-                self._data[s]['current_price'] = self._data[s]['latest_bars'][-1][4]
+                self._data[s]['last_price'] = self._data[s]['latest_bars'][-1][4]
             for s in self.symbol_list:
                 yield MarketEvent('close', s)
 
-            # After close, current_price will still be close
+            # After close, last_price will still be close
             yield MarketEvent('after_close')
 
         except StopIteration:

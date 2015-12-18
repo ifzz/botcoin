@@ -42,10 +42,10 @@ class LiveMarketData(MarketData):
         for s in self.symbol_list:
             self.subscribe(s.split('.')[0])
 
-    def stop(self):
+    def _stop(self):
         self.live.eDisconnect()
 
-    def subscribe(self, symbol):
+    def _subscribe(self, symbol):
         c = Contract()
         c.symbol = symbol
         c.secType = self.sec_type
@@ -57,34 +57,37 @@ class LiveMarketData(MarketData):
         self.live_symbols[self.next_ticker_id] = symbol
         self.next_ticker_id += 1
 
-    def update_last_price(self, ticker_id, price):
+    def _update_last_price(self, ticker_id, price):
         print('price', self.live_symbols[ticker_id], price)
 
-    def update_volume(self, ticker_id, size):
+    def _update_volume(self, ticker_id, size):
         print('volume', self.live_symbols[ticker_id], size)
 
-    def update_ask_price(self, ticker_id, price):
+    def _update_ask_price(self, ticker_id, price):
         print('ask', self.live_symbols[ticker_id], price)
 
-    def update_bid_price(self, ticker_id, price):
+    def _update_bid_price(self, ticker_id, price):
         print('bid', self.live_symbols[ticker_id], price)
 
-    def update_high(self, ticker_id, price):
+    def _update_high(self, ticker_id, price):
         print('high', self.live_symbols[ticker_id], price)
 
-    def update_low(self, ticker_id, price):
+    def _update_low(self, ticker_id, price):
         print('low', self.live_symbols[ticker_id], price)
 
-    def update_open(self, ticker_id, price):
+    def _update_open(self, ticker_id, price):
         print('open', self.live_symbols[ticker_id], price)
 
-    def update_last_timestamp(self, ticker_id, timestamp):
+    def _update_last_timestamp(self, ticker_id, timestamp):
         print('last timestamp', self.live_symbols[ticker_id], timestamp)
 
-    def current_time(self, timestamp):
+    def _update_current_time(self, timestamp):
         self.datetime = pd.Timestamp(datetime.datetime.fromtimestamp(timestamp))
         if self.datetime-self.last_datetime >= datetime.timedelta(days=4):
             logging.critical('More than 3 days of delta between last historical datetime and current datetime')
+
+    # Methods that should be referenced by users
+
 
 class IbHandler(EWrapperVerbose):
 
@@ -95,7 +98,7 @@ class IbHandler(EWrapperVerbose):
     # IB related methods
     def currentTime(self, current_timestamp):
         """ Response from reqCurrentTime(). """
-        self.market.current_time(current_timestamp)
+        self.market._update_current_time(current_timestamp)
 
     def managedAccounts(self, openOrderEnd):
         pass
@@ -124,21 +127,21 @@ class IbHandler(EWrapperVerbose):
 
     def tickString(self, ticker_id, tick_type, value):
         if tick_type == 45:  # LAST_TIMESTAMP
-            self.market.update_last_timestamp(ticker_id, value)
+            self.market._update_last_timestamp(ticker_id, value)
 
     def tickSize(self, ticker_id, tick_type, size):
         if tick_type == 8:  # VOLUME
-            self.market.update_volume(ticker_id, size)
+            self.market._update_volume(ticker_id, size)
 
     def tickPrice(self, ticker_id, tick_type, price, canAutoExecute):
         if tick_type == 4:  # LAST_PRICE
-            self.market.update_last_price(ticker_id, price)
+            self.market._update_last_price(ticker_id, price)
 
         elif tick_type == 1:  # BID_PRICE
-            self.market.update_bid_price(ticker_id, price)
+            self.market._update_bid_price(ticker_id, price)
 
         elif tick_type == 2:  # ASK_PRICE
-            self.market.update_ask_price(ticker_id, price)
+            self.market._update_ask_price(ticker_id, price)
         #
         elif tick_type == 6:  # HIGH
             print('HIGH', self.market.live_symbols[ticker_id], price)

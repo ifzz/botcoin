@@ -127,19 +127,19 @@ class MarketData(object):
 
             self._data[s]['df'] = df
 
-    def price(self, symbol):
+    def last_price(self, symbol):
         """ Returns 'current' price """
-        if not 'current_price' in self._data[symbol]:
+        if not 'last_price' in self._data[symbol]:
             raise NoBarsError
-        return self._data[symbol]['current_price']
+        return self._data[symbol]['last_price']
 
     def change(self, symbol):
         """ Returns change between last close and 'current' price """
         # In case execution just started and there is no current price
-        if not 'current_price' in self._data[symbol]:
+        if not 'last_price' in self._data[symbol]:
             raise NoBarsError
         last_close = self.yesterday(symbol).close
-        return self._data[symbol]['current_price']/last_close - 1
+        return self._data[symbol]['last_price']/last_close - 1
 
     def bars(self, symbol, N=1):
         """
