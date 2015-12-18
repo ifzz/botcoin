@@ -8,14 +8,6 @@ import sys
 
 from botcoin import Strategy
 
-# Data APIs
-YAHOO_API = 'http://ichart.finance.yahoo.com/table.csv?s={}&c={}&g={}' # symbol, year_from, period
-YAHOO_API_2 = 'http://download.finance.yahoo.com/d/quotes.csv?s={}&f=sl1d1t1c1ohgv&e=.csv'
-YAHOO_CHART_API = 'http://chartapi.finance.yahoo.com/instrument/1.0/{}/chartdata;type=quote;range={}/csv'
-QUANDL_YAHOO_API = 'https://www.quandl.com/api/v3/datasets/YAHOO/{}_{}.csv'
-QUANDL_YAHOO_API_AUTH = 'https://www.quandl.com/api/v3/datasets/YAHOO/{}_{}.csv?api_key={}'
-
-
 def optimize(*args):
     """
         Returns all possible combinations of multiple np.arange values based on
@@ -61,7 +53,7 @@ def _find_strategies(filename, load_default_only=False):
 
     raise ValueError('Could not understand your strategy script')
 
-def _config_logging(verbose):
+def _config_logging(verbose=None):
     verbosity = 10 if verbose else 20
     log_format = '# %(levelname)s - %(message)s'
     logging.basicConfig(format=log_format, level=verbosity)

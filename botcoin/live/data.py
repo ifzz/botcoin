@@ -9,8 +9,13 @@ from botcoin.data import MarketData, Bars
 
 
 class LiveMarketData(MarketData):
-    def __init__(self, csv_dir, symbol_list, normalize_prices, normalize_volume, round_decimals):
+    def __init__(self, csv_dir, symbol_list, normalize_prices, normalize_volume, round_decimals,
+                 exchange, sec_type, currency):
         super(LiveMarketData, self).__init__(csv_dir, symbol_list, normalize_prices, normalize_volume, round_decimals)
+
+        self.exchange = exchange
+        self.sec_type = sec_type
+        self.currency = currency
 
         # Adds 'df' to 'latest_bars' as list of lists, just as in historical update_bars
         for s in self.symbol_list:
@@ -19,7 +24,6 @@ class LiveMarketData(MarketData):
         # Last datetime in historical data which can be from
         # any symbol (doesn't matter as all symbols share same index)
         self.last_datetime = self.symbol_data[self.symbol_list[0]]['latest_bars'][-1][0]
-
 
         # Connect to IB tws (edemo/demouser)
         self.ib_handler = IbHandler(self)
@@ -41,12 +45,12 @@ class LiveMarketData(MarketData):
     def stop(self):
         self.live.eDisconnect()
 
-    def subscribe(self, symbol, sec_type='STK', exchange='ASX', currency='AUD'):
+    def subscribe(self, symbol):
         c = Contract()
         c.symbol = symbol
-        c.secType = sec_type
-        c.exchange = exchange
-        c.currency = currency
+        c.secType = self.sec_type
+        c.exchange = self.exchange
+        c.currency = self.currency
 
         self.live.reqMktData(self.next_ticker_id, c, "", False, None)
 
