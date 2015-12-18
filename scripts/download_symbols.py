@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime
 import logging
+import numpy as np
 import pandas as pd
 import os
 import sys
@@ -41,11 +42,47 @@ def main():
                 csv,
                 header=0,
                 index_col=0,
+                names=['datetime', 'open', 'high', 'low', 'close', 'volume', 'adj_close'],
             )
             df = df.reindex(index=df.index[::-1])
+
             if False: #remove_adj_close:
                 df.drop('Adj Close', axis=1, inplace=True)
+
+            # Checking data consistency
+            if (df['high'] < df['open']).any() == True:
+                dates = df.loc[(df['high'] < df['open']) == True].index
+                logging.info('Inconsistent data detected - {} high < open on {}'.format(symbol, dates))
+                # df['high'] = np.where(df['high'] < df['open'], df['open'], df['high'])
+                # logging.info('Fixed {} high < open on {}'.format(symbol, dates))
+
+            if (df['high'] < df['close']).any() == True:
+                dates = df.loc[(df['high'] < df['close']) == True].index
+                logging.info('Inconsistent data detected - {} high < close on {}'.format(symbol, dates))
+                # df['high'] = np.where(df['high'] < df['close'], df['close'], df['high'])
+                # logging.info('Fixed {} high < close on {}'.format(symbol, dates))
+
+            if (df['low'] > df['open']).any() == True:
+                dates = df.loc[(df['low'] > df['open']) == True].index
+                logging.info('Inconsistent data detected - {} low > open on {}'.format(symbol, dates))
+                # df['low'] = np.where(df['low'] > df['open'], df['open'], df['low'])
+                # logging.info('Fixed {} low > open on {}'.format(symbol, dates))
+
+            if (df['low'] > df['close']).any() == True:
+                dates = df.loc[(df['low'] > df['close']) == True].index
+                logging.info('Inconsistent data detected - {} low > close on {}'.format(symbol, dates))
+                # df['low'] = np.where(df['low'] > df['close'], df['close'], df['low'])
+                # logging.info('Fixed {} low > close on {}'.format(symbol, dates))
+
+            if (df['high'] < df['low']).any() == True:
+                dates = df.loc[(df['high'] < df['low']) == True].index
+                logging.info('Inconsistent data detected - {} high < low on {}'.format(symbol, dates))
+                # df['high'] = np.where(df['high'] < df['low'], df['low'], df['high'])
+                # logging.info('Fixed {} high < low on {}'.format(symbol, dates))
+
+            # Write csv
             df.to_csv(os.path.join(args.data_dir, symbol+'.csv'), header=False)
+
         except HTTPError as e:
             logging.error('Failed to fetch {}. Error: {}. URL: {}'.format(symbol, e, url))
 

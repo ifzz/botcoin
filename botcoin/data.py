@@ -44,34 +44,6 @@ class MarketData(object):
         for s in self.symbol_list:
             self._data[s]['df'] = self._data[s]['df'].reindex(index=comb_index, method=None)
 
-    def _check_data_consistency(self):
-        inconsistencies = []
-        for s in self.symbol_list:
-            df = self._data[s]['df']
-
-            if (df['high'] < df['low']).any() == True:
-                dates = df.loc[(df['high'] < df['low']) == True].index
-                inconsistencies.append('{} high < low on {}'.format(s, dates))
-
-            if (df['high'] < df['open']).any() == True:
-                dates = df.loc[(df['high'] < df['open']) == True].index
-                inconsistencies.append('{} high < open on {}'.format(s, dates))
-
-            if (df['high'] < df['close']).any() == True:
-                dates = df.loc[(df['high'] < df['close']) == True].index
-                inconsistencies.append('{} high < close on {}'.format(s, dates))
-
-            if (df['low'] > df['open']).any() == True:
-                dates = df.loc[(df['low'] > df['open']) == True].index
-                inconsistencies.append('{} low > open on {}'.format(s, dates))
-
-            if (df['low'] > df['close']).any() == True:
-                dates = df.loc[(df['low'] > df['close']) == True].index
-                inconsistencies.append('{} low > close on {}'.format(s, dates))
-
-        if inconsistencies:
-            raise ValueError('Possible inconsistencies in data, cancelling backtest.\n' + '\n'.join(inconsistencies))
-
     @staticmethod
     def _read_csv(csv_dir, filename, normalize_prices,
                   normalize_volume, round_decimals):
@@ -108,6 +80,34 @@ class MarketData(object):
             df[c] = df[c].round(round_decimals)
 
         return df
+
+    def _check_data_consistency(self):
+        inconsistencies = []
+        for s in self.symbol_list:
+            df = self._data[s]['df']
+
+            if (df['high'] < df['low']).any() == True:
+                dates = df.loc[(df['high'] < df['low']) == True].index
+                inconsistencies.append('{} high < low on {}'.format(s, dates))
+
+            if (df['high'] < df['open']).any() == True:
+                dates = df.loc[(df['high'] < df['open']) == True].index
+                inconsistencies.append('{} high < open on {}'.format(s, dates))
+
+            if (df['high'] < df['close']).any() == True:
+                dates = df.loc[(df['high'] < df['close']) == True].index
+                inconsistencies.append('{} high < close on {}'.format(s, dates))
+
+            if (df['low'] > df['open']).any() == True:
+                dates = df.loc[(df['low'] > df['open']) == True].index
+                inconsistencies.append('{} low > open on {}'.format(s, dates))
+
+            if (df['low'] > df['close']).any() == True:
+                dates = df.loc[(df['low'] > df['close']) == True].index
+                inconsistencies.append('{} low > close on {}'.format(s, dates))
+
+        if inconsistencies:
+            raise ValueError('Possible inconsistencies in data, cancelling backtest.\n' + '\n'.join(inconsistencies))
 
     def _pad_empty_values(self):
 
