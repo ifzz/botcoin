@@ -54,14 +54,14 @@ class HistoricalCSVData(MarketData):
                 closep = new_row[1][3]
                 volume = new_row[1][4]
 
-                if not (highp>=lowp and highp>=openp and highp>=closep and
-                    lowp<=openp and lowp<=closep):
-                    raise ValueError("Data inconsistency on " + s + " at " +
-                        str(datetime) + ". OHLC is " + str(openp) + " " +
-                        str(highp) + " " + str(lowp) + " " + str(closep) +
-                        ". High price must be >= all other prices" +
-                        " and low price must be <= all other prices"
-                    )
+                # if not (highp>=lowp and highp>=openp and highp>=closep and
+                #     lowp<=openp and lowp<=closep):
+                #     raise ValueError("Data inconsistency on " + s + " at " +
+                #         str(datetime) + ". OHLC is " + str(openp) + " " +
+                #         str(highp) + " " + str(lowp) + " " + str(closep) +
+                #         ". High price must be >= all other prices" +
+                #         " and low price must be <= all other prices"
+                #     )
 
                 bar = tuple([
                     datetime,
