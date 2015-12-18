@@ -8,7 +8,7 @@ import sys
 import urllib.request
 from urllib.request import HTTPError
 
-from botcoin.utils import _find_strategies, _config_logging
+from botcoin.utils import _find_strategies, _basic_config
 
 # Data APIs
 YAHOO_API = 'http://ichart.finance.yahoo.com/table.csv?s={}&c={}&g={}' # symbol, year_from, period
@@ -23,7 +23,7 @@ def main():
     parser.add_argument('-d', '--data_dir', default=os.path.join(os.getcwd(),'data/'), required=False, nargs='?', help='data directory containing ohlc csvs (default is ./data/)')
     args = parser.parse_args()
 
-    _config_logging()
+    _basic_config()
 
     strategy = _find_strategies(args.algo_file[0], True)[0]
 

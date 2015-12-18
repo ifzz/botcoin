@@ -53,7 +53,12 @@ def _find_strategies(filename, load_default_only=False):
 
     raise ValueError('Could not understand your strategy script')
 
-def _config_logging(verbose=None):
+def _basic_config(verbose=None):
+    # Logging
     verbosity = 10 if verbose else 20
     log_format = '# %(levelname)s - %(message)s'
     logging.basicConfig(format=log_format, level=verbosity)
+
+    # Pandas
+    pd.set_option('display.max_rows', 200)
+    pd.set_option('display.width', 1000)

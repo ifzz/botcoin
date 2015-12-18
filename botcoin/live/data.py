@@ -19,11 +19,11 @@ class LiveMarketData(MarketData):
 
         # Adds 'df' to 'latest_bars' as list of lists, just as in historical update_bars
         for s in self.symbol_list:
-            self.symbol_data[s]['latest_bars'] = self.symbol_data[s]['df'].reset_index()[['index', 'open', 'high', 'low', 'close', 'volume']].values.tolist()
+            self._data[s]['latest_bars'] = self._data[s]['df'].reset_index()[['index', 'open', 'high', 'low', 'close', 'volume']].values.tolist()
 
         # Last datetime in historical data which can be from
         # any symbol (doesn't matter as all symbols share same index)
-        self.last_datetime = self.symbol_data[self.symbol_list[0]]['latest_bars'][-1][0]
+        self.last_datetime = self._data[self.symbol_list[0]]['latest_bars'][-1][0]
 
         # Connect to IB tws (edemo/demouser)
         self.ib_handler = IbHandler(self)

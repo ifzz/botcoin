@@ -13,7 +13,7 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose (very chatty, be careful)')
     args = parser.parse_args()
 
-    botcoin.utils._config_logging(args.verbose)
+    botcoin.utils._basic_config(args.verbose)
 
     f = args.algo_file[0]
     logging.info("Reading strategies from {}".format(f))
