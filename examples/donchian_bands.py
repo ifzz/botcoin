@@ -4,6 +4,7 @@ import botcoin
 class DonchianStrategy(botcoin.Strategy):
     def initialize(self):
         self.SYMBOL_LIST = botcoin.settings.ASX_200
+        self.YAHOO_SYMBOL_APPENDIX = '.AX'
         self.DATE_FROM = '2013'
         self.DATE_TO = '2014'
         self.MAX_LONG_POSITIONS = 5

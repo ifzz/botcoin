@@ -16,13 +16,15 @@ def main():
     parser.add_argument('-d', '--data_dir', default=os.path.join(os.getcwd(),'data/'), required=False, nargs='?', help='data directory containing ohlc csvs (default is ./data/)')
     args = parser.parse_args()
 
-    strategy = _find_strategies(args.algo_file[0], args.data_dir, True)[0]
+    strategy = _find_strategies(args.algo_file[0], True)[0]
 
     logging.warning("Downloading {} symbols from Yahoo. Please wait.".format(len(strategy.SYMBOL_LIST)))
 
+    yahoo_symbol_appendix = getattr(strategy, 'YAHOO_SYMBOL_APPENDIX', '')
 
     for symbol in strategy.SYMBOL_LIST:
-        url = YAHOO_API.format(symbol, '1990', 'd')
+
+        url = YAHOO_API.format(symbol + yahoo_symbol_appendix, '1990', 'd')
         try:
             csv = urllib.request.urlopen(url)#.read().decode('utf-8')
             df = pd.io.parsers.read_csv(

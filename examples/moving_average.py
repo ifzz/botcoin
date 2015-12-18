@@ -4,6 +4,7 @@ import botcoin
 class MovingAverage(botcoin.Strategy):
     def initialize(self):
         self.SYMBOL_LIST = botcoin.settings.ASX_200
+        self.YAHOO_SYMBOL_APPENDIX = '.AX'
         self.DATE_FROM = '2015'
         self.DATE_TO = '2015'
 
