@@ -15,9 +15,9 @@ class LiveEngine(object):
             normalize_prices = getattr(strategy, 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES),
             normalize_volume = getattr(strategy, 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME),
             round_decimals = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS),
-            exchange = getattr(strategy, 'EXCHANGE', 'ASX'),
-            sec_type = getattr(strategy, 'SEC_TYPE', 'STK'),
-            currency = getattr(strategy, 'CURRENCY', 'AUD'),
+            exchange = getattr(strategy, 'EXCHANGE', settings.EXCHANGE),
+            sec_type = getattr(strategy, 'SEC_TYPE', settings.SEC_TYPE),
+            currency = getattr(strategy, 'CURRENCY', settings.CURRENCY),
         )
 
         self.portfolio = Portfolio()

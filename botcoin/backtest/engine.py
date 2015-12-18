@@ -17,7 +17,7 @@ class Backtest(object):
 
         # Single market object will be used for all backtesting instances
         self.market = HistoricalCSVData(
-            data_dir or settings.DATA_DIR, #should come from script loader
+            data_dir, #should come from script loader
             strategies[0].SYMBOL_LIST,
             date_from = getattr(strategies[0], 'DATE_FROM', datetime.now() - timedelta(weeks=52)),
             date_to = getattr(strategies[0], 'DATE_TO', datetime.now()),
