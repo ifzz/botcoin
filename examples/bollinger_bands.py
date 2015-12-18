@@ -4,7 +4,7 @@ import botcoin
 class BollingerBands(botcoin.Strategy):
     def initialize(self):
         self.SYMBOL_LIST = botcoin.settings.ASX_50
-        self.YAHOO_SYMBOL_APPENDIX = '.AX'
+
         self.DATE_FROM = '2013'
         self.DATE_TO = '2014'
         self.MAX_LONG_POSITIONS = 5

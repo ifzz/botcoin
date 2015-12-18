@@ -20,22 +20,29 @@ QUANDL_YAHOO_API_AUTH = 'https://www.quandl.com/api/v3/datasets/YAHOO/{}_{}.csv?
 
 def main():
     parser = argparse.ArgumentParser(description='Downloads symbol data from Yahoo.')
-    parser.add_argument(dest='algo_file', nargs='+', help='file with strategy scripts')
+    parser.add_argument(dest='algo_file', nargs='*', help='file with strategy scripts')
     parser.add_argument('-d', '--data_dir', default=os.path.join(os.getcwd(),'data/'), required=False, nargs='?', help='data directory containing ohlc csvs (default is ./data/)')
+    parser.add_argument('-s', '--symbols', nargs='+', help='Space separated symbols (used instead of symbol_list in strategy file)')
+    parser.add_argument('-y', '--yahoo_suffix', help='Yahoo suffix to be appended to symbols (e.g. .AX for ASX or .NZ for NZX)')
     args = parser.parse_args()
 
     _basic_config()
 
-    strategy = _find_strategies(args.algo_file[0], True)[0]
+    if args.symbols:
+        symbol_list = args.symbols
+        yahoo_suffix = args.yahoo_suffix or ''
+    else:
+        strategy = _find_strategies(args.algo_file[0], True)[0]
+        symbol_list = strategy.SYMBOL_LIST
+        yahoo_suffix = args.yahoo_suffix or getattr(strategy, 'YAHOO_SUFFIX', '')
 
-    logging.info("Downloading {} symbols from Yahoo. Please wait.".format(len(strategy.SYMBOL_LIST)))
+    logging.info("Downloading {} symbols from Yahoo with suffix '{}'. Please wait.".format(len(symbol_list),yahoo_suffix))
 
-    yahoo_symbol_appendix = getattr(strategy, 'YAHOO_SYMBOL_APPENDIX', '')
     start_load_datetime = datetime.now()
 
-    for symbol in strategy.SYMBOL_LIST:
+    for symbol in symbol_list:
 
-        url = YAHOO_API.format(symbol + yahoo_symbol_appendix, '1990', 'd')
+        url = YAHOO_API.format(symbol + yahoo_suffix, '1990', 'd')
         try:
             csv = urllib.request.urlopen(url)#.read().decode('utf-8')
             df = pd.io.parsers.read_csv(
