@@ -52,7 +52,7 @@ class Strategy(object):
     def _signal_dispatcher(self, operation, symbol, price=None):
         if operation not in ('BUY', 'SELL', 'SHORT', 'COVER'):
             raise ValueError("Operation needs to be BUY SELL SHORT or COVER.")
-        price = price or self.market.price(symbol)
+        price = price or self.market.last_price(symbol)
         current_datetime = self.market.datetime
 
         self.positions[symbol].update(operation, price, current_datetime)

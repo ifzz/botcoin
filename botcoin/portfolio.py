@@ -139,7 +139,7 @@ class Portfolio(object):
             self.strategy.after_close()
 
         else:
-            # No need for this if in live algo
+            # No need for this 'if' in live algo
             ssymbols = self.strategy.subscribed_symbols
             flag = self.strategy.unsubscribe_all
             if not flag and (event.symbol in ssymbols or not ssymbols):
@@ -153,7 +153,7 @@ class Portfolio(object):
                     elif event.sub_type == 'close':
                         self.strategy.close(event.symbol)
 
-                except BarValidationError:
+                except BarValidationError as e:
                     # Problems in market bars or past_bars would raise BarValidationError
                     # e.g. nonexisting bars, bars with 0.0 or bars smaller than length
                     # requested should be disconsidered
