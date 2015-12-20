@@ -1,12 +1,12 @@
 from botcoin.data import MarketData, Bars
 from botcoin.event import MarketEvent
 
-class HistoricalCSVData(MarketData):
+class BacktestMarketData(MarketData):
 
     def __init__(self, csv_dir, symbol_list, normalize_prices, normalize_volume,
                  round_decimals, date_from='', date_to=''):
 
-        super(HistoricalCSVData, self).__init__(csv_dir,symbol_list, normalize_prices, normalize_volume, round_decimals)
+        super(BacktestMarketData, self).__init__(csv_dir,symbol_list, normalize_prices, normalize_volume, round_decimals)
 
         for s in symbol_list:
             # Limit between date_From and date_to
@@ -44,12 +44,15 @@ class HistoricalCSVData(MarketData):
         """
 
         try:
-
-            [self._data[s]['latest_bars'].append(self._todays_bar(s)) for s in self.symbol_list if self._todays_bar(s)]
+            # Before day starts, adding bars from yesterday to 'latest_bars'
+            for s in self.symbol_list:
+                if self._todays_bar(s):
+                    self._data[s]['latest_bars'].append(self._todays_bar(s))
 
             for s in self.symbol_list:
                 new_row = next(self._data[s]['bars'])
-                self._data[s]['datetime'] = new_row[0]
+
+                self._data[s]['last_timestamp'] = new_row[0]
                 self._data[s]['open'] = new_row[1][0]
                 self._data[s]['high'] = new_row[1][1]
                 self._data[s]['low'] = new_row[1][2]

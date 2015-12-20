@@ -128,9 +128,10 @@ class MarketData(object):
             self._data[s]['df'] = df
 
     def _todays_bar(self, symbol):
-        if 'datetime' in self._data[symbol]:
+        """ Returns today's prices, volume and last_timestamp as an ordered tuple. """
+        if 'last_timestamp' in self._data[symbol]:
             return (
-                self._data[symbol]['datetime'],
+                self._data[symbol]['last_timestamp'],
                 self._data[symbol]['open'],
                 self._data[symbol]['high'],
                 self._data[symbol]['low'],
@@ -139,13 +140,13 @@ class MarketData(object):
             )
 
     def last_price(self, symbol):
-        """ Returns 'current' price """
+        """ Returns last recorded price """
         if not 'last_price' in self._data[symbol]:
             raise NoBarsError
         return self._data[symbol]['last_price']
 
     def change(self, symbol):
-        """ Returns change between last close and 'current' price """
+        """ Returns change between last close and last recorded price """
         # In case execution just started and there is no current price
         if not 'last_price' in self._data[symbol]:
             raise NoBarsError
@@ -153,29 +154,25 @@ class MarketData(object):
         return self._data[symbol]['last_price']/last_close - 1
 
     def bars(self, symbol, N=1):
-        """
-        Returns Bars object containing latest N bars from self._latest_bars
-        """
-        return self.bar_dispatcher('bars', symbol, N)
+        """ Returns latest N bars including today's values """
+        return self._bar_dispatcher('bars', symbol, N)
 
     def past_bars(self, symbol, N=1):
-        """
-        Returns Bars discarding the very last result to simulate data past the current date
-        """
-        return self.bar_dispatcher('past_bars', symbol, N)
+        """ Returns latest N bars not including today's values """
+        return self._bar_dispatcher('past_bars', symbol, N)
 
     def today(self, symbol):
         """ Returns today's OHLC values in a bar """
-        return self.bar_dispatcher('today', symbol)
+        return self._bar_dispatcher('today', symbol)
 
     def yesterday(self, symbol):
-        """ Returns last bar in self._latest_bars """
-        return self.bar_dispatcher('yesterday', symbol)
+        """ Returns yesterday's values - last bar in self._latest_bars """
+        return self._bar_dispatcher('yesterday', symbol)
 
-    def bar_dispatcher(self, option, symbol, N=1, ):
+    def _bar_dispatcher(self, option, symbol, N=1, ):
         if option == 'today':
             bars = [self._todays_bar(symbol)]
-            # bars = self._data[symbol]['latest_bars'][-1:]
+            # bars = self._data[symbol]['latest_bars'][-1:]  # old implementation
 
         elif option == 'yesterday':
             bars = self._data[symbol]['latest_bars'][-1:]
@@ -186,7 +183,7 @@ class MarketData(object):
 
         elif option == 'past_bars':
             bars = self._data[symbol]['latest_bars'][-N:]
-            # bars = self._data[symbol]['latest_bars'][-(N+1):-1]
+            # bars = self._data[symbol]['latest_bars'][-(N+1):-1]  # old implementation
 
         if not bars:
             raise NoBarsError("Something wrong with latest_bars")
@@ -202,20 +199,22 @@ class MarketData(object):
 
 
 class Bars(object):
-    """Multiple Bars, usually from past data"""
+    """
+    Object exposed to users to reflect prices on a single or on multiple days.
+    """
     def __init__(self, latest_bars, round_decimals, single_bar=False):
         self.length = len(latest_bars)
         self._round_decimals = round_decimals
 
         if single_bar:
-            self.datetime = latest_bars[-1][0]
+            self.last_timestamp = latest_bars[-1][0]
             self.open = latest_bars[-1][1]
             self.high = latest_bars[-1][2]
             self.low = latest_bars[-1][3]
             self.close = latest_bars[-1][4]
             self.vol = latest_bars[-1][5]
         else:
-            self.datetime = [i[0] for i in latest_bars]
+            self.last_timestamp = [i[0] for i in latest_bars]
             self.open = [i[1] for i in latest_bars]
             self.high = [i[2] for i in latest_bars]
             self.low = [i[3] for i in latest_bars]

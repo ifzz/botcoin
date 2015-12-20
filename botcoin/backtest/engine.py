@@ -6,7 +6,7 @@ import pandas as pd
 
 import botcoin
 from botcoin import settings
-from botcoin.backtest.data import HistoricalCSVData
+from botcoin.backtest.data import BacktestMarketData
 from botcoin.backtest.execution import BacktestExecution, Execution
 from botcoin.strategy import Strategy
 from botcoin.portfolio import Portfolio
@@ -16,7 +16,7 @@ class Backtest(object):
     def __init__(self, strategies, data_dir, start_automatically=True):
 
         # Single market object will be used for all backtesting instances
-        self.market = HistoricalCSVData(
+        self.market = BacktestMarketData(
             data_dir, #should come from script loader
             strategies[0].SYMBOL_LIST,
             date_from = getattr(strategies[0], 'DATE_FROM', datetime.now() - timedelta(weeks=52)),
