@@ -44,49 +44,46 @@ class HistoricalCSVData(MarketData):
         """
 
         try:
+
+            [self._data[s]['latest_bars'].append(self._todays_bar(s)) for s in self.symbol_list if self._todays_bar(s)]
+
             for s in self.symbol_list:
-                new_row = next(self._data[s]['bars']) #df.iterows
-
-                bar = tuple([
-                    new_row[0],  # datetime
-                    new_row[1][0],  # open,
-                    new_row[1][1],  # high
-                    new_row[1][2],  # low
-                    new_row[1][3],  # close
-                    new_row[1][4],  # volume
-                ])
-
-                self._data[s]['latest_bars'].append(bar)
+                new_row = next(self._data[s]['bars'])
+                self._data[s]['datetime'] = new_row[0]
+                self._data[s]['open'] = new_row[1][0]
+                self._data[s]['high'] = new_row[1][1]
+                self._data[s]['low'] = new_row[1][2]
+                self._data[s]['close'] = new_row[1][3]
+                self._data[s]['volume'] = new_row[1][4]
 
             self.datetime = new_row[0]
-
 
             # Before open
             yield MarketEvent('before_open')
 
             # On open - open = latest_bars[-1][1]
             for s in self.symbol_list:
-                self._data[s]['last_price'] = self._data[s]['latest_bars'][-1][1]
+                self._data[s]['last_price'] = self._data[s]['open']
             for s in self.symbol_list:
                 yield MarketEvent('open', s)
 
             # During #1
             for s in self.symbol_list:
-                d = self._data[s]['latest_bars'][-1]
-                self._data[s]['last_price'] = d[3] if d[4]>d[1] else d[2]
+                d = self._data[s]
+                self._data[s]['last_price'] = d['low'] if d['close']>d['open'] else d['high']
             for s in self.symbol_list:
                 yield MarketEvent('during', s)
 
             # During #2
             for s in self.symbol_list:
-                d = self._data[s]['latest_bars'][-1]
-                self._data[s]['last_price'] = d[2] if d[4]>d[1] else d[3]
+                d = self._data[s]
+                self._data[s]['last_price'] = d['high'] if d['close']>d['open'] else d['low']
             for s in self.symbol_list:
                 yield MarketEvent('during', s)
 
             # On close
             for s in self.symbol_list:
-                self._data[s]['last_price'] = self._data[s]['latest_bars'][-1][4]
+                self._data[s]['last_price'] = self._data[s]['close']
             for s in self.symbol_list:
                 yield MarketEvent('close', s)
 

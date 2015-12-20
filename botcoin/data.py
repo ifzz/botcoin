@@ -127,6 +127,17 @@ class MarketData(object):
 
             self._data[s]['df'] = df
 
+    def _todays_bar(self, symbol):
+        if 'datetime' in self._data[symbol]:
+            return (
+                self._data[symbol]['datetime'],
+                self._data[symbol]['open'],
+                self._data[symbol]['high'],
+                self._data[symbol]['low'],
+                self._data[symbol]['close'],
+                self._data[symbol]['volume'],
+            )
+
     def last_price(self, symbol):
         """ Returns 'current' price """
         if not 'last_price' in self._data[symbol]:
@@ -154,25 +165,28 @@ class MarketData(object):
         return self.bar_dispatcher('past_bars', symbol, N)
 
     def today(self, symbol):
-        """Returns last Bar in self._latest_bars"""
+        """ Returns today's OHLC values in a bar """
         return self.bar_dispatcher('today', symbol)
 
     def yesterday(self, symbol):
-        """Returns last Bar in self._latest_bars"""
+        """ Returns last bar in self._latest_bars """
         return self.bar_dispatcher('yesterday', symbol)
 
     def bar_dispatcher(self, option, symbol, N=1, ):
         if option == 'today':
-            bars = self._data[symbol]['latest_bars'][-1:]
+            bars = [self._todays_bar(symbol)]
+            # bars = self._data[symbol]['latest_bars'][-1:]
 
         elif option == 'yesterday':
-            bars = self._data[symbol]['latest_bars'][-2:-1]
+            bars = self._data[symbol]['latest_bars'][-1:]
 
         elif option == 'bars':
-            bars = self._data[symbol]['latest_bars'][-N:]
+            bars = self._data[symbol]['latest_bars'][-(N-1):]
+            bars.append(self._todays_bar(symbol))
 
         elif option == 'past_bars':
-            bars = self._data[symbol]['latest_bars'][-(N+1):-1]
+            bars = self._data[symbol]['latest_bars'][-N:]
+            # bars = self._data[symbol]['latest_bars'][-(N+1):-1]
 
         if not bars:
             raise NoBarsError("Something wrong with latest_bars")
@@ -181,7 +195,7 @@ class MarketData(object):
             raise NotEnoughBarsError("Not enough bars yet")
 
         if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
-            raise EmptyBarsError("Latest_bars has one or more 0.0 close price(s) within, and will be disconsidered.")
+            raise EmptyBarsError("Latest_bars for {} has one or more 0.0 close prices, and will be disconsidered.".format(symbol))
 
         result = Bars(bars, self._round_decimals, True) if option in ('today', 'yesterday') else Bars(bars, self._round_decimals, )
         return result

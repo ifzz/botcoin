@@ -40,7 +40,7 @@ class LiveMarketData(MarketData):
         self.next_ticker_id = 0
 
         for s in self.symbol_list:
-            self.subscribe(s.split('.')[0])
+            self._subscribe(s.split('.')[0])
 
     def _stop(self):
         self.live.eDisconnect()

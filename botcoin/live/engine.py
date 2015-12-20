@@ -31,4 +31,4 @@ class LiveEngine(object):
             self.portfolio.run_cycle
 
     def stop(self):
-        self.market.stop()
+        self.market._stop()
