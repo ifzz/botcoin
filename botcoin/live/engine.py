@@ -3,7 +3,7 @@ import logging
 from botcoin import settings
 from botcoin.live.data import LiveMarketData
 from botcoin.live.execution import LiveExecution
-from botcoin.portfolio import settings, Portfolio
+from botcoin.common.portfolio import settings, Portfolio
 
 class LiveEngine(object):
     def __init__(self, strategy, data_dir):

@@ -5,7 +5,7 @@ import time
 import pandas as pd
 from swigibpy import EPosixClientSocket, EWrapperVerbose, Contract
 
-from botcoin.data import MarketData, Bars
+from botcoin.common.data import MarketData, Bars
 
 
 class LiveMarketData(MarketData):

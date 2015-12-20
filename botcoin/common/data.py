@@ -4,7 +4,7 @@ import numpy as np
 import os
 import pandas as pd
 
-from botcoin.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
+from botcoin.common.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
 
 class MarketData(object):
     """ General MarketData that is subclassed in both live and backtest modes. """

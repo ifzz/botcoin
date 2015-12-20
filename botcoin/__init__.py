@@ -1,7 +1,7 @@
-from . errors import BarValidationError
 from . backtest.engine import Backtest
 from . live.engine import LiveEngine
-from . strategy import Strategy
+from . common.errors import BarValidationError
+from . common.strategy import Strategy
 from . utils import optimize
 from . import settings
 
