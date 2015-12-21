@@ -6,6 +6,7 @@ import pandas as pd
 
 from botcoin.common.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
 from botcoin.common.events import MarketEvent
+from botcoin.utils import _round
 
 class MarketData(object):
     """ General MarketData that is subclassed in both live and backtest modes. """
@@ -27,7 +28,6 @@ class MarketData(object):
         self._pad_empty_values()
 
         self.load_time = datetime.now()-start_load_datetime
-        self._round_decimals = round_decimals
 
     def _read_all_csvs(self, csv_dir, normalize_prices, normalize_volume, round_decimals):
 
@@ -206,7 +206,7 @@ class MarketData(object):
         if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
             raise EmptyBarsError("Latest_bars for {} has one or more 0.0 close prices, and will be disconsidered.".format(symbol))
 
-        result = Bars(bars, self._round_decimals, True) if option in ('today', 'yesterday') else Bars(bars, self._round_decimals, )
+        result = Bars(bars, True) if option in ('today', 'yesterday') else Bars(bars)
         return result
 
 
@@ -214,9 +214,8 @@ class Bars(object):
     """
     Object exposed to users to reflect prices on a single or on multiple days.
     """
-    def __init__(self, latest_bars, round_decimals, single_bar=False):
+    def __init__(self, latest_bars, single_bar=False):
         self.length = len(latest_bars)
-        self._round_decimals = round_decimals
 
         if single_bar:
             self.last_timestamp = latest_bars[-1][0]
@@ -234,17 +233,14 @@ class Bars(object):
             self.vol = [i[5] for i in latest_bars]
 
     def mavg(self, price_type='close'):
-        return np.round(
-            np.mean(getattr(self, price_type)),
-            self._round_decimals
-        )
+        return _round(np.mean(getattr(self, price_type)))
 
     def bollingerbands(self, k, price_type='close'):
         ave = np.mean(getattr(self, price_type))
         sd = np.std(getattr(self, price_type))
         upband = ave + (sd*k)
         lwband = ave - (sd*k)
-        return np.round(ave,self._round_decimals), np.round(upband,self._round_decimals), np.round(lwband,self._round_decimals)
+        return _round(ave), _round(upband), _round(lwband)
 
     def __len__(self):
         return self.length

@@ -12,6 +12,7 @@ INITIAL_CAPITAL = 100000.00
 
 # Number of decimals used for rounding prices
 ROUND_DECIMALS = 2
+ROUND_DECIMALS_BELOW_ONE = 3
 
 # Position size needs to be on increments of ROUND_LOT_SIZE
 ROUND_LOT_SIZE = 10

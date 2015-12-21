@@ -6,7 +6,8 @@ import pandas as pd
 import os
 import sys
 
-from botcoin import Strategy
+from . import settings
+from .common.strategy import Strategy
 
 def optimize(*args):
     """
@@ -62,3 +63,9 @@ def _basic_config(verbose=None):
     # Pandas
     pd.set_option('display.max_rows', 200)
     pd.set_option('display.width', 1000)
+
+def _round(value):
+    if value >= 1:
+        return np.round(value, settings.ROUND_DECIMALS)
+    else:
+        return np.round(value, settings.ROUND_DECIMALS_BELOW_ONE)
