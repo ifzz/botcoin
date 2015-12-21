@@ -1,4 +1,5 @@
 import logging
+import time
 
 from botcoin import settings
 from botcoin.live.data import LiveMarketData
@@ -27,6 +28,8 @@ class LiveEngine(object):
         logging.info("Live execution with strategy {}.".format(self.portfolio.strategy))
 
     def start(self):
+        time.sleep(1)  # a second for first IB requests to come through
+        self.portfolio.market_opened()
         while True:
             self.portfolio.run_cycle()
 

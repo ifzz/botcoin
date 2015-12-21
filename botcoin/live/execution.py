@@ -1,4 +1,5 @@
 from botcoin.common.execution import Execution
 
 class LiveExecution(Execution):
-    pass
+    def execute_order(self, order):
+        pass

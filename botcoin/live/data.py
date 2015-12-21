@@ -59,21 +59,21 @@ class LiveMarketData(MarketData):
         self.next_ticker_id += 1
 
     def _update_last_price(self, ticker_id, price):
-        d = self._data[self.ticker_dict[ticker_id]]
+        symbol = self.ticker_dict[ticker_id]
 
-        d['last_price'] = price
+        self._data[symbol]['last_price'] = price
 
-        if not 'high' in d:
-            d['high'] = price
-        elif price > d['high']:
-            d['high'] = price
+        if not 'high' in self._data[symbol]:
+            self._data[symbol]['high'] = price
+        elif price > self._data[symbol]['high']:
+            self._data[symbol]['high'] = price
 
-        if not 'low' in d:
-            d['low'] = price
-        elif price < d['low']:
-            d['low'] = price
+        if not 'low' in self._data[symbol]:
+            self._data[symbol]['low'] = price
+        elif price < self._data[symbol]['low']:
+            self._data[symbol]['low'] = price
 
-        self._relay_market_event(MarketEvent('during', self.ticker_dict[ticker_id]))
+        self._relay_market_event(MarketEvent('during', symbol))
 
     def _update_volume(self, ticker_id, size):
         self._data[self.ticker_dict[ticker_id]]['volume'] = size

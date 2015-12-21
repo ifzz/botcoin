@@ -15,6 +15,7 @@ from botcoin.common.events import MarketEvent, SignalEvent, OrderEvent
 from botcoin.common.strategy import Strategy
 from botcoin.common.trade import Trade
 from botcoin.live.data import LiveMarketData
+from botcoin.utils import _round
 
 class Portfolio(object):
     """
@@ -59,7 +60,6 @@ class Portfolio(object):
         # Grabbing config from strategy
         self.NORMALIZE_PRICES = settings.NORMALIZE_PRICES = getattr(strategy, 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES)
         self.NORMALIZE_VOLUME = settings.NORMALIZE_VOLUME = getattr(strategy, 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME)
-        self.ROUND_DECIMALS = settings.ROUND_DECIMALS = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
         self.ROUND_LOT_SIZE = settings.ROUND_LOT_SIZE = getattr(strategy, 'ROUND_LOT_SIZE', settings.ROUND_LOT_SIZE)
         self.THRESHOLD_DANGEROUS_TRADE = settings.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
         self.INITIAL_CAPITAL = settings.INITIAL_CAPITAL = getattr(strategy, 'INITIAL_CAPITAL', settings.INITIAL_CAPITAL)
@@ -105,7 +105,11 @@ class Portfolio(object):
     @property
     def portfolio_value(self):
         value = self.holdings['cash']
-        value += sum([self.positions[s] * self.market.last_price(s) for s in self.market.symbol_list])
+        for s in self.market.symbol_list:
+            try:
+                value += self.positions[s] * self.market.last_price(s)
+            except BarValidationError:
+                pass
         return value
 
     def run_cycle(self):
@@ -224,28 +228,32 @@ class Portfolio(object):
 
         symbol = signal.symbol
         direction = signal.direction
-        today = self.market.today(symbol)
         date = self.market.datetime
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
 
         exec_price = signal.exec_price or self.market.last_price(symbol)
 
-        # Checks for execution prices above today.high or below today.low
-        # Should stop execution during backtesting, but not on live exec
-        if exec_price:
-            if not (exec_price <= today.high and exec_price >= today.low):
-                raise ExecutionPriceOutOfBandError(
-                    self.strategy, date, symbol, direction,
-                    exec_price, today.high, today.low,
-                )
-
-        # Check for negative execution price
-        # Should stop execution during backtesting, but not on live exec
-        if exec_price < 0:
-            raise NegativeExecutionPriceError(self.strategy, date, symbol, exec_price)
-
         # Adjusted execution price for slippage
-        adj_price = np.round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod),self.ROUND_DECIMALS)
+        adj_price = _round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod))
+
+        if self.backtesting:
+            today = self.market.today(symbol)
+
+            # Checks for execution prices above today.high or below today.low
+            # Should stop execution during backtesting, but not on live exec
+            if exec_price:
+                if not (exec_price <= today.high and exec_price >= today.low):
+                    raise ExecutionPriceOutOfBandError(
+                        self.strategy, date, symbol, direction,
+                        exec_price, today.high, today.low,
+                    )
+
+            # Check for negative execution price
+            # Should stop execution during backtesting, but not on live exec
+            if exec_price < 0:
+                raise NegativeExecutionPriceError(self.strategy, date, symbol, exec_price)
+
+
 
         cur_position = self.positions[symbol]
         order = None
@@ -267,6 +275,7 @@ class Portfolio(object):
                         else:
                             logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-available_cash)))
                             return
+
                 # COMMISSION_FIXED remove the fixed ammount from cash,
                 # and COMMISSION_PCT increases the symbol price to reflect the fee
                 quantity = direction_mod * (position_cash-self.COMMISSION_FIXED) / (adj_price * (1+self.COMMISSION_PCT))
