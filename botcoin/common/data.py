@@ -5,6 +5,7 @@ import os
 import pandas as pd
 
 from botcoin.common.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
+from botcoin.common.event import MarketEvent
 
 class MarketData(object):
     """ General MarketData that is subclassed in both live and backtest modes. """
@@ -129,8 +130,16 @@ class MarketData(object):
 
             self._data[s]['df'] = df
 
+    def _relay_market_event(self, e):
+        """ Puts e, which should be a MarketEvent on all queues in self.events_queue_list """
+        if isinstance(e, MarketEvent):
+            [q.put(e) for q in self.events_queue_list]
+        else:
+            raise TypeError("MarketData._relay_market_event only accepts MarketEvent objects.")
+
     def _todays_bar(self, symbol):
         """ Returns today's prices, volume and last_timestamp as an ordered tuple. """
+
         if 'last_timestamp' in self._data[symbol]:
             return (
                 self._data[symbol]['last_timestamp'],

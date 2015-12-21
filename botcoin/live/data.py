@@ -6,6 +6,7 @@ import pandas as pd
 from swigibpy import EPosixClientSocket, EWrapperVerbose, Contract
 
 from botcoin.common.data import MarketData, Bars
+from botcoin.common.event import MarketEvent
 
 
 class LiveMarketData(MarketData):
@@ -36,7 +37,7 @@ class LiveMarketData(MarketData):
 
         self.live.reqCurrentTime()
 
-        self.live_symbols = {}
+        self.ticker_dict = {}
         self.next_ticker_id = 0
 
         for s in self.symbol_list:
@@ -54,39 +55,51 @@ class LiveMarketData(MarketData):
 
         self.live.reqMktData(self.next_ticker_id, c, "", False, None)
 
-        self.live_symbols[self.next_ticker_id] = symbol
+        self.ticker_dict[self.next_ticker_id] = symbol
         self.next_ticker_id += 1
 
     def _update_last_price(self, ticker_id, price):
-        print('price', self.live_symbols[ticker_id], price)
+        d = self._data[self.ticker_dict[ticker_id]]
+
+        d['last_price'] = price
+
+        if not 'high' in d:
+            d['high'] = price
+        elif price > d['high']:
+            d['high'] = price
+
+        if not 'low' in d:
+            d['low'] = price
+        elif price < d['low']:
+            d['low'] = price
+
+        self._relay_market_event(MarketEvent('during', self.ticker_dict[ticker_id]))
 
     def _update_volume(self, ticker_id, size):
-        print('volume', self.live_symbols[ticker_id], size)
+        self._data[self.ticker_dict[ticker_id]]['volume'] = size
 
     def _update_ask_price(self, ticker_id, price):
-        print('ask', self.live_symbols[ticker_id], price)
+        self._data[self.ticker_dict[ticker_id]]['ask'] = price
 
     def _update_bid_price(self, ticker_id, price):
-        print('bid', self.live_symbols[ticker_id], price)
+        self._data[self.ticker_dict[ticker_id]]['bid'] = price
 
-    def _update_high(self, ticker_id, price):
-        print('high', self.live_symbols[ticker_id], price)
+    def _update_high_price(self, ticker_id, price):
+        self._data[self.ticker_dict[ticker_id]]['high'] = price
 
-    def _update_low(self, ticker_id, price):
-        print('low', self.live_symbols[ticker_id], price)
+    def _update_low_price(self, ticker_id, price):
+        self._data[self.ticker_dict[ticker_id]]['low'] = price
 
-    def _update_open(self, ticker_id, price):
-        print('open', self.live_symbols[ticker_id], price)
+    def _update_open_price(self, ticker_id, price):
+        self._data[self.ticker_dict[ticker_id]]['open'] = price
 
     def _update_last_timestamp(self, ticker_id, timestamp):
-        print('last timestamp', self.live_symbols[ticker_id], timestamp)
+        self._data[self.ticker_dict[ticker_id]]['last_timestamp'] = timestamp
 
     def _update_current_time(self, timestamp):
         self.datetime = pd.Timestamp(datetime.datetime.fromtimestamp(timestamp))
         if self.datetime-self.last_datetime >= datetime.timedelta(days=4):
             logging.critical('More than 3 days of delta between last historical datetime and current datetime')
-
-    # Methods that should be referenced by users
 
 
 class IbHandler(EWrapperVerbose):
@@ -144,14 +157,17 @@ class IbHandler(EWrapperVerbose):
             self.market._update_ask_price(ticker_id, price)
         #
         elif tick_type == 6:  # HIGH
-            print('HIGH', self.market.live_symbols[ticker_id], price)
+            self.market._update_high_price(ticker_id, price)
 
         elif tick_type == 7:  # LOW
-            print('LOW', self.market.live_symbols[ticker_id], price)
+            self.market._update_low_price(ticker_id, price)
 
         elif tick_type == 14:  # OPEN_TICK
-            print('OPEN_TICK', self.market.live_symbols[ticker_id], price)
+            self.market._update_open_price(ticker_id, price)
 
+    def tickGeneric(self, ticker_id, tick_type, value):
+        if tick_type == 49:
+            logging.warning("Trading halted for {}".format(self.ticker_dict(ticker_id)))
 
     # def orderStatus(self, id, status, filled, remaining, avgFillPrice, permId,
     #                 parentId, lastFilledPrice, clientId, whyHeld):

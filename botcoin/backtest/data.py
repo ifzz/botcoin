@@ -101,6 +101,3 @@ class BacktestMarketData(MarketData):
 
         except StopIteration:
             self.continue_execution = False
-
-    def _relay_market_event(self, e):
-        [q.put(e) for q in self.events_queue_list]

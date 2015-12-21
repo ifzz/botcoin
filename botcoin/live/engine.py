@@ -28,7 +28,7 @@ class LiveEngine(object):
 
     def start(self):
         while True:
-            self.portfolio.run_cycle
+            self.portfolio.run_cycle()
 
     def stop(self):
         self.market._stop()
