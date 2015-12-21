@@ -14,12 +14,14 @@ class MarketData(object):
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
         self.symbol_list = sorted(list(set(symbol_list)))
+        # Dictionary where all symbol data is kept
         self._data = {}
+        # events_queue for all portfolios using this market object
+        self.events_queue_list = []
 
+        # Parsing csvs, treating data and setting bars
         self._read_all_csvs(csv_dir, normalize_prices, normalize_volume, round_decimals)
-
         self._check_data_consistency()
-
         self._pad_empty_values()
 
         self.load_time = datetime.now()-start_load_datetime

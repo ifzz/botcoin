@@ -53,11 +53,8 @@ class Backtest(object):
         """
         start_time = datetime.now()
         while self.market.continue_execution:
-            for new_market_event in self.market._update_bars():
-                if new_market_event:
-                    for portfolio in self.portfolios:
-                        portfolio.events_queue.put(new_market_event)
-                        portfolio.run_cycle()
+            for _ in self.market._update_bars():
+                [portfolio.run_cycle() for portfolio in self.portfolios]
 
         [portfolio.update_last_positions_and_holdings() for portfolio in self.portfolios]
 

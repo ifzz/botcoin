@@ -62,36 +62,45 @@ class BacktestMarketData(MarketData):
             self.datetime = new_row[0]
 
             # Before open
-            yield MarketEvent('before_open')
+            self._relay_market_event(MarketEvent('before_open'))
+            yield
 
             # On open - open = latest_bars[-1][1]
             for s in self.symbol_list:
                 self._data[s]['last_price'] = self._data[s]['open']
             for s in self.symbol_list:
-                yield MarketEvent('open', s)
+                self._relay_market_event(MarketEvent('open', s))
+                yield
 
             # During #1
             for s in self.symbol_list:
                 d = self._data[s]
                 self._data[s]['last_price'] = d['low'] if d['close']>d['open'] else d['high']
             for s in self.symbol_list:
-                yield MarketEvent('during', s)
+                self._relay_market_event(MarketEvent('during', s))
+                yield
 
             # During #2
             for s in self.symbol_list:
                 d = self._data[s]
                 self._data[s]['last_price'] = d['high'] if d['close']>d['open'] else d['low']
             for s in self.symbol_list:
-                yield MarketEvent('during', s)
+                self._relay_market_event(MarketEvent('during', s))
+                yield
 
             # On close
             for s in self.symbol_list:
                 self._data[s]['last_price'] = self._data[s]['close']
             for s in self.symbol_list:
-                yield MarketEvent('close', s)
+                self._relay_market_event(MarketEvent('close', s))
+                yield
 
             # After close, last_price will still be close
-            yield MarketEvent('after_close')
+            self._relay_market_event(MarketEvent('after_close'))
+            yield
 
         except StopIteration:
             self.continue_execution = False
+
+    def _relay_market_event(self, e):
+        [q.put(e) for q in self.events_queue_list]

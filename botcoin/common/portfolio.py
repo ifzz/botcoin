@@ -67,15 +67,18 @@ class Portfolio(object):
         self.COMMISSION_PCT = settings.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
         self.MAX_SLIPPAGE = settings.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
 
-        # Settings attributes in execution broker
+        # Setting attributes in execution broker
         self.broker.events_queue = self.events_queue
         self.broker.market = self.market
         self.broker.commmission_pct = self.COMMISSION_PCT
         self.broker.commission_fixed = self.COMMISSION_FIXED
 
-        # Settings attributes in strategy
+        # Setting attributes in strategy
         self.strategy.signals_queue = self.signals_queue
         self.strategy.market = self.market
+
+        # Setting attributes in market
+        self.market.events_queue_list.append(self.events_queue)
 
 
     @property
