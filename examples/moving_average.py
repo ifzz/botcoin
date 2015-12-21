@@ -20,4 +20,4 @@ class MovingAverage(botcoin.Strategy):
         if fast < slow:
             self.sell(symbol)
 
-strategies = [MovingAverage(5,i) for i in botcoin.optimize((5,100,5))]
+# strategies = [MovingAverage(5,i) for i in botcoin.optimize((5,100,5))]

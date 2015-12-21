@@ -7,12 +7,14 @@ import numpy as np
 import pandas as pd
 
 from botcoin import settings
+from botcoin.backtest.data import BacktestMarketData
 from botcoin.common.execution import Execution
 from botcoin.common.data import MarketData
 from botcoin.common.errors import BarValidationError, NegativeExecutionPriceError, ExecutionPriceOutOfBandError
-from botcoin.common.event import MarketEvent, SignalEvent, OrderEvent
+from botcoin.common.events import MarketEvent, SignalEvent, OrderEvent
 from botcoin.common.strategy import Strategy
 from botcoin.common.trade import Trade
+from botcoin.live.data import LiveMarketData
 
 class Portfolio(object):
     """
@@ -42,7 +44,9 @@ class Portfolio(object):
         # check for symbol names that would conflict with columns used in holdings and positions
         for symbol in market.symbol_list:
             if symbol in ('cash', 'commission', 'total', 'returns', 'equity_curve', 'datetime'):
-                raise ValueError("A symbol has an invalid name (e.g. 'cash', 'commission', etc)")
+                raise ValueError("A symbol has an invalid name. Invalid names are 'cash', 'commission','total', 'returns', 'equity_curve', 'datetime'.")
+
+        self.backtesting = True if isinstance(market, BacktestMarketData) else False
 
         # Main events queue shared with Market and Execution
         self.events_queue = queue.Queue()

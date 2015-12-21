@@ -1,5 +1,5 @@
 from botcoin.common.data import MarketData, Bars
-from botcoin.common.event import MarketEvent
+from botcoin.common.events import MarketEvent
 
 class BacktestMarketData(MarketData):
 

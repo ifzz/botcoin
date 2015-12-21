@@ -3,7 +3,7 @@ import queue
 
 import numpy as np
 
-from botcoin.common.event import SignalEvent
+from botcoin.common.events import SignalEvent
 
 class Strategy(object):
     """

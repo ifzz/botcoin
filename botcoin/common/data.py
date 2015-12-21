@@ -5,7 +5,7 @@ import os
 import pandas as pd
 
 from botcoin.common.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
-from botcoin.common.event import MarketEvent
+from botcoin.common.events import MarketEvent
 
 class MarketData(object):
     """ General MarketData that is subclassed in both live and backtest modes. """
@@ -15,6 +15,7 @@ class MarketData(object):
         # To keep track how long loading everything took
         start_load_datetime = datetime.now()
         self.symbol_list = sorted(list(set(symbol_list)))
+
         # Dictionary where all symbol data is kept
         self._data = {}
         # events_queue for all portfolios using this market object

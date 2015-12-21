@@ -1,4 +1,4 @@
-from botcoin.common.event import FillEvent
+from botcoin.common.events import FillEvent
 from botcoin.common.execution import Execution
 
 class BacktestExecution(Execution):
