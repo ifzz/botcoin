@@ -23,7 +23,7 @@ class LiveMarketData(MarketData):
 
         # Last datetime in historical data which can be from
         # any symbol (doesn't matter as all symbols share same index)
-        self.last_datetime = self._data[self.symbol_list[0]]['latest_bars'][-1][0]
+        self.last_historical_bar_at = self._data[self.symbol_list[0]]['latest_bars'][-1][0]
 
         self.ticker_dict = {}
         self.next_ticker_id = 0
@@ -79,8 +79,8 @@ class LiveMarketData(MarketData):
         self._data[self.ticker_dict[ticker_id]]['open'] = price
 
     def _update_last_timestamp(self, ticker_id, timestamp):
-        self._data[self.ticker_dict[ticker_id]]['last_timestamp'] = timestamp
+        self._data[self.ticker_dict[ticker_id]]['updated_at'] = timestamp
         self._update_datetime(int(timestamp))
 
     def _update_datetime(self, timestamp):
-        self.datetime = pd.Timestamp(datetime.datetime.fromtimestamp(timestamp))
+        self.updated_at = pd.Timestamp(datetime.datetime.fromtimestamp(timestamp))

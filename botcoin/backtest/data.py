@@ -52,14 +52,14 @@ class BacktestMarketData(MarketData):
             for s in self.symbol_list:
                 new_row = next(self._data[s]['bars'])
 
-                self._data[s]['last_timestamp'] = new_row[0]
+                self._data[s]['updated_at'] = new_row[0]
                 self._data[s]['open'] = new_row[1][0]
                 self._data[s]['high'] = new_row[1][1]
                 self._data[s]['low'] = new_row[1][2]
                 self._data[s]['close'] = new_row[1][3]
                 self._data[s]['volume'] = new_row[1][4]
 
-            self.datetime = new_row[0]
+            self.updated_at = new_row[0]
 
             # Before open
             self._relay_market_event(MarketEvent('before_open'))

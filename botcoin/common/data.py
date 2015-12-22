@@ -141,9 +141,9 @@ class MarketData(object):
     def _todays_bar(self, symbol):
         """ Returns today's prices, volume and last_timestamp as an ordered tuple. """
 
-        if 'last_timestamp' in self._data[symbol]:
+        if 'updated_at' in self._data[symbol]:
             return (
-                self._data[symbol]['last_timestamp'],
+                self._data[symbol]['updated_at'],
                 self._data[symbol]['open'],
                 self._data[symbol]['high'],
                 self._data[symbol]['low'],
@@ -218,14 +218,14 @@ class Bars(object):
         self.length = len(latest_bars)
 
         if single_bar:
-            self.last_timestamp = latest_bars[-1][0]
+            self.datetime = latest_bars[-1][0]
             self.open = latest_bars[-1][1]
             self.high = latest_bars[-1][2]
             self.low = latest_bars[-1][3]
             self.close = latest_bars[-1][4]
             self.vol = latest_bars[-1][5]
         else:
-            self.last_timestamp = [i[0] for i in latest_bars]
+            self.datetime = [i[0] for i in latest_bars]
             self.open = [i[1] for i in latest_bars]
             self.high = [i[2] for i in latest_bars]
             self.low = [i[3] for i in latest_bars]

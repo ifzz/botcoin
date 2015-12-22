@@ -53,11 +53,10 @@ class Strategy(object):
         if operation not in ('BUY', 'SELL', 'SHORT', 'COVER'):
             raise ValueError("Operation needs to be BUY SELL SHORT or COVER.")
         price = price or self.market.last_price(symbol)
-        current_datetime = self.market.datetime
 
-        self.positions[symbol].update(operation, price, current_datetime)
+        self.positions[symbol].update(operation, price, self.market.updated_at)
 
-        sig = SignalEvent(symbol, operation, price, current_datetime)
+        sig = SignalEvent(symbol, operation, price, self.market.updated_at)
         self.signals_queue.put(sig)
 
     def market_opened(self):

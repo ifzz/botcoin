@@ -96,14 +96,14 @@ class Portfolio(object):
             [order for order in self.pending_orders if order.direction in ('SHORT')]
 
     @property
-    def available_cash(self):
+    def cash_balance(self):
         # Pending orders that remove cash from account
         long_pending_orders = [order for order in self.pending_orders if order.direction in ('BUY','COVER')]
 
         return self.holdings['cash'] - sum([i.estimated_cost for i in long_pending_orders])
 
     @property
-    def portfolio_value(self):
+    def net_liquidation(self):
         value = self.holdings['cash']
         for s in self.market.symbol_list:
             try:
@@ -168,7 +168,7 @@ class Portfolio(object):
                     pass
 
     def market_opened(self):
-        cur_datetime = self.market.datetime
+        cur_datetime = self.market.updated_at
 
         # If there is no current position and holding, meaning execution just started
         if not self.positions and not self.holdings:
@@ -214,7 +214,7 @@ class Portfolio(object):
                 self.positions['subscribed_symbols'] = len(self.market.symbol_list)
 
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
-        self.holdings['total'] = self.portfolio_value
+        self.holdings['total'] = self.net_liquidation
         for s in self.market.symbol_list:
             self.holdings[s] = self.positions[s] * self.market.last_price(s)
 
@@ -225,7 +225,7 @@ class Portfolio(object):
 
         symbol = signal.symbol
         direction = signal.direction
-        date = self.market.datetime
+        date = self.market.updated_at
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
 
         exec_price = signal.exec_price or self.market.last_price(symbol)
@@ -257,7 +257,7 @@ class Portfolio(object):
 
         if direction in ('BUY', 'SHORT') and cur_position == 0:
             # Cash to be spent on this position
-            position_cash = self.portfolio_value*self.POSITION_SIZE
+            position_cash = self.net_liquidation*self.POSITION_SIZE
             # Quantity to BUY or SHORT
             quantity = 0
 
@@ -266,11 +266,11 @@ class Portfolio(object):
 
                 # Adjust position down if not enough money and
                 if direction == 'BUY':
-                    if position_cash > self.available_cash:
+                    if position_cash > self.cash_balance:
                         if self.ADJUST_POSITION_DOWN:
-                            position_cash = self.available_cash
+                            position_cash = self.cash_balance
                         else:
-                            logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-available_cash)))
+                            logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-cash_balance)))
                             return
 
                 # COMMISSION_FIXED remove the fixed ammount from cash,
@@ -358,7 +358,7 @@ class Portfolio(object):
             quantity = trade.quantity * direction
 
             self.all_trades.append(trade.fake_close_trade(
-                self.market.datetime,
+                self.market.updated_at,
                 quantity * self.market.last_price(trade.symbol),
             ))
 

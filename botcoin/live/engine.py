@@ -1,4 +1,6 @@
+import datetime
 import logging
+import time
 
 from botcoin import settings
 from botcoin.live.data import LiveMarketData
@@ -8,9 +10,6 @@ from botcoin.interfaces.ib import IbHandler, IbSocket
 
 class LiveEngine(object):
     def __init__(self, strategy, data_dir):
-
-
-
 
         # Single market object will be used for all backtesting instances
         self.market = LiveMarketData(
@@ -30,7 +29,7 @@ class LiveEngine(object):
         self.portfolio.set_modules(self.market, strategy, self.execution)
 
         # Connect to IB tws (edemo/demouser)
-        self.if_handler = IbHandler(self.market, self.strategy, self.execution)
+        self.if_handler = IbHandler(self.market, self.portfolio, self.execution)
         self.if_socket = IbSocket(self.if_handler, reconnect_auto=True)
         self.if_socket.connect()
 
@@ -41,16 +40,34 @@ class LiveEngine(object):
 
 
     def start(self):
-        if self.if_socket.status_is_green():
+        while not self.initial_status_check():
+            time.sleep(1)
 
-            self.portfolio.market_opened()
-            self.strategy.market_opened()
+        self.if_socket.request_portfolio_data(self.portfolio.account_id)
 
-            for s in self.market.symbol_list:
-                self.market._subscribe(s.split('.')[0])
+        self.portfolio.market_opened()
+        self.strategy.market_opened()
 
-            while True:
-                self.portfolio.run_cycle()
+        for s in self.market.symbol_list:
+            self.market._subscribe(s.split('.')[0])
+
+        while True:
+            self.portfolio.run_cycle()
 
     def stop(self):
         self.market._stop()
+
+    def initial_status_check(self):
+        try:
+            if self.market.updated_at and self.portfolio.account_id:
+                pass
+            assert(self.portfolio)
+            if (self.market.updated_at-self.market.last_historical_bar_at >= datetime.timedelta(days=4)):
+                logging.critical('More than 3 days of delta between last historical datetime and current datetime')
+                return False
+
+        except Exception as e:
+            logging.critical(e)
+            return False
+
+        return True

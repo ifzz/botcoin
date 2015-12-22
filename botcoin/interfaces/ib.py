@@ -1,4 +1,3 @@
-import datetime
 import logging
 import time
 
@@ -12,23 +11,11 @@ class IbSocket(EPosixClientSocket):
             time.sleep(5)
             self.eConnect("", 7497, 0)
         self.reqCurrentTime()
-        time.sleep(1)
+        time.sleep(1)  # Waiting for initial requests to come through
 
-    def status_is_green(self):
-        try:
-            if not self.isConnected():
-                logging.critical('Connection lost')
-                return False
+    def request_portfolio_data(self, account_id):
+        self.reqAccountUpdates(True, account_id)
 
-            if self._ewrapper.market.datetime-self._ewrapper.market.last_datetime >= datetime.timedelta(days=4):
-                logging.critical('More than 3 days of delta between last historical datetime and current datetime')
-                return False
-
-        except Exception as e:
-            logging.critical(e)
-            return False
-
-        return True
 
 class IbHandler(EWrapperVerbose):
 
@@ -38,38 +25,56 @@ class IbHandler(EWrapperVerbose):
         self.portfolio = portfolio
         self.execution = execution
 
-
+    # Portfolio section
     def currentTime(self, timestamp):
         """ Response from reqCurrentTime(). """
         self.market._update_datetime(timestamp)
 
+    def managedAccounts(self, accountId):
+        self.portfolio.account_id = accountId
 
+    def updateAccountValue(self, key, value, currency, account):
+        if key == 'CashBalance':
+            print(key,value)
+            # self.portfolio.cash_balance = value
+        elif key == 'NetLiquidation':
+            print(key,value)
+            # self.portfolio.net_liquidation = value
+        elif key == 'StockMarketValue':
+            print(key,value)
+            # self.portfolio.stock_market_value = value
+        elif key == 'UnrealizedPnL':
+            # self.portfolio.unrealized_pnl = value
+            print(key,value)
 
-    def managedAccounts(self, openOrderEnd):
+    def updatePortfolio(self, contract, position, market_price, market_value,
+                        average_cost, unrealized_PNL, realized_PNL, account):
+        print(contract)
         pass
 
-    def nextValidId(self, orderId):
-        pass
-        # self.market.next_valid_id = orderId
+    def updateAccountTime(self, timestamp):
+        self.portfolio.updated_at = timestamp
 
-    """
-        https://www.interactivebrokers.com/en/software/api/apiguide/tables/tick_types.htm
-        0   BID_SIZE	tickSize()
-        1   BID_PRICE	tickPrice()
-        2   ASK_PRICE	tickPrice()
-        3   ASK_SIZE	tickSize()
-        4   LAST_PRICE	tickPrice()
-        5   LAST_SIZE	tickSize()
-        6   HIGH	tickPrice()
-        7   LOW	tickPrice()
-        8   VOLUME	tickSize()
-        9   CLOSE_PRICE	tickPrice()
-        14  OPEN_TICK	tickPrice()
-        21  AVG_VOLUME	tickSize()
-        37  MARK_PRICE	tickPrice()
-        45  LAST_TIMESTAMP	tickString()
-        46  SHORTABLE	tickString()
-    """
+    def accountDownloadEnd(self, account):
+        pass
+
+    # Market section
+    # https://www.interactivebrokers.com/en/software/api/apiguide/tables/tick_types.htm
+    # 0   BID_SIZE	tickSize()
+    # 1   BID_PRICE	tickPrice()
+    # 2   ASK_PRICE	tickPrice()
+    # 3   ASK_SIZE	tickSize()
+    # 4   LAST_PRICE	tickPrice()
+    # 5   LAST_SIZE	tickSize()
+    # 6   HIGH	tickPrice()
+    # 7   LOW	tickPrice()
+    # 8   VOLUME	tickSize()
+    # 9   CLOSE_PRICE	tickPrice()
+    # 14  OPEN_TICK	tickPrice()
+    # 21  AVG_VOLUME	tickSize()
+    # 37  MARK_PRICE	tickPrice()
+    # 45  LAST_TIMESTAMP	tickString()
+    # 46  SHORTABLE	tickString()
 
     def tickString(self, ticker_id, tick_type, value):
         if tick_type == 45:  # LAST_TIMESTAMP
@@ -79,7 +84,7 @@ class IbHandler(EWrapperVerbose):
         if tick_type == 8:  # VOLUME
             self.market._update_volume(ticker_id, size)
 
-    def tickPrice(self, ticker_id, tick_type, price, canAutoExecute):
+    def tickPrice(self, ticker_id, tick_type, price, can_auto_execute):
         if tick_type == 4:  # LAST_PRICE
             self.market._update_last_price(ticker_id, price)
 
@@ -100,7 +105,13 @@ class IbHandler(EWrapperVerbose):
 
     def tickGeneric(self, ticker_id, tick_type, value):
         if tick_type == 49:
-            logging.warning("Trading halted for {}".format(self.ticker_dict(ticker_id)))
+            logging.warning("Trading halted for {}".format(self.market.ticker_dict(ticker_id)))
+
+
+    # Execution section
+    def nextValidId(self, order_id):
+        pass
+        # self.market.next_valid_id = orderId
 
     # def orderStatus(self, id, status, filled, remaining, avgFillPrice, permId,
     #                 parentId, lastFilledPrice, clientId, whyHeld):
