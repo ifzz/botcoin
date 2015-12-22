@@ -35,22 +35,17 @@ class IbHandler(EWrapperVerbose):
 
     def updateAccountValue(self, key, value, currency, account):
         if key == 'CashBalance':
-            print(key,value)
-            # self.portfolio.cash_balance = value
+            self.portfolio.cash_balance = float(value)
         elif key == 'NetLiquidation':
-            print(key,value)
-            # self.portfolio.net_liquidation = value
+            self.portfolio.net_liquidation = float(value)
         elif key == 'StockMarketValue':
-            print(key,value)
-            # self.portfolio.stock_market_value = value
+            self.portfolio.stock_market_value = float(value)
         elif key == 'UnrealizedPnL':
-            # self.portfolio.unrealized_pnl = value
-            print(key,value)
+            self.portfolio.unrealized_pnl = float(value)
 
     def updatePortfolio(self, contract, position, market_price, market_value,
-                        average_cost, unrealized_PNL, realized_PNL, account):
-        print(contract)
-        pass
+                        average_cost, unrealized_pnl, realized_pnl, account):
+        print(contract.symbol, position, market_value, unrealized_pnl)
 
     def updateAccountTime(self, timestamp):
         self.portfolio.updated_at = timestamp

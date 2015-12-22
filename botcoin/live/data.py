@@ -58,6 +58,9 @@ class LiveMarketData(MarketData):
         elif price < self._data[symbol]['low']:
             self._data[symbol]['low'] = price
 
+        if not 'open' in self._data[symbol]:
+            self._data[symbol]['open'] = price
+
         self._relay_market_event(MarketEvent('during', symbol))
 
     def _update_volume(self, ticker_id, size):

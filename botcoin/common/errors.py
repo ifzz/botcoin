@@ -26,7 +26,7 @@ class NegativeExecutionPriceError(Exception):
         super(NegativeExecutionPriceError, self).__init__(self.message)
 
 class ExecutionPriceOutOfBandError(Exception):
-    def __init__(self, strategy, date, symbol, direction, exec_price, high, low):
+    def __init__(self, strategy, date, symbol, exec_price, high, low):
         self.message = ''.join([
             "You're trying to execute with a price that is out of band today. ",
             "Strategy {}, date {}, symbol {}, direction {}, exec_price {}, high {}, low {}".format(

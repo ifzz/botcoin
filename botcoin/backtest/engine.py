@@ -8,7 +8,7 @@ from botcoin import settings
 from botcoin.backtest.data import BacktestMarketData
 from botcoin.backtest.execution import BacktestExecution, Execution
 from botcoin.common.strategy import Strategy
-from botcoin.common.portfolio import Portfolio
+from botcoin.backtest.portfolio import BacktestPortfolio
 
 
 class Backtest(object):
@@ -28,7 +28,7 @@ class Backtest(object):
         self.portfolios = []
 
         for strategy in strategies:
-            port = Portfolio()
+            port = BacktestPortfolio()
             port.set_modules(self.market, strategy, BacktestExecution())
             self.portfolios.append(port)
 

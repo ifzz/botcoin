@@ -47,8 +47,6 @@ class Portfolio(object):
             if symbol in ('cash', 'commission', 'total', 'returns', 'equity_curve', 'datetime'):
                 raise ValueError("A symbol has an invalid name. Invalid names are 'cash', 'commission','total', 'returns', 'equity_curve', 'datetime'.")
 
-        self.backtesting = True if isinstance(market, BacktestMarketData) else False
-
         # Main events queue shared with Market and Execution
         self.events_queue = queue.Queue()
         # Queue used to store signals raised by strategy
@@ -84,7 +82,6 @@ class Portfolio(object):
         # Setting attributes in market
         self.market.events_queue_list.append(self.events_queue)
 
-
     @property
     def long_positions(self):
         return [trade for trade in self.open_trades.values() if trade.direction in ('BUY')] + \
@@ -94,23 +91,6 @@ class Portfolio(object):
     def short_positions(self):
         return [trade for trade in self.open_trades.values() if trade.direction in ('SHORT')] + \
             [order for order in self.pending_orders if order.direction in ('SHORT')]
-
-    @property
-    def cash_balance(self):
-        # Pending orders that remove cash from account
-        long_pending_orders = [order for order in self.pending_orders if order.direction in ('BUY','COVER')]
-
-        return self.holdings['cash'] - sum([i.estimated_cost for i in long_pending_orders])
-
-    @property
-    def net_liquidation(self):
-        value = self.holdings['cash']
-        for s in self.market.symbol_list:
-            try:
-                value += self.positions[s] * self.market.last_price(s)
-            except BarValidationError:
-                pass
-        return value
 
     def run_cycle(self):
         while True:
@@ -150,7 +130,6 @@ class Portfolio(object):
             self.strategy.call_strategy_method('after_close')
 
         else:
-            # No need for this 'if' in live algo
                 try:
                     if event.sub_type == 'open':
                         self.strategy.call_strategy_method('open', event.symbol)
@@ -230,27 +209,11 @@ class Portfolio(object):
 
         exec_price = signal.exec_price or self.market.last_price(symbol)
 
+        # Checks for common consistency errors in signals (usually sign of a broken strategy)
+        self.check_signal_consistency(symbol, exec_price, direction)
+
         # Adjusted execution price for slippage
         adj_price = _round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod))
-
-        if self.backtesting:
-            today = self.market.today(symbol)
-
-            # Checks for execution prices above today.high or below today.low
-            # Should stop execution during backtesting, but not on live exec
-            if exec_price:
-                if not (exec_price <= today.high and exec_price >= today.low):
-                    raise ExecutionPriceOutOfBandError(
-                        self.strategy, date, symbol, direction,
-                        exec_price, today.high, today.low,
-                    )
-
-            # Check for negative execution price
-            # Should stop execution during backtesting, but not on live exec
-            if exec_price < 0:
-                raise NegativeExecutionPriceError(self.strategy, date, symbol, exec_price)
-
-
 
         cur_position = self.positions[symbol]
         order = None

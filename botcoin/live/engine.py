@@ -5,7 +5,7 @@ import time
 from botcoin import settings
 from botcoin.live.data import LiveMarketData
 from botcoin.live.execution import LiveExecution
-from botcoin.common.portfolio import settings, Portfolio
+from botcoin.live.portfolio import LivePortfolio
 from botcoin.interfaces.ib import IbHandler, IbSocket
 
 class LiveEngine(object):
@@ -23,7 +23,7 @@ class LiveEngine(object):
             currency = getattr(strategy, 'CURRENCY', settings.CURRENCY),
         )
 
-        self.portfolio = Portfolio()
+        self.portfolio = LivePortfolio()
         self.strategy = strategy
         self.execution = LiveExecution()
         self.portfolio.set_modules(self.market, strategy, self.execution)
@@ -40,7 +40,7 @@ class LiveEngine(object):
 
 
     def start(self):
-        while not self.initial_status_check():
+        while not self._initial_status_check():
             time.sleep(1)
 
         self.if_socket.request_portfolio_data(self.portfolio.account_id)
@@ -57,7 +57,7 @@ class LiveEngine(object):
     def stop(self):
         self.market._stop()
 
-    def initial_status_check(self):
+    def _initial_status_check(self):
         try:
             if self.market.updated_at and self.portfolio.account_id:
                 pass
