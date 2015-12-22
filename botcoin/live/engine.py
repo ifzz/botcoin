@@ -1,13 +1,19 @@
 import logging
 import time
 
+from swigibpy import EPosixClientSocket
+
 from botcoin import settings
 from botcoin.live.data import LiveMarketData
 from botcoin.live.execution import LiveExecution
 from botcoin.common.portfolio import settings, Portfolio
+from botcoin.interfaces.ib import IbHandler
 
 class LiveEngine(object):
     def __init__(self, strategy, data_dir):
+
+
+
 
         # Single market object will be used for all backtesting instances
         self.market = LiveMarketData(
@@ -22,15 +28,31 @@ class LiveEngine(object):
         )
 
         self.portfolio = Portfolio()
-        self.portfolio.set_modules(self.market, strategy, LiveExecution())
         self.strategy = strategy
+        self.execution = LiveExecution()
+        self.portfolio.set_modules(self.market, strategy, self.execution)
+
+        # Connect to IB tws (edemo/demouser)
+        self.ib_handler = IbHandler(self.market, self.strategy, self.execution)
+        self.ib_client = EPosixClientSocket(self.ib_handler, reconnect_auto=True)
+        self.ib_client.eConnect("", 7497, 0)
+        while not self.ib_client.isConnected():
+            logging.critical("Failed to connect to tws. Trying again in 5 seconds.")
+            time.sleep(5)
+            self.ib_client.eConnect("", 7497, 0)
+        self.ib_client.reqCurrentTime()
+
+        self.market.ib_client = self.ib_client
 
         logging.info("Live execution with strategy {}.".format(self.portfolio.strategy))
+        time.sleep(1)
 
     def start(self):
-        time.sleep(1)  # a second for first IB requests to come through
         self.portfolio.market_opened()
         self.strategy.market_opened()
+
+        for s in self.market.symbol_list:
+            self.market._subscribe(s.split('.')[0])
 
         while True:
             self.portfolio.run_cycle()
