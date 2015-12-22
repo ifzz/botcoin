@@ -1,7 +1,34 @@
 import datetime
+import logging
+import time
 
-import pandas as pd
 from swigibpy import EPosixClientSocket, EWrapperVerbose, Contract
+
+class IbSocket(EPosixClientSocket):
+    def connect(self):
+        self.eConnect("", 7497, 0)
+        while not self.isConnected():
+            logging.critical("Failed to connect to tws. Trying again in 5 seconds.")
+            time.sleep(5)
+            self.eConnect("", 7497, 0)
+        self.reqCurrentTime()
+        time.sleep(1)
+
+    def status_is_green(self):
+        try:
+            if not self.isConnected():
+                logging.critical('Connection lost')
+                return False
+
+            if self._ewrapper.market.datetime-self._ewrapper.market.last_datetime >= datetime.timedelta(days=4):
+                logging.critical('More than 3 days of delta between last historical datetime and current datetime')
+                return False
+
+        except Exception as e:
+            logging.critical(e)
+            return False
+
+        return True
 
 class IbHandler(EWrapperVerbose):
 
@@ -11,14 +38,12 @@ class IbHandler(EWrapperVerbose):
         self.portfolio = portfolio
         self.execution = execution
 
-    # IB related methods
-    def currentTime(self, current_timestamp):
-        """ Response from reqCurrentTime(). """
-        self.datetime = pd.Timestamp(datetime.datetime.fromtimestamp(current_timestamp))
 
-        self.market.datetime = self.datetime
-        if self.datetime-self.market.last_datetime >= datetime.timedelta(days=4):
-            logging.critical('More than 3 days of delta between last historical datetime and current datetime')
+    def currentTime(self, timestamp):
+        """ Response from reqCurrentTime(). """
+        self.market._update_datetime(timestamp)
+
+
 
     def managedAccounts(self, openOrderEnd):
         pass

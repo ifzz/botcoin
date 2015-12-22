@@ -29,7 +29,7 @@ class LiveMarketData(MarketData):
         self.next_ticker_id = 0
 
     def _stop(self):
-        self.ib_client.eDisconnect()
+        self.if_socket.eDisconnect()
 
     def _subscribe(self, symbol):
         c = Contract()
@@ -38,7 +38,7 @@ class LiveMarketData(MarketData):
         c.exchange = self.exchange
         c.currency = self.currency
 
-        self.ib_client.reqMktData(self.next_ticker_id, c, "", False, None)
+        self.if_socket.reqMktData(self.next_ticker_id, c, "", False, None)
 
         self.ticker_dict[self.next_ticker_id] = symbol
         self.next_ticker_id += 1
@@ -80,3 +80,7 @@ class LiveMarketData(MarketData):
 
     def _update_last_timestamp(self, ticker_id, timestamp):
         self._data[self.ticker_dict[ticker_id]]['last_timestamp'] = timestamp
+        self._update_datetime(int(timestamp))
+
+    def _update_datetime(self, timestamp):
+        self.datetime = pd.Timestamp(datetime.datetime.fromtimestamp(timestamp))

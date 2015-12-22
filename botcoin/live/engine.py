@@ -1,13 +1,10 @@
 import logging
-import time
-
-from swigibpy import EPosixClientSocket
 
 from botcoin import settings
 from botcoin.live.data import LiveMarketData
 from botcoin.live.execution import LiveExecution
 from botcoin.common.portfolio import settings, Portfolio
-from botcoin.interfaces.ib import IbHandler
+from botcoin.interfaces.ib import IbHandler, IbSocket
 
 class LiveEngine(object):
     def __init__(self, strategy, data_dir):
@@ -33,29 +30,27 @@ class LiveEngine(object):
         self.portfolio.set_modules(self.market, strategy, self.execution)
 
         # Connect to IB tws (edemo/demouser)
-        self.ib_handler = IbHandler(self.market, self.strategy, self.execution)
-        self.ib_client = EPosixClientSocket(self.ib_handler, reconnect_auto=True)
-        self.ib_client.eConnect("", 7497, 0)
-        while not self.ib_client.isConnected():
-            logging.critical("Failed to connect to tws. Trying again in 5 seconds.")
-            time.sleep(5)
-            self.ib_client.eConnect("", 7497, 0)
-        self.ib_client.reqCurrentTime()
+        self.if_handler = IbHandler(self.market, self.strategy, self.execution)
+        self.if_socket = IbSocket(self.if_handler, reconnect_auto=True)
+        self.if_socket.connect()
 
-        self.market.ib_client = self.ib_client
+        self.market.if_socket = self.if_socket
+        self.execution.if_socket = self.if_socket
 
         logging.info("Live execution with strategy {}.".format(self.portfolio.strategy))
-        time.sleep(1)
+
 
     def start(self):
-        self.portfolio.market_opened()
-        self.strategy.market_opened()
+        if self.if_socket.status_is_green():
 
-        for s in self.market.symbol_list:
-            self.market._subscribe(s.split('.')[0])
+            self.portfolio.market_opened()
+            self.strategy.market_opened()
 
-        while True:
-            self.portfolio.run_cycle()
+            for s in self.market.symbol_list:
+                self.market._subscribe(s.split('.')[0])
+
+            while True:
+                self.portfolio.run_cycle()
 
     def stop(self):
         self.market._stop()
