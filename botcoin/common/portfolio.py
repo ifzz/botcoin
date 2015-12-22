@@ -143,26 +143,23 @@ class Portfolio(object):
         if event.sub_type == 'before_open':
             self.market_opened()
             self.strategy.market_opened()
-            self.strategy.before_open()
+            self.strategy.call_strategy_method('before_open')
 
         elif event.sub_type == 'after_close':
             self.market_closed()
-            self.strategy.after_close()
+            self.strategy.call_strategy_method('after_close')
 
         else:
             # No need for this 'if' in live algo
-            ssymbols = self.strategy.subscribed_symbols
-            flag = self.strategy.unsubscribe_all
-            if not flag and (event.symbol in ssymbols or not ssymbols):
                 try:
                     if event.sub_type == 'open':
-                        self.strategy.open(event.symbol)
+                        self.strategy.call_strategy_method('open', event.symbol)
 
                     elif event.sub_type == 'during':
-                        self.strategy.during(event.symbol)
+                        self.strategy.call_strategy_method('during', event.symbol)
 
                     elif event.sub_type == 'close':
-                        self.strategy.close(event.symbol)
+                        self.strategy.call_strategy_method('close', event.symbol)
 
                 except BarValidationError as e:
                     # Problems in market bars or past_bars would raise BarValidationError

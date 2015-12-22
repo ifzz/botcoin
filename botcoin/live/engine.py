@@ -30,6 +30,8 @@ class LiveEngine(object):
     def start(self):
         time.sleep(1)  # a second for first IB requests to come through
         self.portfolio.market_opened()
+        self.strategy.market_opened()
+
         while True:
             self.portfolio.run_cycle()
 

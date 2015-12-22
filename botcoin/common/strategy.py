@@ -65,6 +65,14 @@ class Strategy(object):
         self.subscribed_symbols = set()
         self.unsubscribe_all = False
 
+    def call_strategy_method(self, method_name, symbol=None):
+        method = getattr(self, method_name)
+        if symbol:
+            if not self.unsubscribe_all and (symbol in self.subscribed_symbols or not self.subscribed_symbols):
+                method(symbol)
+        else:
+            method()
+
     # Methods that should be overrided by each algorithm
     def before_open(self):
         pass
