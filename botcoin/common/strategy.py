@@ -57,7 +57,7 @@ class Strategy(object):
         self.positions[symbol].update(operation, price, self.market.updated_at)
 
         sig = SignalEvent(symbol, operation, price, self.market.updated_at)
-        self.signals_queue.put(sig)
+        self.events_queue.put(sig)
 
     def market_opened(self):
         # Restart symbol subscriptions

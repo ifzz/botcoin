@@ -29,8 +29,6 @@ class SignalEvent(Event):
     """
 
     def __init__(self, symbol, direction, exec_price, created_at):
-        if exec_price == 0.0:
-            raise ValueError("Execution price can't be 0.0. {} {} {}.".format(symbol, direction, created_at))
         if direction not in ('BUY', 'SELL', 'SHORT', 'COVER'):
             raise ValueError("Unknown direction - {}".format(direction))
 

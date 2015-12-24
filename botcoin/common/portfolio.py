@@ -45,8 +45,6 @@ class Portfolio(object):
 
         # Main events queue shared with Market and Execution
         self.events_queue = queue.Queue()
-        # Queue used to store signals raised by strategy
-        self.signals_queue = queue.Queue()
         self.market = market
         self.strategy = strategy
 
@@ -66,7 +64,7 @@ class Portfolio(object):
 
 
         # Setting attributes in strategy
-        self.strategy.signals_queue   = self.events_queue
+        self.strategy.events_queue   = self.events_queue
         self.strategy.market = self.market
 
         # Setting attributes in market
@@ -87,12 +85,7 @@ class Portfolio(object):
             try:
                 event = self.events_queue.get(False)
             except queue.Empty:
-                # Done this way to be able to execute in between
-                # signals that come all at once from strategy
-                try:
-                    event = self.signals_queue.get(False)
-                except queue.Empty:
-                    break
+                break
 
             if event.type == "MARKET":
                 self.handle_market_event(event)
@@ -100,14 +93,8 @@ class Portfolio(object):
             elif event.type == "SIGNAL":
                 self.generate_orders(event)
 
-            # elif event.type == "ORDER":
-            #     self.execution.execute_order(event)
-            #
-            # elif event.type == "FILL":
-            #     self.update_from_fill(event)
-
-            # else:
-            #     raise TypeError("The fuck is this?")
+            else:
+                raise TypeError("Some wrong event in events_queue, {}".format(event))
 
     def handle_market_event(self, event):
         if event.sub_type == 'before_open':

@@ -28,9 +28,9 @@ class BacktestPortfolio(Portfolio):
                 exec_price, today.high, today.low,
             )
 
-        # Check for negative execution price
+        # Check for negative or null execution price
         # Should stop execution during backtesting, but not on live exec
-        if exec_price < 0:
+        if exec_price <= 0:
             raise NegativeExecutionPriceError(self.strategy, self.market.updated_at, symbol, exec_price)
 
     def execute_order(self, order):

@@ -22,11 +22,10 @@ class IbSocket(EPosixClientSocket):
 
 class IbHandler(EWrapperVerbose):
 
-    def __init__(self, market, portfolio, execution):
+    def __init__(self, market, portfolio):
         super(IbHandler, self).__init__()
         self.market = market
         self.portfolio = portfolio
-        self.execution = execution
 
     # -------------- Portfolio section --------------
 
@@ -150,7 +149,7 @@ class IbHandler(EWrapperVerbose):
 
     # -------------- Execution section --------------
     def nextValidId(self, order_id):
-        self.execution.next_valid_order_id = order_id
+        self.next_valid_order_id = order_id
 
     # def orderStatus(self, id, status, filled, remaining, avgFillPrice, permId,
     #                 parentId, lastFilledPrice, clientId, whyHeld):

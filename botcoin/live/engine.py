@@ -24,7 +24,6 @@ class LiveEngine(object):
 
         self.portfolio = LivePortfolio()
         self.strategy = strategy
-        self.execution = LiveExecution()
         self.portfolio.set_modules(self.market, strategy)
 
         # Connect to IB tws (edemo/demouser)
@@ -33,7 +32,6 @@ class LiveEngine(object):
         self.if_socket.connect()
 
         self.market.if_socket = self.if_socket
-        self.execution.if_socket = self.if_socket
 
         logging.info("Live execution with strategy {}.".format(self.portfolio.strategy))
 
