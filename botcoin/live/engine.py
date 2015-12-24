@@ -4,7 +4,6 @@ import time
 
 from botcoin import settings
 from botcoin.live.data import LiveMarketData
-from botcoin.live.execution import LiveExecution
 from botcoin.live.portfolio import LivePortfolio
 from botcoin.interfaces.ib import IbHandler, IbSocket
 
@@ -26,10 +25,10 @@ class LiveEngine(object):
         self.portfolio = LivePortfolio()
         self.strategy = strategy
         self.execution = LiveExecution()
-        self.portfolio.set_modules(self.market, strategy, self.execution)
+        self.portfolio.set_modules(self.market, strategy)
 
         # Connect to IB tws (edemo/demouser)
-        self.if_handler = IbHandler(self.market, self.portfolio, self.execution)
+        self.if_handler = IbHandler(self.market, self.portfolio)
         self.if_socket = IbSocket(self.if_handler, reconnect_auto=True)
         self.if_socket.connect()
 

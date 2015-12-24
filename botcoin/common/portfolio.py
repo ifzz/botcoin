@@ -7,14 +7,11 @@ import numpy as np
 import pandas as pd
 
 from botcoin import settings
-from botcoin.backtest.data import BacktestMarketData
-from botcoin.common.execution import Execution
 from botcoin.common.data import MarketData
 from botcoin.common.errors import BarValidationError, NegativeExecutionPriceError, ExecutionPriceOutOfBandError
 from botcoin.common.events import MarketEvent, SignalEvent, OrderEvent
 from botcoin.common.strategy import Strategy
 from botcoin.common.trade import Trade
-from botcoin.live.data import LiveMarketData
 from botcoin.utils import _round
 
 class Portfolio(object):
@@ -36,10 +33,9 @@ class Portfolio(object):
         self.all_trades = []
 
 
-    def set_modules(self, market, strategy, execution):
+    def set_modules(self, market, strategy):
         if (not isinstance(market, MarketData) or
-            not isinstance(strategy, Strategy) or
-            not isinstance(execution, Execution)):
+            not isinstance(strategy, Strategy)):
             raise TypeError("Improper parameter type on Portfolio.__init__()")
 
         # check for symbol names that would conflict with columns used in holdings and positions
@@ -53,7 +49,6 @@ class Portfolio(object):
         self.signals_queue = queue.Queue()
         self.market = market
         self.strategy = strategy
-        self.execution = execution
 
         # Grabbing config from strategy
         self.NORMALIZE_PRICES = settings.NORMALIZE_PRICES = getattr(strategy, 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES)
@@ -69,14 +64,9 @@ class Portfolio(object):
         self.COMMISSION_PCT = settings.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
         self.MAX_SLIPPAGE = settings.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
 
-        # Setting attributes in execution
-        self.execution.events_queue = self.events_queue
-        self.execution.market = self.market
-        self.execution.commmission_pct = self.COMMISSION_PCT
-        self.execution.commission_fixed = self.COMMISSION_FIXED
 
         # Setting attributes in strategy
-        self.strategy.signals_queue = self.signals_queue
+        self.strategy.signals_queue   = self.events_queue
         self.strategy.market = self.market
 
         # Setting attributes in market
@@ -110,14 +100,14 @@ class Portfolio(object):
             elif event.type == "SIGNAL":
                 self.generate_orders(event)
 
-            elif event.type == "ORDER":
-                self.execution.execute_order(event)
+            # elif event.type == "ORDER":
+            #     self.execution.execute_order(event)
+            #
+            # elif event.type == "FILL":
+            #     self.update_from_fill(event)
 
-            elif event.type == "FILL":
-                self.update_from_fill(event)
-
-            else:
-                raise TypeError("The fuck is this?")
+            # else:
+            #     raise TypeError("The fuck is this?")
 
     def handle_market_event(self, event):
         if event.sub_type == 'before_open':
@@ -252,18 +242,16 @@ class Portfolio(object):
             quantity = -1 * cur_position
             # Checks if there is a similar order in pending_orders to protect
             # against repeated signals coming from strategy
-            if not [order for order in self.pending_orders if (order.symbol == symbol and order.quantity == quantity)]:
-                order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price, date)
+            if [order for order in self.pending_orders if (order.symbol == symbol and order.quantity == quantity)]:
+                logging.critical("Possible duplicate order being created in portfolio.")
+            order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price, date)
 
         if order:
             logging.debug(str(order))
-            self.pending_orders.add(order)
-            self.events_queue.put(order)
+            self.execute_order(order)
 
     def update_from_fill(self, fill):
         logging.debug(str(fill))
-
-        self.pending_orders.remove(fill.order)
 
         if fill.order.direction in ('BUY', 'SHORT'):
             self.open_trades[fill.symbol] = Trade(fill)

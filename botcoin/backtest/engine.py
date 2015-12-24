@@ -6,7 +6,6 @@ import pandas as pd
 
 from botcoin import settings
 from botcoin.backtest.data import BacktestMarketData
-from botcoin.backtest.execution import BacktestExecution, Execution
 from botcoin.common.strategy import Strategy
 from botcoin.backtest.portfolio import BacktestPortfolio
 
@@ -29,7 +28,7 @@ class Backtest(object):
 
         for strategy in strategies:
             port = BacktestPortfolio()
-            port.set_modules(self.market, strategy, BacktestExecution())
+            port.set_modules(self.market, strategy)
             self.portfolios.append(port)
 
         logging.info("Backtesting {} {} with {} symbols from {} to {}".format(

@@ -1,3 +1,4 @@
+from botcoin.common.events import FillEvent
 from botcoin.common.portfolio import Portfolio
 
 class BacktestPortfolio(Portfolio):
@@ -31,3 +32,23 @@ class BacktestPortfolio(Portfolio):
         # Should stop execution during backtesting, but not on live exec
         if exec_price < 0:
             raise NegativeExecutionPriceError(self.strategy, self.market.updated_at, symbol, exec_price)
+
+    def execute_order(self, order):
+        self.pending_orders.add(order)
+
+        cost = order.quantity * order.limit_price
+        commission = (self.COMMISSION_PCT * order.limit_price * abs(order.quantity)) + self.COMMISSION_FIXED
+
+        # Fake fill
+        fill_event = FillEvent(
+            order,
+            order.direction,
+            order.quantity,
+            cost,
+            order.limit_price,
+            commission,
+            order.created_at, #needs to be market.datetime
+        )
+
+        self.pending_orders.remove(fill_event.order)
+        self.update_from_fill(fill_event)
