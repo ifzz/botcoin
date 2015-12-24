@@ -1,4 +1,4 @@
-from . backtest.engine import Backtest
+from . backtest.engine import BacktestEngine
 from . live.engine import LiveEngine
 from . common.errors import BarValidationError
 from . common.strategy import Strategy

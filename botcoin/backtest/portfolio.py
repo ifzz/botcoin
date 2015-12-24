@@ -37,7 +37,11 @@ class BacktestPortfolio(Portfolio):
         self.pending_orders.add(order)
 
         cost = order.quantity * order.limit_price
-        commission = (self.COMMISSION_PCT * order.limit_price * abs(order.quantity)) + self.COMMISSION_FIXED
+
+        # order.quantity needs abs(), to
+        commission = max((self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(order.quantity) * order.limit_price)), self.COMMISSION_MIN)
+
+        assert(commission>1)  # in case I mess up and remove abs() again
 
         # Fake fill
         fill_event = FillEvent(

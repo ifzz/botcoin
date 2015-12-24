@@ -67,7 +67,6 @@ class IbHandler(EWrapperVerbose):
     def orderStatus(self, order_id, status, filled, remaining, avg_fill_price, perm_id, parent_id, last_fill_price, client_id, why_held):
         # print("Order status - {}, {}/{}, {}, perm_id {}, parent_id {}".format(order_id, filled, remaining, avg_fill_price, perm_id, parent_id))
         if status == 'Filled':  # remaining == 0:
-            print("finished {}, {} remaining shares.".format(perm_id, remaining))
             print(order_id, status, filled, remaining, avg_fill_price, perm_id, parent_id, last_fill_price, client_id, why_held)
         pass
 

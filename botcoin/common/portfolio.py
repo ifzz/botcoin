@@ -60,6 +60,7 @@ class Portfolio(object):
         self.ADJUST_POSITION_DOWN = settings.ADJUST_POSITION_DOWN = getattr(strategy, 'ADJUST_POSITION_DOWN', settings.ADJUST_POSITION_DOWN)
         self.COMMISSION_FIXED = settings.COMMISSION_FIXED = getattr(strategy, 'COMMISSION_FIXED', settings.COMMISSION_FIXED)
         self.COMMISSION_PCT = settings.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
+        self.COMMISSION_MIN = settings.COMMISSION_MIN = getattr(strategy, 'COMMISSION_MIN', settings.COMMISSION_MIN)
         self.MAX_SLIPPAGE = settings.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
 
 
@@ -174,7 +175,7 @@ class Portfolio(object):
         for s in self.market.symbol_list:
             self.holdings[s] = self.positions[s] * self.market.last_price(s)
 
-        self.verify_consistency()
+        self.verify_portfolio_consistency()
 
     def generate_orders(self, signal):
         logging.debug(str(signal))
@@ -213,16 +214,20 @@ class Portfolio(object):
                             logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-cash_balance)))
                             return
 
-                # COMMISSION_FIXED remove the fixed ammount from cash,
-                # and COMMISSION_PCT increases the symbol price to reflect the fee
-                quantity = direction_mod * (position_cash-self.COMMISSION_FIXED) / (adj_price * (1+self.COMMISSION_PCT))
-                if self.ROUND_LOT_SIZE:
-                    quantity = floor(quantity/self.ROUND_LOT_SIZE) * self.ROUND_LOT_SIZE
+                quantity = self.calculate_quantity(direction_mod, position_cash, adj_price)
 
-            if quantity != 0.0:
-                commission = self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price)
-                estimated_cost = commission + (quantity * adj_price)
-                order = OrderEvent(signal, symbol, quantity, direction, adj_price, estimated_cost, date)
+                if ((quantity < 1 and direction == 'BUY') or (quantity > -1 and direction == 'SHORT')):
+                    logging.warning("{} order quantity for {} on {}. Position cash {}, price {}, round lot size {}".format(
+                        quantity,
+                        symbol,
+                        self.strategy,
+                        position_cash,
+                        adj_price,
+                        self.ROUND_LOT_SIZE,
+                    ))
+                    return
+
+                order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity * adj_price, date)
 
 
         elif direction in ('SELL', 'COVER') and cur_position != 0:
@@ -236,6 +241,22 @@ class Portfolio(object):
         if order:
             logging.debug(str(order))
             self.execute_order(order)
+
+    def calculate_quantity(self, direction_mod, position_cash, adj_price):
+        quantity = direction_mod * position_cash / adj_price
+        quantity = floor(quantity/self.ROUND_LOT_SIZE) * self.ROUND_LOT_SIZE if self.ROUND_LOT_SIZE else quantity
+
+        estimated_commission = max(self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price), self.COMMISSION_MIN)
+
+        # For as long as estimated cost is bigger than position_cash available
+        while estimated_commission + quantity * adj_price > position_cash:
+            # Adjust quantity down
+            quantity -= self.ROUND_LOT_SIZE or 1  # What if can buy less than 1 (e.g. BTC)
+            # Recalculate commission
+            estimated_commission = max(self.COMMISSION_FIXED + self.COMMISSION_PCT * abs(quantity) * adj_price, self.COMMISSION_MIN)
+
+        return quantity
+
 
     def update_from_fill(self, fill):
         logging.debug(str(fill))
@@ -253,7 +274,7 @@ class Portfolio(object):
         self.holdings['commission'] += fill.commission
         self.holdings['cash'] -= (fill.cost + fill.commission)
 
-    def verify_consistency(self):
+    def verify_portfolio_consistency(self):
         """ Checks for problematic values in current holding and position """
 
         if (self.holdings['cash'] < 0 or
@@ -430,3 +451,9 @@ class Portfolio(object):
 
         self.performance = results
         return results
+
+
+    def execute_order(self, order):
+        raise NotImplemented("Portfolio needs to implement execute_order")
+    def check_signal_consistency(self, symbol, exec_price, direction):
+        raise NotImplemented("Portfolio needs to implement check_signal_consistency")

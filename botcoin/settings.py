@@ -22,6 +22,9 @@ ROUND_LOT_SIZE = 10
 COMMISSION_FIXED = 0.0
 # Percentage commission charged on each trade
 COMMISSION_PCT = 0.0008 # IB fixed commission Australia
+# Minimum commission to be charged
+COMMISSION_MIN = 0.0
+
 
 # Used by portfolio to calculate limit_prices and estimated cost for Orders
 MAX_SLIPPAGE = 0.0005

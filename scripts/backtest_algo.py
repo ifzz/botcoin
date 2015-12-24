@@ -22,7 +22,7 @@ def main():
         logging.info("Reading strategies from {}".format(f))
 
         # Run backtest
-        backtest = botcoin.Backtest(botcoin.utils._find_strategies(f), args.data_dir)
+        backtest = botcoin.BacktestEngine(botcoin.utils._find_strategies(f), args.data_dir)
 
         print(backtest.results)
 

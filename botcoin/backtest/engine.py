@@ -10,7 +10,7 @@ from botcoin.common.strategy import Strategy
 from botcoin.backtest.portfolio import BacktestPortfolio
 
 
-class Backtest(object):
+class BacktestEngine(object):
     def __init__(self, strategies, data_dir, start_automatically=True):
 
         # Single market object will be used for all backtesting instances
