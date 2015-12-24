@@ -36,10 +36,10 @@ class Portfolio(object):
         self.all_trades = []
 
 
-    def set_modules(self, market, strategy, broker):
+    def set_modules(self, market, strategy, execution):
         if (not isinstance(market, MarketData) or
             not isinstance(strategy, Strategy) or
-            not isinstance(broker, Execution)):
+            not isinstance(execution, Execution)):
             raise TypeError("Improper parameter type on Portfolio.__init__()")
 
         # check for symbol names that would conflict with columns used in holdings and positions
@@ -53,7 +53,7 @@ class Portfolio(object):
         self.signals_queue = queue.Queue()
         self.market = market
         self.strategy = strategy
-        self.broker = broker
+        self.execution = execution
 
         # Grabbing config from strategy
         self.NORMALIZE_PRICES = settings.NORMALIZE_PRICES = getattr(strategy, 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES)
@@ -69,11 +69,11 @@ class Portfolio(object):
         self.COMMISSION_PCT = settings.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
         self.MAX_SLIPPAGE = settings.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
 
-        # Setting attributes in execution broker
-        self.broker.events_queue = self.events_queue
-        self.broker.market = self.market
-        self.broker.commmission_pct = self.COMMISSION_PCT
-        self.broker.commission_fixed = self.COMMISSION_FIXED
+        # Setting attributes in execution
+        self.execution.events_queue = self.events_queue
+        self.execution.market = self.market
+        self.execution.commmission_pct = self.COMMISSION_PCT
+        self.execution.commission_fixed = self.COMMISSION_FIXED
 
         # Setting attributes in strategy
         self.strategy.signals_queue = self.signals_queue
@@ -111,7 +111,7 @@ class Portfolio(object):
                 self.generate_orders(event)
 
             elif event.type == "ORDER":
-                self.broker.execute_order(event)
+                self.execution.execute_order(event)
 
             elif event.type == "FILL":
                 self.update_from_fill(event)
@@ -263,9 +263,6 @@ class Portfolio(object):
     def update_from_fill(self, fill):
         logging.debug(str(fill))
 
-        if not fill.type == 'FILL':
-            raise TypeError("Wrong event type passed to Portfolio.consume_fill_event()")
-
         self.pending_orders.remove(fill.order)
 
         if fill.order.direction in ('BUY', 'SHORT'):
@@ -392,21 +389,21 @@ class Portfolio(object):
         results['all_trades'] = pd.DataFrame(
             [(
                 t.symbol,
-                t.result,
-                t.open_datetime,
-                t.close_datetime,
+                t.pnl,
+                t.opened_at,
+                t.closed_at,
                 t.quantity,
                 t.open_price,
                 t.close_price,
                 t.commission,
             ) for t in self.all_trades],
-            columns=['symbol', 'returns', 'open_datetime', 'close_datetime',
+            columns=['symbol', 'pnl', 'open_datetime', 'close_datetime',
                      'quantity', 'open_price', 'close_price', 'commission'],
         )
 
         results['dangerous_trades'] = results['all_trades'][
-            results['all_trades']['returns'] >
-            sum(results['all_trades']['returns'])*self.THRESHOLD_DANGEROUS_TRADE
+            results['all_trades']['pnl'] >
+            sum(results['all_trades']['pnl'])*self.THRESHOLD_DANGEROUS_TRADE
         ]
 
         # Saving portfolio.all_positions in performance
@@ -443,8 +440,8 @@ class Portfolio(object):
         # Trades statistic
         results['trades'] = len(self.all_trades)
         results['trades_per_year'] = results['trades']/years
-        results['pct_trades_profit'] = len([trade for trade in self.all_trades if trade.result > 0])/results['trades'] if results['trades'] else 0.0
-        results['pct_trades_loss'] = len([trade for trade in self.all_trades if trade.result <= 0])/results['trades'] if results['trades'] else 0.0
+        results['pct_trades_profit'] = len([trade for trade in self.all_trades if trade.pnl > 0])/results['trades'] if results['trades'] else 0.0
+        results['pct_trades_loss'] = len([trade for trade in self.all_trades if trade.pnl <= 0])/results['trades'] if results['trades'] else 0.0
 
         # Dangerous trades that constitute more than THRESHOLD_DANGEROUS_TRADE of returns
         results['dangerous'] = True if not results['dangerous_trades'].empty else False

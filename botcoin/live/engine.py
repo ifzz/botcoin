@@ -61,7 +61,7 @@ class LiveEngine(object):
         try:
             if self.market.updated_at and self.portfolio.account_id:
                 pass
-            assert(self.portfolio)
+
             if (self.market.updated_at-self.market.last_historical_bar_at >= datetime.timedelta(days=4)):
                 logging.critical('More than 3 days of delta between last historical datetime and current datetime')
                 return False
