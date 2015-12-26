@@ -16,8 +16,18 @@ class IbSocket(EPosixClientSocket):
 
     def request_portfolio_data(self, account_id):
         self.reqAccountUpdates(True, account_id)
-        # self.reqPositions()
         self.reqAutoOpenOrders(True)
+
+    def subscribe_market_data(self, symbol, exchange, sec_type, currency):
+        c = Contract()
+        c.symbol = symbol
+        c.secType = sec_type
+        c.exchange = exchange
+        c.currency = currency
+
+        self.reqMktData(self._ewrapper.next_ticker_id, c, "", False, None)
+        self._ewrapper.ticker_dict[self._ewrapper.next_ticker_id] = symbol
+        self._ewrapper.next_ticker_id += 1
 
 
 class IbHandler(EWrapperVerbose):
@@ -26,6 +36,9 @@ class IbHandler(EWrapperVerbose):
         super(IbHandler, self).__init__()
         self.market = market
         self.portfolio = portfolio
+
+        self.ticker_dict = {}
+        self.next_ticker_id = 0
 
     # -------------- Portfolio section --------------
 
@@ -114,34 +127,34 @@ class IbHandler(EWrapperVerbose):
 
     def tickString(self, ticker_id, tick_type, value):
         if tick_type == 45:  # LAST_TIMESTAMP
-            self.market._update_last_timestamp(ticker_id, value)
+            self.market._update_last_timestamp(self.ticker_dict[ticker_id], value)
 
     def tickSize(self, ticker_id, tick_type, size):
         if tick_type == 8:  # VOLUME
-            self.market._update_volume(ticker_id, size)
+            self.market._update_volume(self.ticker_dict[ticker_id], size)
 
     def tickPrice(self, ticker_id, tick_type, price, can_auto_execute):
         if tick_type == 4:  # LAST_PRICE
-            self.market._update_last_price(ticker_id, price)
+            self.market._update_last_price(self.ticker_dict[ticker_id], price)
 
         elif tick_type == 1:  # BID_PRICE
-            self.market._update_bid_price(ticker_id, price)
+            self.market._update_bid_price(self.ticker_dict[ticker_id], price)
 
         elif tick_type == 2:  # ASK_PRICE
-            self.market._update_ask_price(ticker_id, price)
+            self.market._update_ask_price(self.ticker_dict[ticker_id], price)
         #
         elif tick_type == 6:  # HIGH
-            self.market._update_high_price(ticker_id, price)
+            self.market._update_high_price(self.ticker_dict[ticker_id], price)
 
         elif tick_type == 7:  # LOW
-            self.market._update_low_price(ticker_id, price)
+            self.market._update_low_price(self.ticker_dict[ticker_id], price)
 
         elif tick_type == 14:  # OPEN_TICK
-            self.market._update_open_price(ticker_id, price)
+            self.market._update_open_price(self.ticker_dict[ticker_id], price)
 
     def tickGeneric(self, ticker_id, tick_type, value):
         if tick_type == 49:
-            logging.warning("Trading halted for {}".format(self.market.ticker_dict[ticker_id]))
+            logging.warning("Trading halted for {}".format(self.ticker_dict[ticker_id]))
 
 
     # -------------- Execution section --------------

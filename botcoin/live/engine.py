@@ -45,8 +45,7 @@ class LiveEngine(object):
         self.portfolio.market_opened()
         self.strategy.market_opened()
 
-        for s in self.market.symbol_list:
-            self.market._subscribe(s.split('.')[0])
+        self.market._subscribe()
 
         while True:
             self.portfolio.run_cycle()
