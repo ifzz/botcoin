@@ -2,7 +2,9 @@ import logging
 import sys
 import time
 
-from swigibpy import EPosixClientSocket, EWrapperVerbose, Contract, ExecutionFilter
+from swigibpy import (
+    EPosixClientSocket, EWrapperVerbose, Contract, Order,
+)
 
 class IbSocket(EPosixClientSocket):
     def connect(self):
@@ -26,8 +28,26 @@ class IbSocket(EPosixClientSocket):
         c.currency = currency
 
         self.reqMktData(self._ewrapper.next_ticker_id, c, "", False, None)
-        self._ewrapper.ticker_dict[self._ewrapper.next_ticker_id] = symbol
+
+        self._ewrapper.ticker_symbol_dict[self._ewrapper.next_ticker_id] = symbol
         self._ewrapper.next_ticker_id += 1
+
+        self._ewrapper.symbol_contract_dict[symbol] = c
+
+    def execute_order(self, order):
+        contract = self._ewrapper.symbol_contract_dict[order.symbol]
+
+        ib_order = Order()
+        ib_order.action = order.direction
+        ib_order.orderType = 'LMT'
+        ib_order.lmtPrice = order.limit_price
+        ib_order.totalQuantity = order.quantity
+        ib_order.tif='DAY'
+        ib_order.transmit=True
+
+        self.placeOrder(self._ewrapper.next_valid_order_id, contract, ib_order)
+
+        self._ewrapper.next_valid_order_id += 1
 
 
 class IbHandler(EWrapperVerbose):
@@ -37,8 +57,9 @@ class IbHandler(EWrapperVerbose):
         self.market = market
         self.portfolio = portfolio
 
-        self.ticker_dict = {}
+        self.ticker_symbol_dict = {}  # ticker:symbol
         self.next_ticker_id = 0
+        self.symbol_contract_dict = {}  # symbol:contract
 
     # -------------- Portfolio section --------------
 
@@ -127,34 +148,34 @@ class IbHandler(EWrapperVerbose):
 
     def tickString(self, ticker_id, tick_type, value):
         if tick_type == 45:  # LAST_TIMESTAMP
-            self.market._update_last_timestamp(self.ticker_dict[ticker_id], value)
+            self.market._update_last_timestamp(self.ticker_symbol_dict[ticker_id], value)
 
     def tickSize(self, ticker_id, tick_type, size):
         if tick_type == 8:  # VOLUME
-            self.market._update_volume(self.ticker_dict[ticker_id], size)
+            self.market._update_volume(self.ticker_symbol_dict[ticker_id], size)
 
     def tickPrice(self, ticker_id, tick_type, price, can_auto_execute):
         if tick_type == 4:  # LAST_PRICE
-            self.market._update_last_price(self.ticker_dict[ticker_id], price)
+            self.market._update_last_price(self.ticker_symbol_dict[ticker_id], price)
 
         elif tick_type == 1:  # BID_PRICE
-            self.market._update_bid_price(self.ticker_dict[ticker_id], price)
+            self.market._update_bid_price(self.ticker_symbol_dict[ticker_id], price)
 
         elif tick_type == 2:  # ASK_PRICE
-            self.market._update_ask_price(self.ticker_dict[ticker_id], price)
+            self.market._update_ask_price(self.ticker_symbol_dict[ticker_id], price)
         #
         elif tick_type == 6:  # HIGH
-            self.market._update_high_price(self.ticker_dict[ticker_id], price)
+            self.market._update_high_price(self.ticker_symbol_dict[ticker_id], price)
 
         elif tick_type == 7:  # LOW
-            self.market._update_low_price(self.ticker_dict[ticker_id], price)
+            self.market._update_low_price(self.ticker_symbol_dict[ticker_id], price)
 
         elif tick_type == 14:  # OPEN_TICK
-            self.market._update_open_price(self.ticker_dict[ticker_id], price)
+            self.market._update_open_price(self.ticker_symbol_dict[ticker_id], price)
 
     def tickGeneric(self, ticker_id, tick_type, value):
         if tick_type == 49:
-            logging.warning("Trading halted for {}".format(self.ticker_dict[ticker_id]))
+            logging.warning("Trading halted for {}".format(self.ticker_symbol_dict[ticker_id]))
 
 
     # -------------- Execution section --------------
