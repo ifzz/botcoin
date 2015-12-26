@@ -7,12 +7,11 @@ NORMALIZE_PRICES = True
 NORMALIZE_VOLUME = False
 
 
+CURRENCY = 'AUD'
 # Initial portfolio capital
 INITIAL_CAPITAL = 10000.00
-
-# Number of decimals used for rounding prices
-ROUND_DECIMALS = 2
-ROUND_DECIMALS_BELOW_ONE = 3
+# Limits the maximum cash that can be traded
+CAPITAL_TRADABLE_CAP = 0
 
 # Position size needs to be on increments of ROUND_LOT_SIZE
 ROUND_LOT_SIZE = 10
@@ -36,16 +35,22 @@ MAX_SHORT_POSITIONS = 0
 # It is either derived from 1/MAX_LONG_POSITIONS or set by strategy, and is
 # represented as percentage of portfolio level equity
 
+
 # Adjusts position if there isn't enough cash available
 ADJUST_POSITION_DOWN = True
 
 # Flags backtest results as dangerous when the fraction of returns are gained in a single trade
 THRESHOLD_DANGEROUS_TRADE = 0.20
 
+# Number of decimals used for rounding prices
+ROUND_DECIMALS = 2
+ROUND_DECIMALS_BELOW_ONE = 3
+
+
 # IB specific parameters
 EXCHANGE = 'ASX'
 SEC_TYPE = 'STK'
-CURRENCY = 'AUD'
+
 
 # List of symbols
 

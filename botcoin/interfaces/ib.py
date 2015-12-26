@@ -38,12 +38,15 @@ class IbSocket(EPosixClientSocket):
         contract = self._ewrapper.symbol_contract_dict[order.symbol]
 
         ib_order = Order()
+        ib_order.orderType = order.type
         ib_order.action = order.direction
-        ib_order.orderType = 'LMT'
-        ib_order.lmtPrice = order.limit_price
         ib_order.totalQuantity = order.quantity
-        ib_order.tif='DAY'
         ib_order.transmit=True
+        ib_order.tif='DAY'
+
+        if order.type == 'LMT':
+            ib_order.lmtPrice = order.limit_price
+
 
         self.placeOrder(self._ewrapper.next_valid_order_id, contract, ib_order)
 
@@ -60,6 +63,7 @@ class IbHandler(EWrapperVerbose):
         self.ticker_symbol_dict = {}  # ticker:symbol
         self.next_ticker_id = 0
         self.symbol_contract_dict = {}  # symbol:contract
+        self.symbol_order_dict = {}  # symbol:order
 
     # -------------- Portfolio section --------------
 

@@ -51,6 +51,7 @@ class Portfolio(object):
         self.ROUND_LOT_SIZE = settings.ROUND_LOT_SIZE = getattr(strategy, 'ROUND_LOT_SIZE', settings.ROUND_LOT_SIZE)
         self.THRESHOLD_DANGEROUS_TRADE = settings.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
         self.INITIAL_CAPITAL = settings.INITIAL_CAPITAL = getattr(strategy, 'INITIAL_CAPITAL', settings.INITIAL_CAPITAL)
+        self.CAPITAL_TRADABLE_CAP = settings.CAPITAL_TRADABLE_CAP = floor(getattr(strategy, 'CAPITAL_TRADABLE_CAP', settings.CAPITAL_TRADABLE_CAP))
         self.MAX_LONG_POSITIONS = settings.MAX_LONG_POSITIONS = floor(getattr(strategy, 'MAX_LONG_POSITIONS', settings.MAX_LONG_POSITIONS))
         self.MAX_SHORT_POSITIONS = settings.MAX_SHORT_POSITIONS = floor(getattr(strategy, 'MAX_SHORT_POSITIONS', settings.MAX_SHORT_POSITIONS))
         self.POSITION_SIZE = settings.POSITION_SIZE = getattr(strategy, 'POSITION_SIZE', 1.0/self.MAX_LONG_POSITIONS)
@@ -83,10 +84,10 @@ class Portfolio(object):
             except queue.Empty:
                 break
 
-            if event.type == "MARKET":
+            if event.event_type == "MARKET":
                 self.handle_market_event(event)
 
-            elif event.type == "SIGNAL":
+            elif event.event_type == "SIGNAL":
                 self.generate_orders(event)
 
             else:
@@ -194,13 +195,17 @@ class Portfolio(object):
         order = None
 
         if direction in ('BUY', 'SHORT') and cur_position == 0:
-            # Cash to be spent on this position
-            position_cash = self.net_liquidation*self.POSITION_SIZE
-            # Quantity to BUY or SHORT
-            quantity = 0
 
             if ((len(self.long_positions) < self.MAX_LONG_POSITIONS and direction == 'BUY') or
                 (len(self.short_positions) < self.MAX_SHORT_POSITIONS and direction == 'SHORT')):
+
+                # Cash to be spent on this position
+                if self.CAPITAL_TRADABLE_CAP:
+                    position_cash = min(self.CAPITAL_TRADABLE_CAP, self.net_liquidation)*self.POSITION_SIZE
+                else:
+                    position_cash = self.net_liquidation*self.POSITION_SIZE
+                # Quantity to BUY or SHORT
+                quantity = 0
 
                 # Adjust position down if not enough money and
                 if direction == 'BUY':

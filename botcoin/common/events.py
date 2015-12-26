@@ -9,7 +9,7 @@ class MarketEvent(Event):
     """
 
     def __init__(self, sub_type, symbol=None):
-        self.type = 'MARKET'
+        self.event_type = 'MARKET'
         self.symbol = symbol
         if sub_type and sub_type in ('before_open', 'open', 'during' ,'close', 'after_close'):
             self.sub_type = sub_type
@@ -32,7 +32,7 @@ class SignalEvent(Event):
         if direction not in ('BUY', 'SELL', 'SHORT', 'COVER'):
             raise ValueError("Unknown direction - {}".format(direction))
 
-        self.type = 'SIGNAL'
+        self.event_type = 'SIGNAL'
         self.symbol = symbol
         self.direction = direction
         self.exec_price = exec_price
@@ -66,7 +66,8 @@ class OrderEvent(Event):
         if not isinstance(signal, SignalEvent):
             raise TypeError("signal is not instance of SignalEvent")
 
-        self.type = 'ORDER'
+        self.event_type = 'ORDER'
+        self.type = 'LMT'
         self.signal = signal
         self.symbol = symbol
         self.quantity = quantity
@@ -104,7 +105,7 @@ class FillEvent(Event):
         if not isinstance(order, OrderEvent):
             raise TypeError("order is not instance of OrderEvent")
 
-        self.type = 'FILL'
+        self.event_type = 'FILL'
         self.order = order
         self.symbol = order.symbol
         self.direction = direction
