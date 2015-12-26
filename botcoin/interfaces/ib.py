@@ -18,7 +18,7 @@ class IbSocket(EPosixClientSocket):
         self.reqAccountUpdates(True, account_id)
         self.reqAutoOpenOrders(True)
 
-    def subscribe_market_data(self, symbol, exchange, sec_type, currency):
+    def subscribe_to_market_data(self, symbol, exchange, sec_type, currency):
         c = Contract()
         c.symbol = symbol
         c.secType = sec_type

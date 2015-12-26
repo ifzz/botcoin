@@ -27,8 +27,8 @@ class LiveMarketData(MarketData):
     def _stop(self):
         self.if_socket.eDisconnect()
 
-    def _subscribe(self):
-        [self.if_socket.subscribe_market_data(s, self.exchange, self.sec_type, self.currency) for s in self.symbol_list]
+    def _subscribe_to_market_data(self, symbol):
+        self.if_socket.subscribe_to_market_data(symbol, self.exchange, self.sec_type, self.currency)
 
     def _update_last_price(self, symbol, price):
 

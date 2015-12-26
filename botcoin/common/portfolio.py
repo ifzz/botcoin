@@ -95,23 +95,22 @@ class Portfolio(object):
     def handle_market_event(self, event):
         if event.sub_type == 'before_open':
             self.market_opened()
-            self.strategy.market_opened()
-            self.strategy.call_strategy_method('before_open')
+            self.strategy._call_strategy_method('before_open')
 
         elif event.sub_type == 'after_close':
             self.market_closed()
-            self.strategy.call_strategy_method('after_close')
+            self.strategy._call_strategy_method('after_close')
 
         else:
                 try:
                     if event.sub_type == 'open':
-                        self.strategy.call_strategy_method('open', event.symbol)
+                        self.strategy._call_strategy_method('open', event.symbol)
 
                     elif event.sub_type == 'during':
-                        self.strategy.call_strategy_method('during', event.symbol)
+                        self.strategy._call_strategy_method('during', event.symbol)
 
                     elif event.sub_type == 'close':
-                        self.strategy.call_strategy_method('close', event.symbol)
+                        self.strategy._call_strategy_method('close', event.symbol)
 
                 except BarValidationError as e:
                     # Problems in market bars or past_bars would raise BarValidationError
@@ -148,6 +147,8 @@ class Portfolio(object):
                 self.holdings['commission'],
                 self.holdings['total']
             )
+
+        self.strategy._market_opened()
 
     def market_closed(self):
         if not all([t.is_fully_filled for t in self.open_trades.values()]):

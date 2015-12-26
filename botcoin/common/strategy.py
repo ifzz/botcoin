@@ -59,16 +59,15 @@ class Strategy(object):
         sig = SignalEvent(symbol, operation, price, self.market.updated_at)
         self.events_queue.put(sig)
 
-    def market_opened(self):
+    def _market_opened(self):
         # Restart symbol subscriptions
         self.subscribed_symbols = set()
         self.unsubscribe_all = False
 
-    def call_strategy_method(self, method_name, symbol=None):
+    def _call_strategy_method(self, method_name, symbol=None):
         method = getattr(self, method_name)
-        if symbol:
-            if not self.unsubscribe_all and (symbol in self.subscribed_symbols or not self.subscribed_symbols):
-                method(symbol)
+        if symbol and self.is_subscribed_to(symbol):
+            method(symbol)
         else:
             method()
 
@@ -108,6 +107,11 @@ class Strategy(object):
 
     def is_neutral(self, symbol):
         return True if self.positions[symbol].status == '' else False
+
+    def is_subscribed_to(self, symbol):
+        if not self.unsubscribe_all and (symbol in self.subscribed_symbols or not self.subscribed_symbols):
+            return True
+        return False
 
     def subscribe(self, symbol):
         """ Once subscried, this symbol's MarketEvents will be raised on

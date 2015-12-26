@@ -31,6 +31,7 @@ class LiveEngine(object):
         self.if_socket = IbSocket(self.if_handler, reconnect_auto=True)
         self.if_socket.connect()
 
+        self.portfolio.if_socket = self.if_socket
         self.market.if_socket = self.if_socket
 
         logging.info("Live execution with strategy {}.".format(self.portfolio.strategy))
@@ -43,9 +44,12 @@ class LiveEngine(object):
         self.if_socket.request_portfolio_data(self.portfolio.account_id)
 
         self.portfolio.market_opened()
-        self.strategy.market_opened()
 
-        self.market._subscribe()
+        self.strategy.before_open()
+
+        for s in self.market.symbol_list:
+            if self.strategy.is_subscribed_to(s):
+                self.market._subscribe_to_market_data(s)
 
         while True:
             self.portfolio.run_cycle()
