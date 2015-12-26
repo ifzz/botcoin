@@ -8,7 +8,7 @@ NORMALIZE_VOLUME = False
 
 
 # Initial portfolio capital
-INITIAL_CAPITAL = 100000.00
+INITIAL_CAPITAL = 10000.00
 
 # Number of decimals used for rounding prices
 ROUND_DECIMALS = 2
@@ -23,11 +23,11 @@ COMMISSION_FIXED = 0.0
 # Percentage commission charged on each trade
 COMMISSION_PCT = 0.0008 # IB fixed commission Australia
 # Minimum commission to be charged
-COMMISSION_MIN = 0.0
+COMMISSION_MIN = 6.0
 
 
 # Used by portfolio to calculate limit_prices and estimated cost for Orders
-MAX_SLIPPAGE = 0.0005
+MAX_SLIPPAGE = 0.0000
 
 # Max number of concurrent open long positions
 MAX_LONG_POSITIONS = 5

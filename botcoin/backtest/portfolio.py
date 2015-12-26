@@ -34,14 +34,14 @@ class BacktestPortfolio(Portfolio):
             raise NegativeExecutionPriceError(self.strategy, self.market.updated_at, symbol, exec_price)
 
     def execute_order(self, order):
-        self.pending_orders.add(order)
 
         cost = order.quantity * order.limit_price
 
         # order.quantity needs abs(), to
         commission = max((self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(order.quantity) * order.limit_price)), self.COMMISSION_MIN)
 
-        assert(commission>1)  # in case I mess up and remove abs() again
+        # in case I mess up and remove abs() again
+        assert(commission>0)
 
         # Fake fill
         fill_event = FillEvent(
@@ -51,8 +51,24 @@ class BacktestPortfolio(Portfolio):
             cost,
             order.limit_price,
             commission,
-            order.created_at, #needs to be market.datetime
+            order.created_at,
         )
 
-        self.pending_orders.remove(fill_event.order)
         self.update_from_fill(fill_event)
+
+    def update_last_positions_and_holdings(self):
+        # Adds latest current position and holding into 'all' lists, so they
+        # can be part of performance as well
+        if self.positions and self.holdings:
+            self.all_holdings.append(self.holdings)
+            self.all_positions.append(self.positions)
+            self.holdings, self.positions = None, None
+
+        # "Fake close" trades that are open, so they can be part of trades performance stats
+        for trade in self.open_trades.values():
+
+            direction = 1 if trade.direction in ('SELL','SHORT') else -1
+            quantity = trade.quantity * direction
+            trade.fake_close_trade(self.market.updated_at, quantity * self.market.last_price(trade.symbol))
+
+            self.all_trades.append(trade)

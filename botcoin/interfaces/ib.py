@@ -93,8 +93,6 @@ class IbHandler(EWrapperVerbose):
         pass
 
 
-
-
     # -------------- Market section --------------
 
     # https://www.interactivebrokers.com/en/software/api/apiguide/tables/tick_types.htm

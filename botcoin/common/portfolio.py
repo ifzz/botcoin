@@ -218,16 +218,12 @@ class Portfolio(object):
 
                 if ((quantity < 1 and direction == 'BUY') or (quantity > -1 and direction == 'SHORT')):
                     logging.warning("{} order quantity for {} on {}. Position cash {}, price {}, round lot size {}".format(
-                        quantity,
-                        symbol,
-                        self.strategy,
-                        position_cash,
-                        adj_price,
-                        self.ROUND_LOT_SIZE,
+                        quantity, symbol, self.strategy, position_cash, adj_price,self.ROUND_LOT_SIZE,
                     ))
                     return
 
                 order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity * adj_price, date)
+                self.open_trades[order.symbol] = Trade(order)
 
 
         elif direction in ('SELL', 'COVER') and cur_position != 0:
@@ -257,17 +253,19 @@ class Portfolio(object):
 
         return quantity
 
-
     def update_from_fill(self, fill):
         logging.debug(str(fill))
 
         if fill.order.direction in ('BUY', 'SHORT'):
-            self.open_trades[fill.symbol] = Trade(fill)
+            self.open_trades[fill.symbol].update_open_fill(fill)
 
         elif fill.order.direction in ('SELL', 'COVER'):
-            self.open_trades[fill.symbol].close_trade(fill)
-            self.all_trades.append(self.open_trades[fill.symbol])
-            del self.open_trades[fill.symbol]
+            self.open_trades[fill.symbol].update_close_fill(fill)
+            # If trade is closed, remove it from open_trades
+            # and archive it in all_trades
+            if not self.open_trades[fill.symbol].is_open:
+                self.all_trades.append(self.open_trades[fill.symbol])
+                del self.open_trades[fill.symbol]
 
         self.positions[fill.symbol] += fill.quantity
 
@@ -299,24 +297,6 @@ class Portfolio(object):
                 self.MAX_SHORT_POSITIONS,
             ))
 
-    def update_last_positions_and_holdings(self):
-        # Adds latest current position and holding into 'all' lists, so they
-        # can be part of performance as well
-        if self.positions and self.holdings:
-            self.all_holdings.append(self.holdings)
-            self.all_positions.append(self.positions)
-            self.holdings, self.positions = None, None
-
-        # "Fake close" trades that are open, so they can be part of trades performance stats
-        for trade in self.open_trades.values():
-
-            direction = 1 if trade.direction in ('SELL','SHORT') else -1
-            quantity = trade.quantity * direction
-
-            self.all_trades.append(trade.fake_close_trade(
-                self.market.updated_at,
-                quantity * self.market.last_price(trade.symbol),
-            ))
 
     def construct_position(self, cur_datetime, positions={}):
         """
@@ -389,8 +369,8 @@ class Portfolio(object):
                 t.opened_at,
                 t.closed_at,
                 t.quantity,
-                t.open_price,
-                t.close_price,
+                t.avg_open_price,
+                t.avg_close_price,
                 t.commission,
             ) for t in self.all_trades],
             columns=['symbol', 'pnl', 'open_datetime', 'close_datetime',
