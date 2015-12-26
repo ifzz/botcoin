@@ -72,11 +72,8 @@ class OrderEvent(Event):
         self.quantity = quantity
         self.direction = direction
         self.limit_price = limit_price
-        self.created_at = created_at
-
-        if direction in ('BUY', 'COVER') and not estimated_cost:
-            raise ValueError("BUY or COVER require estimated_cost")
         self.estimated_cost = estimated_cost
+        self.created_at = created_at
 
     def __str__(self):
         return "Order - {} : {} : {} : {}".format(self.symbol,self.direction,str(self.quantity),str(self.estimated_cost))

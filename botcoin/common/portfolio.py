@@ -11,7 +11,6 @@ from botcoin.common.data import MarketData
 from botcoin.common.errors import BarValidationError, NegativeExecutionPriceError, ExecutionPriceOutOfBandError
 from botcoin.common.events import MarketEvent, SignalEvent, OrderEvent
 from botcoin.common.strategy import Strategy
-from botcoin.common.trade import Trade
 from botcoin.utils import _round
 
 class Portfolio(object):
@@ -25,8 +24,6 @@ class Portfolio(object):
         self.positions = None
         self.holdings = None
 
-        # Holds orders while they're being executed
-        self.pending_orders = set()
         # Current open positions
         self.open_trades = {}
         # List of all closed trades
@@ -73,13 +70,11 @@ class Portfolio(object):
 
     @property
     def long_positions(self):
-        return [trade for trade in self.open_trades.values() if trade.direction in ('BUY')] + \
-            [order for order in self.pending_orders if order.direction in ('BUY')]
+        return [trade for trade in self.open_trades.values() if trade.direction in ('BUY')]
 
     @property
     def short_positions(self):
-        return [trade for trade in self.open_trades.values() if trade.direction in ('SHORT')] + \
-            [order for order in self.pending_orders if order.direction in ('SHORT')]
+        return [trade for trade in self.open_trades.values() if trade.direction in ('SHORT')]
 
     def run_cycle(self):
         while True:
@@ -155,8 +150,9 @@ class Portfolio(object):
             )
 
     def market_closed(self):
-        if self.pending_orders:
+        if not all([t.is_fully_filled for t in self.open_trades.values()]):
             logging.warning("Market closed while there are pending orders. Shouldn't happen in backtesting.")
+
 
         # open_positions used for keeping track of open positions over time
         self.positions['open_trades'] = len(self.open_trades)
@@ -223,15 +219,9 @@ class Portfolio(object):
                     return
 
                 order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity * adj_price, date)
-                self.open_trades[order.symbol] = Trade(order)
-
 
         elif direction in ('SELL', 'COVER') and cur_position != 0:
             quantity = -1 * cur_position
-            # Checks if there is a similar order in pending_orders to protect
-            # against repeated signals coming from strategy
-            if [order for order in self.pending_orders if (order.symbol == symbol and order.quantity == quantity)]:
-                logging.critical("Possible duplicate order being created in portfolio.")
             order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price, date)
 
         if order:

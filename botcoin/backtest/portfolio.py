@@ -1,14 +1,15 @@
 from botcoin.common.events import FillEvent
 from botcoin.common.portfolio import Portfolio
+from botcoin.common.trade import Trade
 
 class BacktestPortfolio(Portfolio):
 
     @property
     def cash_balance(self):
         # Pending orders that remove cash from account
-        long_pending_orders = [order for order in self.pending_orders if order.direction in ('BUY','COVER')]
+        money_held = sum([t.estimated_cost for t in self.open_trades.values() if t.direction in ('BUY','COVER') and not t.is_fully_filled])
 
-        return self.holdings['cash'] - sum([i.estimated_cost for i in long_pending_orders])
+        return self.holdings['cash'] - money_held
 
     @property
     def net_liquidation(self):
@@ -34,6 +35,15 @@ class BacktestPortfolio(Portfolio):
             raise NegativeExecutionPriceError(self.strategy, self.market.updated_at, symbol, exec_price)
 
     def execute_order(self, order):
+        if order.direction in ('BUY', 'SHORT'):
+            self.open_trades[order.symbol] = Trade(order)  # Start trade
+        else:
+            # Checks if there is a similar order in pending_orders to protect
+            # against repeated signals coming from strategy
+            if self.open_trades[order.symbol].close_order:
+                logging.critical("Possible duplicate order being created in portfolio.")
+
+            self.open_trades[order.symbol].exiting(order)  # Flag trade as exiting
 
         cost = order.quantity * order.limit_price
 

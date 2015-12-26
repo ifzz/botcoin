@@ -6,20 +6,24 @@ class Trade(object):
     Complete trade (buy/sell or short/cover)
     """
     def __init__(self, order):
-        self.is_open = False
         self.symbol = order.symbol
         self.direction = order.direction
         self.opened_at = order.created_at
         self.quantity = order.quantity
 
+        self.estimated_cost = order.estimated_cost
+
         self.commission = 0
 
         self.open_filled_quantity = 0
         self.open_cost = 0
+        self.open_order = order
 
         self.close_filled_quantity = 0
         self.close_cost = 0
+        self.close_order = None
 
+        self.is_open = False
         self.is_fully_filled = False
 
 
@@ -33,6 +37,9 @@ class Trade(object):
         if self.open_filled_quantity == self.quantity:
             self.is_fully_filled = True
             logging.debug('{} order for {} filled'.format(self.direction, self.symbol))
+
+    def exiting(self, order):
+        self.close_order = order
 
     def update_close_fill(self, new_fill):
 
