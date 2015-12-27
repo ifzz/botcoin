@@ -58,31 +58,31 @@ def main():
 
             # Checking data consistency
             if (df['high'] < df['open']).any() == True:
-                dates = df.loc[(df['high'] < df['open']) == True].index
+                dates = df.loc[(df['high'] < df['open']) == True].index.format()
                 logging.info('Inconsistent data detected - {} high < open on {}'.format(symbol, dates))
                 # df['high'] = np.where(df['high'] < df['open'], df['open'], df['high'])
                 # logging.info('Fixed {} high < open on {}'.format(symbol, dates))
 
             if (df['high'] < df['close']).any() == True:
-                dates = df.loc[(df['high'] < df['close']) == True].index
+                dates = df.loc[(df['high'] < df['close']) == True].index.format()
                 logging.info('Inconsistent data detected - {} high < close on {}'.format(symbol, dates))
                 # df['high'] = np.where(df['high'] < df['close'], df['close'], df['high'])
                 # logging.info('Fixed {} high < close on {}'.format(symbol, dates))
 
             if (df['low'] > df['open']).any() == True:
-                dates = df.loc[(df['low'] > df['open']) == True].index
+                dates = df.loc[(df['low'] > df['open']) == True].index.format()
                 logging.info('Inconsistent data detected - {} low > open on {}'.format(symbol, dates))
                 # df['low'] = np.where(df['low'] > df['open'], df['open'], df['low'])
                 # logging.info('Fixed {} low > open on {}'.format(symbol, dates))
 
             if (df['low'] > df['close']).any() == True:
-                dates = df.loc[(df['low'] > df['close']) == True].index
+                dates = df.loc[(df['low'] > df['close']) == True].index.format()
                 logging.info('Inconsistent data detected - {} low > close on {}'.format(symbol, dates))
                 # df['low'] = np.where(df['low'] > df['close'], df['close'], df['low'])
                 # logging.info('Fixed {} low > close on {}'.format(symbol, dates))
 
             if (df['high'] < df['low']).any() == True:
-                dates = df.loc[(df['high'] < df['low']) == True].index
+                dates = df.loc[(df['high'] < df['low']) == True].index.format()
                 logging.info('Inconsistent data detected - {} high < low on {}'.format(symbol, dates))
                 # df['high'] = np.where(df['high'] < df['low'], df['low'], df['high'])
                 # logging.info('Fixed {} high < low on {}'.format(symbol, dates))
