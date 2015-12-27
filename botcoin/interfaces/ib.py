@@ -76,13 +76,13 @@ class IbHandler(EWrapperVerbose):
 
     def updateAccountValue(self, key, value, currency, account):
         if key == 'CashBalance':
-            self.portfolio.cash_balance = float(value)
+            self.portfolio._cash_balance = float(value)
         elif key == 'NetLiquidation':
-            self.portfolio.net_liquidation = float(value)
+            self.portfolio._net_liquidation = float(value)
         elif key == 'StockMarketValue':
-            self.portfolio.stock_market_value = float(value)
+            self.portfolio._stock_market_value = float(value)
         elif key == 'UnrealizedPnL':
-            self.portfolio.unrealized_pnl = float(value)
+            self.portfolio._unrealized_pnl = float(value)
 
     def updatePortfolio(self, contract, position, avg_market_price, market_value,
                         average_cost, unrealized_pnl, realized_pnl, account):

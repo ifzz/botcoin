@@ -10,8 +10,8 @@ from botcoin import settings
 from botcoin.common.data import MarketData
 from botcoin.common.errors import BarValidationError, NegativeExecutionPriceError, ExecutionPriceOutOfBandError
 from botcoin.common.events import MarketEvent, SignalEvent, OrderEvent
+from botcoin.common.risk import RiskAnalysis
 from botcoin.common.strategy import Strategy
-from botcoin.utils import _round
 
 class Portfolio(object):
     """
@@ -61,12 +61,16 @@ class Portfolio(object):
         self.COMMISSION_MIN = settings.COMMISSION_MIN = getattr(strategy, 'COMMISSION_MIN', settings.COMMISSION_MIN)
         self.MAX_SLIPPAGE = settings.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
 
+        self.risk = RiskAnalysis(
+            self.COMMISSION_FIXED, self.COMMISSION_PCT, self.COMMISSION_MIN, self.CAPITAL_TRADABLE_CAP,
+            self.POSITION_SIZE, self.ROUND_LOT_SIZE, self.MAX_SLIPPAGE, self.ADJUST_POSITION_DOWN,
+            self.cash_balance, self.net_liquidation
+        )
 
         # Setting attributes in strategy
         self.strategy.events_queue   = self.events_queue
         self.strategy.market = self.market
-        # temporary to allow strategy to call risk related methods
-        self.strategy.portfolio = self
+        self.strategy.risk = self.risk
 
         # Setting attributes in market
         self.market.events_queue_list.append(self.events_queue)
@@ -157,7 +161,6 @@ class Portfolio(object):
         if not all([t.is_fully_filled for t in self.open_trades.values()]):
             logging.warning("Market closed while there are pending orders. Shouldn't happen in backtesting.")
 
-
         # open_positions used for keeping track of open positions over time
         self.positions['open_trades'] = len(self.open_trades)
         # subscribed_symbols used for keeping track of how many
@@ -171,7 +174,7 @@ class Portfolio(object):
                 self.positions['subscribed_symbols'] = len(self.market.symbol_list)
 
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
-        self.holdings['total'] = self.net_liquidation
+        self.holdings['total'] = self.net_liquidation()
         for s in self.market.symbol_list:
             self.holdings[s] = self.positions[s] * self.market.last_price(s)
 
@@ -190,7 +193,7 @@ class Portfolio(object):
         self.check_signal_consistency(symbol, exec_price, direction)
 
         # Adjusted execution price for slippage
-        adj_price = self.adjust_price_for_slippage(direction, exec_price)
+        adj_price = self.risk.adjust_price_for_slippage(direction, exec_price)
 
         cur_quantity = self.positions[symbol]
         quantity = 0
@@ -200,69 +203,24 @@ class Portfolio(object):
             if (len(self.long_positions) < self.MAX_LONG_POSITIONS and direction == 'BUY') or \
                 (len(self.short_positions) < self.MAX_SHORT_POSITIONS and direction == 'SHORT'):
 
-                quantity, estimated_commission = self.calculate_quantity_and_commission(direction, adj_price)
+                quantity, estimated_commission = self.risk.calculate_quantity_and_commission(direction, adj_price)
 
         elif direction in ('SELL', 'COVER') and cur_quantity != 0:
-            quantity, estimated_commission = self.calculate_quantity_and_commission(direction, adj_price, cur_quantity)
+            quantity, estimated_commission = self.risk.calculate_quantity_and_commission(direction, adj_price, cur_quantity)
+
+        # Checking if quantity is consistent to direction
+        if (quantity < 0 and direction in ('BUY','COVER')) or (quantity > 0 and direction in ('SHORT','SELL')):
+            logging.warning(
+                " {} order quantity for {}. Cash balance {}, price {}, round lot size {}. This is a sign of inconsistency in portfolio holdings.".format(
+                quantity, self.strategy, self.cash_balance(), adj_price,self.ROUND_LOT_SIZE,
+            ))
+            return
 
         if quantity != 0:
             order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price, date)
 
             logging.debug(str(order))
             self.execute_order(order)
-
-    def adjust_price_for_slippage(self, direction, price):
-        direction_mod = -1 if direction in ('SELL','SHORT') else 1
-        return _round(price * (1+self.MAX_SLIPPAGE*direction_mod))
-
-    def determine_commission(self, quantity, price):
-        return max(self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * price), self.COMMISSION_MIN)
-
-    def calculate_quantity_and_commission(self, direction, adj_price, current_quantity=None):
-        direction_mod = -1 if direction in ('SELL','SHORT') else 1
-
-        if direction in ('BUY', 'SHORT'):
-
-            # Cash to be spent on this position
-            if self.CAPITAL_TRADABLE_CAP:
-                position_cash = min(self.CAPITAL_TRADABLE_CAP, self.net_liquidation)*self.POSITION_SIZE
-            else:
-                position_cash = self.net_liquidation*self.POSITION_SIZE
-
-            # Adjust position down if not enough money and
-            if direction == 'BUY':
-                if position_cash > self.cash_balance:
-                    if self.ADJUST_POSITION_DOWN:
-                        position_cash = self.cash_balance
-                    else:
-                        logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-cash_balance)))
-                        return
-
-            quantity = direction_mod * position_cash / adj_price
-            quantity = floor(quantity/self.ROUND_LOT_SIZE) * self.ROUND_LOT_SIZE if self.ROUND_LOT_SIZE else quantity
-
-            estimated_commission = self.determine_commission(quantity, adj_price)
-
-            # For as long as estimated cost is bigger than position_cash available
-            while estimated_commission + quantity * adj_price > position_cash:
-                # Adjust quantity down
-                quantity -= self.ROUND_LOT_SIZE or 1  # What if can buy less than 1 (e.g. BTC)
-                # Recalculate commission
-                estimated_commission = max(self.COMMISSION_FIXED + self.COMMISSION_PCT * abs(quantity) * adj_price, self.COMMISSION_MIN)
-
-        elif direction in ('SELL', 'COVER'):
-            quantity = -1 * current_quantity  # Should raise TypeError if current_quality is None
-            estimated_commission =  self.determine_commission(quantity, adj_price)
-
-        if (quantity < 1 and direction in ('BUY','COVER')) or (quantity > -1 and direction in ('SHORT','SELL')):
-            logging.warning(
-                " {} order quantity for {} on {}. Position cash {}, price {}, round lot size {}. \
-                This is a sign of inconsistency in portfolio holdings.".format(
-                quantity, symbol, self.strategy, position_cash, adj_price,self.ROUND_LOT_SIZE,
-            ))
-            return
-
-        return quantity, estimated_commission
 
     def update_from_fill(self, fill):
         logging.debug(str(fill))

@@ -129,6 +129,16 @@ class Strategy(object):
                 self.subscribed_symbols = set(self.market.symbol_list)
             self.subscribed_symbols.remove(symbol)
 
+    def trade_profitability(self, direction, entry_price, exit_price):
+        """ Checks if, given an entry and exit price, a trade would be profitable.
+        Uses same methods from risk that are used to calculate position size by
+        portfolio.
+        """
+        quantity, entry_comm = self.risk.calculate_quantity_and_commission(direction, entry_price)
+        exit_comm = self.risk.determine_commission(quantity, exit_price)
+        total_comm = entry_comm + exit_comm
+        return (exit_price - entry_price)*quantity - total_comm
+
 class SymbolStatus(object):
     def __init__(self, status=''):
         self.status = status

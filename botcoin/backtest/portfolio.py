@@ -4,14 +4,12 @@ from botcoin.common.trade import Trade
 
 class BacktestPortfolio(Portfolio):
 
-    @property
     def cash_balance(self):
         # Pending orders that remove cash from account
         money_held = sum([t.estimated_cost for t in self.open_trades.values() if t.direction in ('BUY','COVER') and not t.is_fully_filled])
 
         return self.holdings['cash'] - money_held
 
-    @property
     def net_liquidation(self):
         value = self.holdings['cash']
         return value + sum([self.positions[s] * self.market.last_price(s) for s in self.market.symbol_list])
@@ -49,7 +47,7 @@ class BacktestPortfolio(Portfolio):
 
         # order.quantity needs abs(), to
 
-        commission = self.determine_commission(order.quantity, order.limit_price)
+        commission = self.risk.determine_commission(order.quantity, order.limit_price)
 
         # in case I mess up and remove abs() again
         assert(commission>0)
