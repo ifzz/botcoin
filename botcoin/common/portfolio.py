@@ -65,6 +65,8 @@ class Portfolio(object):
         # Setting attributes in strategy
         self.strategy.events_queue   = self.events_queue
         self.strategy.market = self.market
+        # temporary to allow strategy to call risk related methods
+        self.strategy.portfolio = self
 
         # Setting attributes in market
         self.market.events_queue_list.append(self.events_queue)
@@ -181,7 +183,6 @@ class Portfolio(object):
         symbol = signal.symbol
         direction = signal.direction
         date = self.market.updated_at
-        direction_mod = -1 if direction in ('SELL','SHORT') else 1
 
         exec_price = signal.exec_price or self.market.last_price(symbol)
 
@@ -189,65 +190,79 @@ class Portfolio(object):
         self.check_signal_consistency(symbol, exec_price, direction)
 
         # Adjusted execution price for slippage
-        adj_price = _round(exec_price * (1+self.MAX_SLIPPAGE*direction_mod))
+        adj_price = self.adjust_price_for_slippage(direction, exec_price)
 
-        cur_position = self.positions[symbol]
-        order = None
+        cur_quantity = self.positions[symbol]
+        quantity = 0
 
-        if direction in ('BUY', 'SHORT') and cur_position == 0:
+        if direction in ('BUY', 'SHORT') and cur_quantity == 0:
 
-            if ((len(self.long_positions) < self.MAX_LONG_POSITIONS and direction == 'BUY') or
-                (len(self.short_positions) < self.MAX_SHORT_POSITIONS and direction == 'SHORT')):
+            if (len(self.long_positions) < self.MAX_LONG_POSITIONS and direction == 'BUY') or \
+                (len(self.short_positions) < self.MAX_SHORT_POSITIONS and direction == 'SHORT'):
 
-                # Cash to be spent on this position
-                if self.CAPITAL_TRADABLE_CAP:
-                    position_cash = min(self.CAPITAL_TRADABLE_CAP, self.net_liquidation)*self.POSITION_SIZE
-                else:
-                    position_cash = self.net_liquidation*self.POSITION_SIZE
-                # Quantity to BUY or SHORT
-                quantity = 0
+                quantity, estimated_commission = self.calculate_quantity_and_commission(direction, adj_price)
 
-                # Adjust position down if not enough money and
-                if direction == 'BUY':
-                    if position_cash > self.cash_balance:
-                        if self.ADJUST_POSITION_DOWN:
-                            position_cash = self.cash_balance
-                        else:
-                            logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-cash_balance)))
-                            return
+        elif direction in ('SELL', 'COVER') and cur_quantity != 0:
+            quantity, estimated_commission = self.calculate_quantity_and_commission(direction, adj_price, cur_quantity)
 
-                quantity = self.calculate_quantity(direction_mod, position_cash, adj_price)
-
-                if ((quantity < 1 and direction == 'BUY') or (quantity > -1 and direction == 'SHORT')):
-                    logging.warning("{} order quantity for {} on {}. Position cash {}, price {}, round lot size {}".format(
-                        quantity, symbol, self.strategy, position_cash, adj_price,self.ROUND_LOT_SIZE,
-                    ))
-                    return
-
-                order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity * adj_price, date)
-
-        elif direction in ('SELL', 'COVER') and cur_position != 0:
-            quantity = -1 * cur_position
+        if quantity != 0:
             order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price, date)
 
-        if order:
             logging.debug(str(order))
             self.execute_order(order)
 
-    def calculate_quantity(self, direction_mod, position_cash, adj_price):
-        quantity = direction_mod * position_cash / adj_price
-        quantity = floor(quantity/self.ROUND_LOT_SIZE) * self.ROUND_LOT_SIZE if self.ROUND_LOT_SIZE else quantity
+    def adjust_price_for_slippage(self, direction, price):
+        direction_mod = -1 if direction in ('SELL','SHORT') else 1
+        return _round(price * (1+self.MAX_SLIPPAGE*direction_mod))
 
-        estimated_commission = max(self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * adj_price), self.COMMISSION_MIN)
+    def determine_commission(self, quantity, price):
+        return max(self.COMMISSION_FIXED + (self.COMMISSION_PCT * abs(quantity) * price), self.COMMISSION_MIN)
 
-        # For as long as estimated cost is bigger than position_cash available
-        while estimated_commission + quantity * adj_price > position_cash:
-            # Adjust quantity down
-            quantity -= self.ROUND_LOT_SIZE or 1  # What if can buy less than 1 (e.g. BTC)
-            # Recalculate commission
-            estimated_commission = max(self.COMMISSION_FIXED + self.COMMISSION_PCT * abs(quantity) * adj_price, self.COMMISSION_MIN)
+    def calculate_quantity_and_commission(self, direction, adj_price, current_quantity=None):
+        direction_mod = -1 if direction in ('SELL','SHORT') else 1
 
-        return quantity
+        if direction in ('BUY', 'SHORT'):
+
+            # Cash to be spent on this position
+            if self.CAPITAL_TRADABLE_CAP:
+                position_cash = min(self.CAPITAL_TRADABLE_CAP, self.net_liquidation)*self.POSITION_SIZE
+            else:
+                position_cash = self.net_liquidation*self.POSITION_SIZE
+
+            # Adjust position down if not enough money and
+            if direction == 'BUY':
+                if position_cash > self.cash_balance:
+                    if self.ADJUST_POSITION_DOWN:
+                        position_cash = self.cash_balance
+                    else:
+                        logging.warning("Can't adjust position, {} missing cash.".format(str(position_cash-cash_balance)))
+                        return
+
+            quantity = direction_mod * position_cash / adj_price
+            quantity = floor(quantity/self.ROUND_LOT_SIZE) * self.ROUND_LOT_SIZE if self.ROUND_LOT_SIZE else quantity
+
+            estimated_commission = self.determine_commission(quantity, adj_price)
+
+            # For as long as estimated cost is bigger than position_cash available
+            while estimated_commission + quantity * adj_price > position_cash:
+                # Adjust quantity down
+                quantity -= self.ROUND_LOT_SIZE or 1  # What if can buy less than 1 (e.g. BTC)
+                # Recalculate commission
+                estimated_commission = max(self.COMMISSION_FIXED + self.COMMISSION_PCT * abs(quantity) * adj_price, self.COMMISSION_MIN)
+
+        elif direction in ('SELL', 'COVER'):
+            quantity = -1 * current_quantity  # Should raise TypeError if current_quality is None
+            estimated_commission =  self.determine_commission(quantity, adj_price)
+
+        if (quantity < 1 and direction in ('BUY','COVER')) or (quantity > -1 and direction in ('SHORT','SELL')):
+            logging.warning(
+                " {} order quantity for {} on {}. Position cash {}, price {}, round lot size {}. \
+                This is a sign of inconsistency in portfolio holdings.".format(
+                quantity, symbol, self.strategy, position_cash, adj_price,self.ROUND_LOT_SIZE,
+            ))
+            return
+
+        return quantity, estimated_commission
 
     def update_from_fill(self, fill):
         logging.debug(str(fill))
