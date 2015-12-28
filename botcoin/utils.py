@@ -6,7 +6,6 @@ import pandas as pd
 import os
 import sys
 
-from . import settings
 from .common.strategy import Strategy
 
 def optimize(*args):
@@ -66,6 +65,6 @@ def _basic_config(verbose=None):
 
 def _round(value):
     if value >= 1:
-        return np.round(value, settings.ROUND_DECIMALS)
+        return np.round(value, ROUND_DECIMALS)
     else:
-        return np.round(value, settings.ROUND_DECIMALS_BELOW_ONE)
+        return np.round(value, ROUND_DECIMALS_BELOW_ONE)

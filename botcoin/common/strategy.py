@@ -66,8 +66,9 @@ class Strategy(object):
 
     def _call_strategy_method(self, method_name, symbol=None):
         method = getattr(self, method_name)
-        if symbol and self.is_subscribed_to(symbol):
-            method(symbol)
+        if symbol:
+            if self.is_subscribed_to(symbol):
+                method(symbol)
         else:
             method()
 

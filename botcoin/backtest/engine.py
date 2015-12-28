@@ -13,6 +13,9 @@ from botcoin.backtest.portfolio import BacktestPortfolio
 class BacktestEngine(object):
     def __init__(self, strategies, data_dir, start_automatically=True):
 
+        if not strategies:
+            raise ValueError("Empty strategies list in your algo file.")
+
         # Single market object will be used for all backtesting instances
         self.market = BacktestMarketData(
             data_dir, #should come from script loader

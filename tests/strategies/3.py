@@ -5,12 +5,14 @@ class MovingAverage(botcoin.Strategy):
     def initialize(self):
         self.SYMBOL_LIST = ['^GSPC']
 
-        self.DATE_FROM = '2005'
+        self.DATE_FROM = '2010'
         self.DATE_TO = '2014'
 
         self.INITIAL_CAPITAL = 100000.00
         self.MAX_LONG_POSITIONS = 1
         self.ROUND_LOT_SIZE = 1
+        self.COMMISSION_FIXED = 0.0
+        self.COMMISSION_MIN = 0.0
 
         self.fast = self.get_arg(0, 5)
         self.slow = self.get_arg(1, 15)
@@ -27,6 +29,3 @@ class MovingAverage(botcoin.Strategy):
                     self.sell(symbol)
             except botcoin.BarValidationError as e:
                 pass
-
-
-# strategies = [MovingAverage(5,i) for i in botcoin.optimize((5,100,5))]

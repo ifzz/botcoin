@@ -1,5 +1,4 @@
 import logging
-import math
 
 class Trade(object):
     """
@@ -56,8 +55,8 @@ class Trade(object):
             self.closed_at = new_fill.created_at
             self.pnl = -(self.open_cost + self.close_cost + self.commission)
 
-            assert(math.fabs(self.close_cost) ==  self.quantity*self.avg_close_price)
-            assert(math.fabs(self.open_cost) ==  self.quantity*self.avg_open_price)
+            assert(self.close_cost ==  -self.quantity*self.avg_close_price)
+            assert(self.open_cost ==  self.quantity*self.avg_open_price)
 
             logging.debug('{} order for {} filled'.format(new_fill.direction, self.symbol))
 
@@ -65,5 +64,5 @@ class Trade(object):
         """ Used when backtesting finished and open_positions result need to be estimated """
         self.closed_at = created_at
         self.close_cost = close_cost
-        self.avg_close_price = math.fabs(close_cost/self.quantity)
+        self.avg_close_price = close_cost/-self.quantity
         self.pnl = -(self.open_cost + self.close_cost + self.commission)

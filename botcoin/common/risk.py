@@ -20,6 +20,7 @@ class RiskAnalysis(object):
 
     def adjust_price_for_slippage(self, direction, price):
         direction_mod = -1 if direction in ('SELL','SHORT') else 1
+        # print(self.MAX_SLIPPAGE)
         return _round(price * (1+self.MAX_SLIPPAGE*direction_mod))
 
     def determine_commission(self, quantity, price):
