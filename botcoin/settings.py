@@ -6,15 +6,18 @@ NORMALIZE_PRICES = True
 # Normalize volume based on relation between adj_close and close
 NORMALIZE_VOLUME = False
 
-
+# Stuff used for live stuff
 CURRENCY = 'AUD'
+EXCHANGE = 'ASX'
+SEC_TYPE = 'STK'
+
 # Initial portfolio capital
 INITIAL_CAPITAL = 10000.00
 # Limits the maximum cash that can be traded
 CAPITAL_TRADABLE_CAP = 0
 
-# Position size needs to be on increments of ROUND_LOT_SIZE
-ROUND_LOT_SIZE = 10
+# Position size will be on increments of ROUND_LOT_SIZE
+ROUND_LOT_SIZE = 1
 
 # If both COMMISSION_FIXED and COMMISSION_PCT are set, both will be charged on each trade
 # Fixed commission charged on each trade
@@ -24,17 +27,16 @@ COMMISSION_PCT = 0.0008 # IB fixed commission Australia
 # Minimum commission to be charged
 COMMISSION_MIN = 6.0
 
-
 # Used by portfolio to calculate limit_prices and estimated cost for Orders
 MAX_SLIPPAGE = 0.0000
 
 # Max number of concurrent open long positions
 MAX_LONG_POSITIONS = 5
 MAX_SHORT_POSITIONS = 0
+
 # POSITION_SIZE has no default value.
 # It is either derived from 1/MAX_LONG_POSITIONS or set by strategy, and is
 # represented as percentage of portfolio level equity
-
 
 # Adjusts position if there isn't enough cash available
 ADJUST_POSITION_DOWN = True
@@ -45,12 +47,6 @@ THRESHOLD_DANGEROUS_TRADE = 0.20
 # Number of decimals used for rounding prices
 ROUND_DECIMALS = 2
 ROUND_DECIMALS_BELOW_ONE = 3
-
-
-# IB specific parameters
-EXCHANGE = 'ASX'
-SEC_TYPE = 'STK'
-
 
 # List of symbols
 

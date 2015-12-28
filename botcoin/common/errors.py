@@ -41,3 +41,6 @@ class ExecutionPriceOutOfBandError(Exception):
         self.low = low
 
         super(ExecutionPriceOutOfBandError, self).__init__(self.message)
+
+class DataIsTooOldError(Exception):
+    pass

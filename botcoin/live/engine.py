@@ -3,6 +3,7 @@ import logging
 import time
 
 from botcoin import settings
+from botcoin.common.errors import DataIsTooOldError
 from botcoin.live.data import LiveMarketData
 from botcoin.live.portfolio import LivePortfolio
 from botcoin.interfaces.ib import IbHandler, IbSocket
@@ -58,16 +59,24 @@ class LiveEngine(object):
         self.market._stop()
 
     def _initial_status_check(self):
+        # Checks if the attributes below were set by if_handler
         try:
             if self.market.updated_at and self.portfolio.account_id:
                 pass
-
-            if (self.market.updated_at-self.market.last_historical_bar_at >= datetime.timedelta(days=4)):
-                logging.critical('More than 3 days of delta between last historical datetime and current datetime')
-                return False
-
-        except Exception as e:
-            logging.critical(e)
+        except AttributeError:
             return False
+
+        # Checks last local historical data available and verifies if it
+        # is too old ( >=4 days delta on monday, >=2 every for the rest)
+        now = self.market.updated_at
+        delta = now-self.market.last_historical_bar_at
+        old_data = False
+        if now.weekday() == 0:
+            if delta >= datetime.timedelta(days=4):
+                old_data = True
+        else:
+            if delta >= datetime.timedelta(days=2):
+                old_data = True
+        if old_data: raise DataIsTooOldError
 
         return True

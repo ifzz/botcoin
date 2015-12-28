@@ -3,18 +3,9 @@ from math import floor
 from botcoin.utils import _round
 
 class RiskAnalysis(object):
-    def __init__(self, COMMISSION_FIXED, COMMISSION_PCT, COMMISSION_MIN,
-                CAPITAL_TRADABLE_CAP, POSITION_SIZE, ROUND_LOT_SIZE,
-                MAX_SLIPPAGE, ADJUST_POSITION_DOWN, cash_balance_method, net_liquidation_method):
-
-        self.COMMISSION_FIXED = COMMISSION_FIXED
-        self.COMMISSION_PCT = COMMISSION_PCT
-        self.COMMISSION_MIN = COMMISSION_MIN
-        self.CAPITAL_TRADABLE_CAP = CAPITAL_TRADABLE_CAP
-        self.POSITION_SIZE = POSITION_SIZE
-        self.ROUND_LOT_SIZE = ROUND_LOT_SIZE
-        self.MAX_SLIPPAGE = MAX_SLIPPAGE
-        self.ADJUST_POSITION_DOWN = ADJUST_POSITION_DOWN
+    def __init__(self, settings_dict, cash_balance_method, net_liquidation_method):
+        
+        [setattr(self, key, val) for key, val in settings_dict.items()]
         self.cash_balance = cash_balance_method
         self.net_liquidation = net_liquidation_method
 

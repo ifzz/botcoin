@@ -45,32 +45,12 @@ class Portfolio(object):
         self.market = market
         self.strategy = strategy
 
+        self.settings_dict = utils._grab_settings_from_strategy(strategy)
+
         # Grabbing config from strategy
-        self.NORMALIZE_PRICES = getattr(strategy, 'NORMALIZE_PRICES', settings.NORMALIZE_PRICES)
-        self.NORMALIZE_VOLUME = getattr(strategy, 'NORMALIZE_VOLUME', settings.NORMALIZE_VOLUME)
-        self.ROUND_LOT_SIZE = getattr(strategy, 'ROUND_LOT_SIZE', settings.ROUND_LOT_SIZE)
-        self.THRESHOLD_DANGEROUS_TRADE = getattr(strategy, 'THRESHOLD_DANGEROUS_TRADE', settings.THRESHOLD_DANGEROUS_TRADE)
-        self.INITIAL_CAPITAL = getattr(strategy, 'INITIAL_CAPITAL', settings.INITIAL_CAPITAL)
-        self.CAPITAL_TRADABLE_CAP = floor(getattr(strategy, 'CAPITAL_TRADABLE_CAP', settings.CAPITAL_TRADABLE_CAP))
-        self.MAX_LONG_POSITIONS = floor(getattr(strategy, 'MAX_LONG_POSITIONS', settings.MAX_LONG_POSITIONS))
-        self.MAX_SHORT_POSITIONS = floor(getattr(strategy, 'MAX_SHORT_POSITIONS', settings.MAX_SHORT_POSITIONS))
-        self.ADJUST_POSITION_DOWN = getattr(strategy, 'ADJUST_POSITION_DOWN', settings.ADJUST_POSITION_DOWN)
-        self.COMMISSION_FIXED = getattr(strategy, 'COMMISSION_FIXED', settings.COMMISSION_FIXED)
-        self.COMMISSION_PCT = getattr(strategy, 'COMMISSION_PCT', settings.COMMISSION_PCT)
-        self.COMMISSION_MIN = getattr(strategy, 'COMMISSION_MIN', settings.COMMISSION_MIN)
-        self.MAX_SLIPPAGE = getattr(strategy, 'MAX_SLIPPAGE', settings.MAX_SLIPPAGE)
-        self.ROUND_DECIMALS = utils.ROUND_DECIMALS = getattr(strategy, 'ROUND_DECIMALS', settings.ROUND_DECIMALS)
-        self.ROUND_DECIMALS_BELOW_ONE = utils.ROUND_DECIMALS_BELOW_ONE = getattr(strategy, 'ROUND_DECIMALS_BELOW_ONE', settings.ROUND_DECIMALS_BELOW_ONE)
+        [setattr(self, key, val) for key, val in self.settings_dict.items()]
 
-        default_position_size = 1.0/self.MAX_LONG_POSITIONS if self.MAX_LONG_POSITIONS else 1.0/self.MAX_SHORT_POSITIONS
-        self.POSITION_SIZE = getattr(strategy, 'POSITION_SIZE', default_position_size)
-
-
-        self.risk = RiskAnalysis(
-            self.COMMISSION_FIXED, self.COMMISSION_PCT, self.COMMISSION_MIN, self.CAPITAL_TRADABLE_CAP,
-            self.POSITION_SIZE, self.ROUND_LOT_SIZE, self.MAX_SLIPPAGE, self.ADJUST_POSITION_DOWN,
-            self.cash_balance, self.net_liquidation
-        )
+        self.risk = RiskAnalysis(self.settings_dict, self.cash_balance, self.net_liquidation)
 
         # Setting attributes in strategy
         self.strategy.events_queue   = self.events_queue
