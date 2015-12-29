@@ -17,7 +17,7 @@ class Portfolio(object):
     """
     Portfolio root class.
     """
-    def __init__(self):
+    def __init__(self, market, strategy):
 
         self.all_positions = []
         self.all_holdings = []
@@ -29,11 +29,6 @@ class Portfolio(object):
         # List of all closed trades
         self.all_trades = []
 
-
-    def set_modules(self, market, strategy):
-        if (not isinstance(market, MarketData) or
-            not isinstance(strategy, Strategy)):
-            raise TypeError("Improper parameter type on Portfolio.__init__()")
 
         # check for symbol names that would conflict with columns used in holdings and positions
         for symbol in market.symbol_list:
@@ -143,7 +138,7 @@ class Portfolio(object):
         self.strategy._market_opened()
 
     def market_closed(self):
-        if not all([t.is_fully_filled for t in self.open_trades.values()]):
+        if not all([t.open_is_fully_filled for t in self.open_trades.values()]):
             logging.warning("Market closed while there are pending orders. Shouldn't happen in backtesting.")
 
         # open_positions used for keeping track of open positions over time
@@ -217,7 +212,7 @@ class Portfolio(object):
             self.open_trades[fill.symbol].update_close_fill(fill)
             # If trade is closed, remove it from open_trades
             # and archive it in all_trades
-            if not self.open_trades[fill.symbol].is_open:
+            if self.open_trades[fill.symbol].status == 'CLOSED':
                 self.all_trades.append(self.open_trades[fill.symbol])
                 del self.open_trades[fill.symbol]
 

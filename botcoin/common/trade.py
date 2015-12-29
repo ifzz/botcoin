@@ -12,51 +12,66 @@ class Trade(object):
 
         self.estimated_cost = order.estimated_cost
 
-        self.commission = 0
-
         self.open_filled_quantity = 0
         self.open_cost = 0
+        self.open_commission = 0
         self.open_order = order
 
         self.close_filled_quantity = 0
         self.close_cost = 0
+        self.close_commission = 0
         self.close_order = None
 
-        self.is_open = False
-        self.is_fully_filled = False
+    @property
+    def open_is_fully_filled(self):
+        return self.open_filled_quantity == self.quantity
 
+    @property
+    def close_is_fully_filled(self):
+        return self.close_filled_quantity == -self.quantity
+
+    @property
+    def status(self):
+        if self.close_is_fully_filled:
+            return 'CLOSED'  # close filled, trade finished
+        elif self.close_order:
+            return 'CLOSE SUBMITTED'  # there is a close order, position being exited
+        elif self.open_is_fully_filled:
+            return 'OPEN'  # trade openned, open fully filled
+        else:
+            return 'OPEN SUBMITTED'  # order submitted but not executed at all
+
+    @property
+    def commission(self):
+        return self.open_commission + self.close_commission
 
     def update_open_fill(self, fill):
-        self.is_open = True
-        self.open_filled_quantity += fill.quantity
-        self.open_cost += fill.cost
-        self.commission = fill.commission
+        self.open_filled_quantity = fill.quantity
+        self.open_cost = fill.cost
+        self.open_commission = fill.commission
         self.avg_open_price = fill.price
 
-        if self.open_filled_quantity == self.quantity:
-            self.is_fully_filled = True
+        if self.open_is_fully_filled:
             logging.debug('{} order for {} filled'.format(self.direction, self.symbol))
 
-    def exiting(self, order):
+    def update_close_order(self, order):
         self.close_order = order
 
     def update_close_fill(self, new_fill):
-
-        if not self.is_fully_filled:
+        if not self.open_is_fully_filled:
             raise AssertionError('Closing {} trade before it even started on {}.'.format(self.symbol,new_fill.created_at))
 
-        self.close_filled_quantity += new_fill.quantity
+        self.close_filled_quantity = new_fill.quantity
         self.avg_close_price = new_fill.price
+        self.close_cost = new_fill.cost
+        self.close_commission = new_fill.commission
 
-        if self.close_filled_quantity == -self.quantity:
-            self.is_open = False
-            self.commission += new_fill.commission
-            self.close_cost += new_fill.cost
+        if self.close_is_fully_filled:
             self.closed_at = new_fill.created_at
             self.pnl = -(self.open_cost + self.close_cost + self.commission)
 
-            assert(self.close_cost ==  -self.quantity*self.avg_close_price)
-            assert(self.open_cost ==  self.quantity*self.avg_open_price)
+            assert(self.close_cost == -self.quantity*self.avg_close_price)
+            assert(self.open_cost == self.quantity*self.avg_open_price)
 
             logging.debug('{} order for {} filled'.format(new_fill.direction, self.symbol))
 

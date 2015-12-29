@@ -47,7 +47,6 @@ class IbSocket(EPosixClientSocket):
         if order.type == 'LMT':
             ib_order.lmtPrice = order.limit_price
 
-
         self.placeOrder(self._ewrapper.next_valid_order_id, contract, ib_order)
 
         self._ewrapper.next_valid_order_id += 1
@@ -59,6 +58,8 @@ class IbHandler(EWrapperVerbose):
         super(IbHandler, self).__init__()
         self.market = market
         self.portfolio = portfolio
+
+        self.currency = self.portfolio.CURRENCY
 
         self.ticker_symbol_dict = {}  # ticker:symbol
         self.next_ticker_id = 0
@@ -92,7 +93,7 @@ class IbHandler(EWrapperVerbose):
         # IBKR, 100, market_price 41.420002, market_value 4142.0, unrealized_pnl -0.5, realized_pnl -58.0
         # IBKR, 0, market_price 41.420002, market_value 0.0, unrealized_pnl 0.0, realized_pnl -62.0
         # IBKR, 0, market_price 41.43999865, market_value 0.0, unrealized_pnl 0.0, realized_pnl -62.0
-        print("{}, {}, market_price {}, market_value {}, average_cost {}, unrealized_pnl {}, realized_pnl {} ".format(contract.symbol, position, avg_market_price, market_value, average_cost, unrealized_pnl, realized_pnl))
+        print("{} {} price {}, value {}, avg_cost {}, unrealized_pnl {}, realized_pnl {}, currency {}".format(contract.symbol, position, avg_market_price, market_value, average_cost, unrealized_pnl, realized_pnl, contract.currency))
         pass
 
     def updateAccountTime(self, timestamp):
@@ -104,8 +105,8 @@ class IbHandler(EWrapperVerbose):
 
     def orderStatus(self, order_id, status, filled, remaining, avg_fill_price, perm_id, parent_id, last_fill_price, client_id, why_held):
         # print("Order status - {}, {}/{}, {}, perm_id {}, parent_id {}".format(order_id, filled, remaining, avg_fill_price, perm_id, parent_id))
-        if status == 'Filled':  # remaining == 0:
-            print(order_id, status, filled, remaining, avg_fill_price, perm_id, parent_id, last_fill_price, client_id, why_held)
+        # if status == 'Filled' and remaining == 0:
+        print(order_id, status, filled, remaining, avg_fill_price, perm_id, parent_id, last_fill_price, client_id, why_held)
         pass
 
     def openOrder(self, order_id, contract, order, order_state):
@@ -114,7 +115,7 @@ class IbHandler(EWrapperVerbose):
         # if order_state.status == 'Filled' and order_state.commission != sys.float_info.max:
         #     direction = order.action # BUY, SELL, SSHORT
         #     quantity = order.totalQuantity
-        #     print("Order {} for symbol {} executed. Commission {}. Order qt {}".format(order_id, contract.symbol, order_state.commission, order.totalQuantity))
+        #     print("Order {} for symbol {} executed. Commission {}, currency {}".format(order_id, contract.symbol, order_state.commission, order_state.commissionCurrency))
         pass
 
     def execDetails(self, req_id, contract, execution):
@@ -122,12 +123,12 @@ class IbHandler(EWrapperVerbose):
         # req_id -1 means an order was filled
         # e = execution
         # if req_id == -1:  # Meaning an order was filled
-        #     print("Exec details id {}, {} {}, cumQty {} shares {} avgPrice {}".format(
-        #         execution.permId, execution.side, contract.symbol, e.cumQty, e.shares, e.avgPrice))
+        #     print("Exec details id {} {} {}, cumQty {} shares {} avgPrice {}".format(
+        #         e.permId, e.side, contract.symbol, e.cumQty, e.shares, e.avgPrice))
         pass
 
     def commissionReport(self, commission_report):
-        # commission_report.commission and commission_report.execId
+        # print(commission_report.commission, commission_report.execId)
         pass
 
 

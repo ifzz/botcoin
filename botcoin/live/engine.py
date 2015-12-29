@@ -23,9 +23,8 @@ class LiveEngine(object):
             currency = getattr(strategy, 'CURRENCY', settings.CURRENCY),
         )
 
-        self.portfolio = LivePortfolio()
+        self.portfolio = LivePortfolio(self.market, strategy)
         self.strategy = strategy
-        self.portfolio.set_modules(self.market, strategy)
 
         # Connect to IB tws (edemo/demouser)
         self.if_handler = IbHandler(self.market, self.portfolio)

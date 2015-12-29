@@ -6,7 +6,7 @@ class BacktestPortfolio(Portfolio):
 
     def cash_balance(self):
         # Pending orders that remove cash from account
-        money_held = sum([t.estimated_cost for t in self.open_trades.values() if t.direction in ('BUY','COVER') and not t.is_fully_filled])
+        money_held = sum([t.estimated_cost for t in self.open_trades.values() if t.direction in ('BUY','COVER') and not t.open_is_fully_filled])
 
         return self.holdings['cash'] - money_held
 
@@ -41,7 +41,7 @@ class BacktestPortfolio(Portfolio):
             if self.open_trades[order.symbol].close_order:
                 logging.critical("Possible duplicate order being created in portfolio.")
 
-            self.open_trades[order.symbol].exiting(order)  # Flag trade as exiting
+            self.open_trades[order.symbol].update_close_order(order)  # Flag trade as exiting
 
         cost = order.quantity * order.limit_price
 

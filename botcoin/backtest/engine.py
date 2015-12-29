@@ -30,8 +30,7 @@ class BacktestEngine(object):
         self.portfolios = []
 
         for strategy in strategies:
-            port = BacktestPortfolio()
-            port.set_modules(self.market, strategy)
+            port = BacktestPortfolio(self.market, strategy)
             self.portfolios.append(port)
 
         logging.info("Backtesting {} {} with {} symbols from {} to {}".format(
