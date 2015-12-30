@@ -1,6 +1,13 @@
 class Event(object):
-    pass
-
+    """
+    Priority is
+        10 Fill
+        10 Order
+        20 Signal
+        30 Market
+    """
+    def __lt__(self, other):
+         return self.priority < other.priority
 
 class MarketEvent(Event):
     """
@@ -9,7 +16,7 @@ class MarketEvent(Event):
     """
 
     def __init__(self, sub_type, symbol=None):
-        self.event_type = 'MARKET'
+        self.priority = 30
         self.symbol = symbol
         if sub_type and sub_type in ('before_open', 'open', 'during' ,'close', 'after_close'):
             self.sub_type = sub_type
@@ -32,7 +39,7 @@ class SignalEvent(Event):
         if direction not in ('BUY', 'SELL', 'SHORT', 'COVER'):
             raise ValueError("Unknown direction - {}".format(direction))
 
-        self.event_type = 'SIGNAL'
+        self.priority = 20
         self.symbol = symbol
         self.direction = direction
         self.exec_price = exec_price
@@ -66,7 +73,7 @@ class OrderEvent(Event):
         if not isinstance(signal, SignalEvent):
             raise TypeError("signal is not instance of SignalEvent")
 
-        self.event_type = 'ORDER'
+        self.priority = 10
         self.type = 'LMT'
         self.signal = signal
         self.symbol = symbol
@@ -105,7 +112,7 @@ class FillEvent(Event):
         if not isinstance(order, OrderEvent):
             raise TypeError("order is not instance of OrderEvent")
 
-        self.event_type = 'FILL'
+        self.priority = 10
         self.order = order
         self.symbol = order.symbol
         self.direction = direction

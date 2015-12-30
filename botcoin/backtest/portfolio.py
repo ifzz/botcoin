@@ -1,3 +1,4 @@
+from botcoin.common.errors import ExecutionPriceOutOfBandError, NegativeExecutionPriceError
 from botcoin.common.events import FillEvent
 from botcoin.common.portfolio import Portfolio
 from botcoin.common.trade import Trade
@@ -63,7 +64,7 @@ class BacktestPortfolio(Portfolio):
             order.created_at,
         )
 
-        self.update_from_fill(fill_event)
+        self.events_queue.put(fill_event)
 
     def update_last_positions_and_holdings(self):
         # Adds latest current position and holding into 'all' lists, so they

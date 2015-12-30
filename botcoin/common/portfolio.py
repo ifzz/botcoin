@@ -9,7 +9,7 @@ import pandas as pd
 from botcoin import settings, utils
 from botcoin.common.data import MarketData
 from botcoin.common.errors import BarValidationError, NegativeExecutionPriceError, ExecutionPriceOutOfBandError
-from botcoin.common.events import MarketEvent, SignalEvent, OrderEvent
+from botcoin.common.events import MarketEvent, SignalEvent, OrderEvent, FillEvent
 from botcoin.common.risk import RiskAnalysis
 from botcoin.common.strategy import Strategy
 
@@ -36,7 +36,7 @@ class Portfolio(object):
                 raise ValueError("A symbol has an invalid name. Invalid names are 'cash', 'commission','total', 'returns', 'equity_curve', 'datetime'.")
 
         # Main events queue shared with Market and Execution
-        self.events_queue = queue.Queue()
+        self.events_queue = queue.PriorityQueue()
         self.market = market
         self.strategy = strategy
 
@@ -48,7 +48,7 @@ class Portfolio(object):
         self.risk = RiskAnalysis(self.settings_dict, self.cash_balance, self.net_liquidation)
 
         # Setting attributes in strategy
-        self.strategy.events_queue   = self.events_queue
+        self.strategy.events_queue = self.events_queue
         self.strategy.market = self.market
         self.strategy.risk = self.risk
 
@@ -70,11 +70,17 @@ class Portfolio(object):
             except queue.Empty:
                 break
 
-            if event.event_type == "MARKET":
+            if isinstance(event, MarketEvent):
                 self.handle_market_event(event)
 
-            elif event.event_type == "SIGNAL":
+            elif isinstance(event, SignalEvent):
                 self.generate_orders(event)
+
+            elif isinstance(event, OrderEvent):
+                self.execute_order(event)
+
+            elif isinstance(event, FillEvent):
+                self.update_from_fill(event)
 
             else:
                 raise TypeError("Some wrong event in events_queue, {}".format(event))
@@ -200,7 +206,7 @@ class Portfolio(object):
             order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price, date)
 
             logging.debug(str(order))
-            self.execute_order(order)
+            self.events_queue.put(order)
 
     def update_from_fill(self, fill):
         logging.debug(str(fill))

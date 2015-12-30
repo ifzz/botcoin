@@ -1,3 +1,4 @@
+from botcoin.common.errors import ExecutionPriceOutOfBandError, NegativeExecutionPriceError
 from botcoin.common.portfolio import Portfolio
 from botcoin.common.trade import Trade
 
