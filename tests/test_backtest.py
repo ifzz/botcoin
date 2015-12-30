@@ -13,6 +13,7 @@ class TestBacktestResults(unittest.TestCase):
         cls.backtest_1 = botcoin.BacktestEngine(botcoin.utils._find_strategies(d+'1.py'), datadir)
         cls.backtest_2 = botcoin.BacktestEngine(botcoin.utils._find_strategies(d+'2.py'), datadir)
         cls.backtest_3 = botcoin.BacktestEngine(botcoin.utils._find_strategies(d+'3.py'), datadir)
+        cls.backtest_4 = botcoin.BacktestEngine(botcoin.utils._find_strategies(d+'4.py'), datadir)
 
 
     def test_backtest_1(self):
@@ -60,3 +61,14 @@ class TestBacktestResults(unittest.TestCase):
         self.assertEqual(p['pct_trades_profit'], 0.46511627906976744)
         self.assertTrue(p['dangerous'])
         self.assertEqual(p['dd_max'], 17.826826601244857)
+
+    def test_backtest_4(self):
+        p = self.backtest_4.portfolios[0].performance
+
+        self.assertEqual(p['total_return'], -10.676699999999961)
+        self.assertEqual(p['ann_return'], -5.3936163205393992)
+        self.assertEqual(p['sharpe'], -0.39370223309104263)
+        self.assertEqual(p['trades'], 146)
+        self.assertEqual(p['pct_trades_profit'], 0.3356164383561644)
+        self.assertTrue(p['dangerous'])
+        self.assertEqual(p['dd_max'], 20.876631733774555)

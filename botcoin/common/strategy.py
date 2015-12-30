@@ -1,3 +1,4 @@
+import datetime
 import logging
 import queue
 
@@ -54,9 +55,8 @@ class Strategy(object):
             raise ValueError("Operation needs to be BUY SELL SHORT or COVER.")
         price = price or self.market.last_price(symbol)
 
-        self.positions[symbol].update(operation, price, self.market.updated_at)
-
-        sig = SignalEvent(symbol, operation, price, self.market.updated_at)
+        self.positions[symbol].update(operation, price)
+        sig = SignalEvent(symbol, operation, price)
         self.events_queue.put(sig)
 
     def _market_opened(self):
@@ -146,13 +146,13 @@ class SymbolStatus(object):
         self.entry_price = ''
         self.exit_price = ''
 
-    def update(self, operation, price, updated_at):
+    def update(self, operation, price):
         self.status = operation if operation in ('BUY', 'SHORT') else ''
         # Update entry price if BUY or SHORT
         self.entry_price = price if operation in ('BUY', 'SHORT') else self.entry_price
         # Update exit_price if SELL or COVER
         self.exit_price = price if  operation in ('SELL', 'COVER') else self.exit_price
-        self.updated_at = updated_at
+        self.updated_at = datetime.datetime.now()
 
     def __str__(self):
         return self.status

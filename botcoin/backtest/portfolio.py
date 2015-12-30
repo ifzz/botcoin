@@ -61,7 +61,6 @@ class BacktestPortfolio(Portfolio):
             cost,
             order.limit_price,
             commission,
-            order.created_at,
         )
 
         self.events_queue.put(fill_event)

@@ -2,9 +2,9 @@ import botcoin
 
 class MovingAverage(botcoin.Strategy):
     def initialize(self):
-        self.SYMBOL_LIST = botcoin.settings.ASX_200
+        self.SYMBOL_LIST = ['AMP','ANZ','BHP','BXB','CBA','CSL','IAG','MQG','NAB','ORG','QBE','RIO','SCG','SUN','TLS','WBC','WES','WFD','WOW','WPL']
 
-        self.DATE_FROM = '2015'
+        self.DATE_FROM = '2014'
         self.DATE_TO = '2015'
 
         self.fast = self.get_arg(0, 5)
@@ -22,6 +22,3 @@ class MovingAverage(botcoin.Strategy):
                     self.sell(symbol)
             except botcoin.BarValidationError as e:
                 pass
-
-
-# strategies = [MovingAverage(5,i) for i in botcoin.optimize((5,100,5))]

@@ -203,7 +203,7 @@ class Portfolio(object):
             return
 
         if quantity != 0:
-            order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price, date)
+            order = OrderEvent(signal, symbol, quantity, direction, adj_price, quantity*adj_price)
 
             logging.debug(str(order))
             self.events_queue.put(order)

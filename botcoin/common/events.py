@@ -1,3 +1,5 @@
+import datetime
+
 class Event(object):
     """
     Priority is
@@ -7,14 +9,13 @@ class Event(object):
         30 Market
     """
     def __lt__(self, other):
-         return self.priority < other.priority
+         return (self.priority, self.created_at) < (other.priority, other.created_at)
 
 class MarketEvent(Event):
     """
     Handles the event of receiving a new market update with
     corresponding bars.
     """
-
     def __init__(self, sub_type, symbol=None):
         self.priority = 30
         self.symbol = symbol
@@ -22,6 +23,7 @@ class MarketEvent(Event):
             self.sub_type = sub_type
         elif sub_type:
             raise ValueError("Wrong type of MarketEvent sub_type.")
+        self.created_at = datetime.datetime.now()
 
 
 class SignalEvent(Event):
@@ -35,7 +37,7 @@ class SignalEvent(Event):
             If None, last close will be used by portfolio.
     """
 
-    def __init__(self, symbol, direction, exec_price, created_at):
+    def __init__(self, symbol, direction, exec_price):
         if direction not in ('BUY', 'SELL', 'SHORT', 'COVER'):
             raise ValueError("Unknown direction - {}".format(direction))
 
@@ -43,7 +45,7 @@ class SignalEvent(Event):
         self.symbol = symbol
         self.direction = direction
         self.exec_price = exec_price
-        self.created_at = created_at
+        self.created_at = datetime.datetime.now()
 
     def __str__(self):
         return "Signal - {}:{}:{}".format(self.symbol,self.direction,str(self.exec_price))
@@ -57,7 +59,7 @@ class OrderEvent(Event):
     """
 
     def __init__(self, signal, symbol, quantity, direction, limit_price,
-                 estimated_cost, created_at):
+                 estimated_cost):
         """
         Initialises a Limit order order, has a quantity (integer)
         and its direction ('BUY', 'SELL', 'SHORT' and 'COVER' ).
@@ -81,7 +83,7 @@ class OrderEvent(Event):
         self.direction = direction
         self.limit_price = limit_price
         self.estimated_cost = estimated_cost
-        self.created_at = created_at
+        self.created_at = datetime.datetime.now()
 
     def __str__(self):
         return "Order - {} : {} : {} : {}".format(self.symbol,self.direction,str(self.quantity),str(self.estimated_cost))
@@ -95,7 +97,7 @@ class FillEvent(Event):
     """
 
     def __init__(self, order, direction, quantity,
-                 cost, price, commission, created_at):
+                 cost, price, commission):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
         quantity, direction, cost of fill and an optional
@@ -120,7 +122,7 @@ class FillEvent(Event):
         self.cost = cost
         self.price = price
         self.commission = commission
-        self.created_at = created_at
+        self.created_at = datetime.datetime.now()
 
     def __str__(self):
         return "Fill - {}:{}:{}".format(self.symbol,str(self.quantity),str(self.cost))
