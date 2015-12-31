@@ -7,7 +7,7 @@ class TestBacktestResults(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        datadir = os.path.join(os.getcwd(),'tests/data/')
+        datadir = os.path.join(os.getcwd(),'tests/test-data/')
         d = 'tests/test-strategies/'
 
         cls.backtest_1 = botcoin.BacktestEngine(botcoin.utils._find_strategies(d+'1.py'), datadir)

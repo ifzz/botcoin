@@ -44,10 +44,6 @@ class BacktestPortfolio(Portfolio):
 
             self.open_trades[order.symbol].update_close_order(order)  # Flag trade as exiting
 
-        cost = order.quantity * order.limit_price
-
-        # order.quantity needs abs(), to
-
         commission = self.risk.determine_commission(order.quantity, order.limit_price)
 
         # in case I mess up and remove abs() again
@@ -55,10 +51,9 @@ class BacktestPortfolio(Portfolio):
 
         # Fake fill
         fill_event = FillEvent(
-            order,
+            order.symbol,
             order.direction,
             order.quantity,
-            cost,
             order.limit_price,
             commission,
         )

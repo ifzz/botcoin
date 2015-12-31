@@ -211,21 +211,16 @@ class Portfolio(object):
     def update_from_fill(self, fill):
         logging.debug(str(fill))
 
-        if fill.order.direction in ('BUY', 'SHORT'):
-            self.open_trades[fill.symbol].update_open_fill(fill)
+        self.open_trades[fill.symbol].update_from_fill(fill)
 
-        elif fill.order.direction in ('SELL', 'COVER'):
-            self.open_trades[fill.symbol].update_close_fill(fill)
-            # If trade is closed, remove it from open_trades
-            # and archive it in all_trades
-            if self.open_trades[fill.symbol].status == 'CLOSED':
-                self.all_trades.append(self.open_trades[fill.symbol])
-                del self.open_trades[fill.symbol]
+        if self.open_trades[fill.symbol].status in (1, 3):
+            self.positions[fill.symbol] += fill.quantity
+            self.holdings['commission'] += fill.commission
+            self.holdings['cash'] -= (fill.quantity * fill.price + fill.commission)
 
-        self.positions[fill.symbol] += fill.quantity
-
-        self.holdings['commission'] += fill.commission
-        self.holdings['cash'] -= (fill.cost + fill.commission)
+        if self.open_trades[fill.symbol].status == 3:
+            self.all_trades.append(self.open_trades[fill.symbol])
+            del self.open_trades[fill.symbol]
 
     def verify_portfolio_consistency(self):
         """ Checks for problematic values in current holding and position """

@@ -12,10 +12,6 @@ class Event(object):
          return (self.priority, self.created_at) < (other.priority, other.created_at)
 
 class MarketEvent(Event):
-    """
-    Handles the event of receiving a new market update with
-    corresponding bars.
-    """
     def __init__(self, sub_type, symbol=None):
         self.priority = 30
         self.symbol = symbol
@@ -27,16 +23,6 @@ class MarketEvent(Event):
 
 
 class SignalEvent(Event):
-    """
-    Handles the event of a new Strategy generated signal.
-    Exchanged directly between Portfolio and its strategies.
-    Parameters
-        datetime - The timestamp at which the signal was generated.
-        direction - "BUY", "SELL", "SHORT" or "COVER".
-        price - Target price defined by strategy.
-            If None, last close will be used by portfolio.
-    """
-
     def __init__(self, symbol, direction, exec_price):
         if direction not in ('BUY', 'SELL', 'SHORT', 'COVER'):
             raise ValueError("Unknown direction - {}".format(direction))
@@ -52,26 +38,10 @@ class SignalEvent(Event):
 
 
 class OrderEvent(Event):
-    """
-    Handles the event of sending an Order to an execution system.
-    The order contains a symbol (e.g. GOOG), a type (market or limit),
-    quantity and a direction.
-    """
 
     def __init__(self, signal, symbol, quantity, direction, limit_price,
                  estimated_cost):
-        """
-        Initialises a Limit order order, has a quantity (integer)
-        and its direction ('BUY', 'SELL', 'SHORT' and 'COVER' ).
 
-        Parameters:
-        symbol - The instrument to trade.
-        quantity - Non-negative integer for quantity.
-        direction - 'BUY' or 'SELL' for long or short.
-        limit_price - Limit price to be used for execution.
-        estimated_cost -How much the order is expected to cost, used
-            to calculate money locked in before order is executed.
-        """
         if not isinstance(signal, SignalEvent):
             raise TypeError("signal is not instance of SignalEvent")
 
@@ -96,33 +66,29 @@ class FillEvent(Event):
     the commission of the trade from the brokerage.
     """
 
-    def __init__(self, order, direction, quantity,
-                 cost, price, commission):
+    def __init__(self, symbol, direction, quantity,
+                 price, commission):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
         quantity, direction, cost of fill and an optional
         commission.
 
         Parameters:
-        datetime - The bar-resolution when the order was filled.
         symbol - The instrument which was filled.
-        quantity - The filled quantity.
         direction - The direction of fill ('BUY' or 'SELL')
+        quantity - The filled quantity.
         cost - The holdings value in dollars.
+        price - avg price paid
         commission - comission paid
         """
-        if not isinstance(order, OrderEvent):
-            raise TypeError("order is not instance of OrderEvent")
 
         self.priority = 10
-        self.order = order
-        self.symbol = order.symbol
+        self.symbol = symbol
         self.direction = direction
         self.quantity = quantity
-        self.cost = cost
         self.price = price
         self.commission = commission
         self.created_at = datetime.datetime.now()
 
     def __str__(self):
-        return "Fill - {}:{}:{}".format(self.symbol,str(self.quantity),str(self.cost))
+        return "Fill - {}:{}:{}".format(self.symbol,self.direction,self.quantity)

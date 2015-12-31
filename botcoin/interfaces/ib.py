@@ -6,6 +6,8 @@ from swigibpy import (
     EPosixClientSocket, EWrapperVerbose, Contract, Order,
 )
 
+from botcoin.common.events import FillEvent
+
 class IbSocket(EPosixClientSocket):
     def connect(self):
         self.eConnect("", 7497, 0)
@@ -49,6 +51,8 @@ class IbSocket(EPosixClientSocket):
 
         self.placeOrder(self._ewrapper.next_valid_order_id, contract, ib_order)
 
+        self._ewrapper.order_dict[self._ewrapper.next_valid_order_id] = ib_order
+
         self._ewrapper.next_valid_order_id += 1
 
 
@@ -61,16 +65,19 @@ class IbHandler(EWrapperVerbose):
 
         self.currency = self.portfolio.CURRENCY
 
-        self.ticker_symbol_dict = {}  # ticker:symbol
         self.next_ticker_id = 0
+        self.ticker_symbol_dict = {}  # ticker:symbol
         self.symbol_contract_dict = {}  # symbol:contract
-        self.symbol_order_dict = {}  # symbol:order
+        self.order_dict = {}  # order_id:order
 
     # -------------- Portfolio section --------------
 
     def currentTime(self, timestamp):
         """ Response from reqCurrentTime(). """
         self.market._update_datetime(timestamp)
+
+    def nextValidId(self, order_id):
+        self.next_valid_order_id = order_id
 
     def managedAccounts(self, accountId):
         self.portfolio.account_id = accountId
@@ -106,30 +113,37 @@ class IbHandler(EWrapperVerbose):
     def orderStatus(self, order_id, status, filled, remaining, avg_fill_price, perm_id, parent_id, last_fill_price, client_id, why_held):
         # print("Order status - {}, {}/{}, {}, perm_id {}, parent_id {}".format(order_id, filled, remaining, avg_fill_price, perm_id, parent_id))
         # if status == 'Filled' and remaining == 0:
-        print(order_id, status, filled, remaining, avg_fill_price, perm_id, parent_id, last_fill_price, client_id, why_held)
         pass
 
     def openOrder(self, order_id, contract, order, order_state):
         # This is called when an order gets fully executed, problem is most of the times it is called more than once
         # with different commissions values.
-        # if order_state.status == 'Filled' and order_state.commission != sys.float_info.max:
-        #     direction = order.action # BUY, SELL, SSHORT
-        #     quantity = order.totalQuantity
-        #     print("Order {} for symbol {} executed. Commission {}, currency {}".format(order_id, contract.symbol, order_state.commission, order_state.commissionCurrency))
+        # if order_state.commission != sys.float_info.max:
+            # print("Commission arrived for symbol {} executed. Commission {}, currency {}".format(contract.symbol, order_state.commission, order_state.commissionCurrency))
         pass
+
 
     def execDetails(self, req_id, contract, execution):
         # Gets called in every sub execution, not when whole order is finished
         # req_id -1 means an order was filled
-        # e = execution
-        # if req_id == -1:  # Meaning an order was filled
-        #     print("Exec details id {} {} {}, cumQty {} shares {} avgPrice {}".format(
-        #         e.permId, e.side, contract.symbol, e.cumQty, e.shares, e.avgPrice))
-        pass
+        e = execution
+        if req_id == -1:  # Meaning an order was filled
+
+            order = self.order_dict[e.orderId]
+            symbol = contract.symbol
+            trade = self.portfolio.open_trades[symbol]
+            direction = 'BUY' if e.side == 'BOT' else 'SELL'
+            quantity = e.shares
+            price = e.price
+
+            if trade.quantity == quantity:
+                fill = FillEvent(symbol, direction,quantity,price,0.0,)
+                print('ADDING FILL TO QUEUE ' + str(fill))
+                self.portfolio.events_queue.put(fill)
 
     def commissionReport(self, commission_report):
-        # print(commission_report.commission, commission_report.execId)
         pass
+    #     # print(commission_report.commission, commission_report.execId)
 
 
     # -------------- Market section --------------
@@ -181,24 +195,6 @@ class IbHandler(EWrapperVerbose):
     def tickGeneric(self, ticker_id, tick_type, value):
         if tick_type == 49:
             logging.warning("Trading halted for {}".format(self.ticker_symbol_dict[ticker_id]))
-
-
-    # -------------- Execution section --------------
-    def nextValidId(self, order_id):
-        self.next_valid_order_id = order_id
-
-    # def orderStatus(self, id, status, filled, remaining, avgFillPrice, permId,
-    #                 parentId, lastFilledPrice, clientId, whyHeld):
-    #     pass
-    #
-
-    #
-    # def contractDetailsEnd(self, reqId):
-    #     print("Contract details request complete, (request id %i)" % reqId)
-    #
-    # def contractDetails(self, reqId, contractDetails):
-    #     pass
-
 
     # -------------- Error section --------------
     # TWS WARNING - 2103: Market data farm connection is broken:ibdemo

@@ -33,47 +33,50 @@ class Trade(object):
     @property
     def status(self):
         if self.close_is_fully_filled:
-            return 'CLOSED'  # close filled, trade finished
+            return 3  # close filled, trade finished
         elif self.close_order:
-            return 'CLOSE SUBMITTED'  # there is a close order, position being exited
+            return 2  # there is a close order, position being exited
         elif self.open_is_fully_filled:
-            return 'OPEN'  # trade openned, open fully filled
+            return 1  # trade openned, open fully filled
         else:
-            return 'OPEN SUBMITTED'  # order submitted but not executed at all
+            return 0  # order submitted but not executed at all
 
     @property
     def commission(self):
         return self.open_commission + self.close_commission
 
-    def update_open_fill(self, fill):
-        self.open_filled_quantity = fill.quantity
-        self.open_cost = fill.cost
-        self.open_commission = fill.commission
-        self.avg_open_price = fill.price
+    def update_from_fill(self, fill):
+        if fill.direction in ('BUY', 'SHORT'):
 
-        if self.open_is_fully_filled:
-            logging.debug('{} order for {} filled'.format(self.direction, self.symbol))
+            self.open_filled_quantity = fill.quantity
+            self.open_commission = fill.commission
+            self.avg_open_price = fill.price
+            self.open_cost = fill.quantity*fill.price
+
+            if self.open_is_fully_filled:
+                logging.debug('{} order for {} filled'.format(self.direction, self.symbol))
+
+        elif fill.direction in ('SELL', 'COVER'):
+
+            if not self.open_is_fully_filled:
+                raise AssertionError('Closing {} trade before it even started on {}.'.format(self.symbol,fill.created_at))
+
+            self.close_filled_quantity = fill.quantity
+            self.close_cost = fill.quantity*fill.price
+            self.close_commission = fill.commission
+            self.avg_close_price = fill.price
+
+            if self.close_is_fully_filled:
+                self.closed_at = fill.created_at
+                self.pnl = -(self.open_cost + self.close_cost + self.commission)
+
+                assert(self.close_cost == -self.quantity*self.avg_close_price)
+                assert(self.open_cost == self.quantity*self.avg_open_price)
+
+                logging.debug('{} order for {} filled'.format(fill.direction, self.symbol))
 
     def update_close_order(self, order):
         self.close_order = order
-
-    def update_close_fill(self, new_fill):
-        if not self.open_is_fully_filled:
-            raise AssertionError('Closing {} trade before it even started on {}.'.format(self.symbol,new_fill.created_at))
-
-        self.close_filled_quantity = new_fill.quantity
-        self.avg_close_price = new_fill.price
-        self.close_cost = new_fill.cost
-        self.close_commission = new_fill.commission
-
-        if self.close_is_fully_filled:
-            self.closed_at = new_fill.created_at
-            self.pnl = -(self.open_cost + self.close_cost + self.commission)
-
-            assert(self.close_cost == -self.quantity*self.avg_close_price)
-            assert(self.open_cost == self.quantity*self.avg_open_price)
-
-            logging.debug('{} order for {} filled'.format(new_fill.direction, self.symbol))
 
     def fake_close_trade(self, created_at, close_cost):
         """ Used when backtesting finished and open_positions result need to be estimated """

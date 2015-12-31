@@ -21,9 +21,9 @@ class LivePortfolio(Portfolio):
         else:
             # Checks if there is a similar order in pending_orders to protect
             # against repeated signals coming from strategy
-            if self.open_trades[order.symbol].close_order:
+            if self.open_trades[order.symbol].status in ('CLOSE SUBMITTED', 'CLOSED'):
                 logging.critical("Possible duplicate order being created in portfolio.")
 
-            self.open_trades[order.symbol].exiting(order)  # Flag trade as exiting
+            self.open_trades[order.symbol].update_close_order(order)  # Flag trade as exiting
 
         self.if_socket.execute_order(order)
