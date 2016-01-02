@@ -116,7 +116,6 @@ class Portfolio(object):
 
         # If there is no current position and holding, meaning execution just started
         if not self.positions and not self.holdings:
-            self.date_from = cur_datetime
             self.positions = self.construct_position(cur_datetime)
 
             self.holdings = self.construct_holding(cur_datetime, self.INITIAL_CAPITAL, 0.00, self.INITIAL_CAPITAL)
@@ -197,7 +196,7 @@ class Portfolio(object):
         # Checking if quantity is consistent to direction
         if (quantity < 0 and direction in ('BUY','COVER')) or (quantity > 0 and direction in ('SHORT','SELL')):
             logging.warning(
-                " {} order quantity for {}. Cash balance {}, price {}, round lot size {}. This is a sign of inconsistency in portfolio holdings.".format(
+                "{} order quantity for {}. Cash balance {}, price {}, round lot size {}. This is a sign of inconsistency in portfolio holdings.".format(
                 quantity, self.strategy, self.cash_balance(), adj_price,self.ROUND_LOT_SIZE,
             ))
             return
@@ -210,15 +209,17 @@ class Portfolio(object):
 
     def update_from_fill(self, fill):
         logging.debug(str(fill))
+        trade = self.open_trades[fill.symbol]
 
-        self.open_trades[fill.symbol].update_from_fill(fill)
-
-        if self.open_trades[fill.symbol].status in (1, 3):
+        if trade.fill_is_relevant_to_portfolio(fill):
             self.positions[fill.symbol] += fill.quantity
             self.holdings['commission'] += fill.commission
             self.holdings['cash'] -= (fill.quantity * fill.price + fill.commission)
 
-        if self.open_trades[fill.symbol].status == 3:
+        trade.update_from_fill(fill)
+
+        # remove trade from open_trades if it has been closed
+        if trade.close_is_fully_filled:
             self.all_trades.append(self.open_trades[fill.symbol])
             del self.open_trades[fill.symbol]
 
@@ -228,7 +229,7 @@ class Portfolio(object):
         if (self.holdings['cash'] < 0 or
             self.holdings['total'] < 0 or
             self.holdings['commission'] < 0):
-            logging.critical('Cash, total or commission is a negative value. This shouldn\'t be possible.')
+            logging.critical('Cash, total or commission is negative. This shouldn\'t be possible.')
             logging.critical('Cash={}, Total={}, Commission={}'.format(
                 self.holdings['cash'],
                 self.holdings['total'],

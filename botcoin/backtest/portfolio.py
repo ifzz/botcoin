@@ -8,12 +8,11 @@ class BacktestPortfolio(Portfolio):
     def cash_balance(self):
         # Pending orders that remove cash from account
         money_held = sum([t.estimated_cost for t in self.open_trades.values() if t.direction in ('BUY','COVER') and not t.open_is_fully_filled])
-
         return self.holdings['cash'] - money_held
 
     def net_liquidation(self):
-        value = self.holdings['cash']
-        return value + sum([self.positions[s] * self.market.last_price(s) for s in self.market.symbol_list])
+        market_value = sum([self.positions[s] * self.market.last_price(s) for s in self.market.symbol_list])
+        return self.holdings['cash'] + market_value
 
     def check_signal_consistency(self, symbol, exec_price, direction):
         """ Looks for consistency errors common during backtesting, such as
@@ -47,7 +46,7 @@ class BacktestPortfolio(Portfolio):
         commission = self.risk.determine_commission(order.quantity, order.limit_price)
 
         # in case I mess up and remove abs() again
-        assert(commission>0)
+        assert(commission>=0)
 
         # Fake fill
         fill_event = FillEvent(

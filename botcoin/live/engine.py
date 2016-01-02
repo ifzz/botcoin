@@ -60,7 +60,8 @@ class LiveEngine(object):
     def _initial_status_check(self):
         # Checks if the attributes below were set by if_handler
         try:
-            if self.market.updated_at and self.portfolio.account_id:
+            if (self.market.updated_at and self.portfolio.account_id and
+                self.portfolio.cash_balance):
                 pass
         except AttributeError:
             return False

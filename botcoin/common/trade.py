@@ -30,20 +30,31 @@ class Trade(object):
     def close_is_fully_filled(self):
         return self.close_filled_quantity == -self.quantity
 
-    @property
-    def status(self):
-        if self.close_is_fully_filled:
-            return 3  # close filled, trade finished
-        elif self.close_order:
-            return 2  # there is a close order, position being exited
-        elif self.open_is_fully_filled:
-            return 1  # trade openned, open fully filled
-        else:
-            return 0  # order submitted but not executed at all
+    # @property
+    # def status(self):
+    #     if self.close_is_fully_filled:
+    #         return 3  # close filled, trade finished
+    #     elif self.close_order:
+    #         return 2  # there is a close order, position being exited
+    #     elif self.open_is_fully_filled:
+    #         return 1  # trade openned, open fully filled
+    #     else:
+    #         return 0  # order submitted but not executed at all
 
     @property
     def commission(self):
         return self.open_commission + self.close_commission
+
+    def fill_is_relevant_to_portfolio(self, fill):
+        # Returns False if fill contains info which would have been already consumed by portfolio
+        if (
+            (fill.direction in ('BUY', 'SHORT') and self.open_is_fully_filled) or  # fill already reported
+            (fill.direction in ('SELL', 'COVER') and self.close_is_fully_filled) or  # fill already reported
+            (abs(self.quantity) != abs(fill.quantity))  # partial fill (need abs because quantity is reversed for close (e.g. 100 buy becomse -100 sell))
+        ):
+            return False
+        else:
+            return True
 
     def update_from_fill(self, fill):
         if fill.direction in ('BUY', 'SHORT'):
@@ -78,9 +89,9 @@ class Trade(object):
     def update_close_order(self, order):
         self.close_order = order
 
-    def fake_close_trade(self, created_at, close_cost):
+    def fake_close_trade(self, closed_at, close_cost):
         """ Used when backtesting finished and open_positions result need to be estimated """
-        self.closed_at = created_at
+        self.closed_at = closed_at
         self.close_cost = close_cost
         self.avg_close_price = close_cost/-self.quantity
         self.pnl = -(self.open_cost + self.close_cost + self.commission)
