@@ -1,3 +1,6 @@
+from math import fsum
+import numpy as np
+
 from botcoin.common.errors import ExecutionPriceOutOfBandError, NegativeExecutionPriceError
 from botcoin.common.events import FillEvent
 from botcoin.common.portfolio import Portfolio
@@ -7,11 +10,12 @@ class BacktestPortfolio(Portfolio):
 
     def cash_balance(self):
         # Pending orders that remove cash from account
-        money_held = sum([t.estimated_cost for t in self.open_trades.values() if t.direction in ('BUY','COVER') and not t.open_is_fully_filled])
+        money_held = fsum([t.estimated_cost for t in self.open_trades.values() if t.direction in ('BUY','COVER') and not t.open_is_fully_filled])
         return self.holdings['cash'] - money_held
 
     def net_liquidation(self):
-        market_value = sum([self.positions[s] * self.market.last_price(s) for s in self.market.symbol_list])
+        market_value = fsum([self.open_trades[s].open_filled_quantity * self.market.last_price(s) for s in self.open_trades])
+
         return self.holdings['cash'] + market_value
 
     def check_signal_consistency(self, symbol, exec_price, direction):
@@ -62,9 +66,8 @@ class BacktestPortfolio(Portfolio):
     def update_last_positions_and_holdings(self):
         # Adds latest current position and holding into 'all' lists, so they
         # can be part of performance as well
-        if self.positions and self.holdings:
+        if self.holdings:
             self.all_holdings.append(self.holdings)
-            self.all_positions.append(self.positions)
             self.holdings, self.positions = None, None
 
         # "Fake close" trades that are open, so they can be part of trades performance stats

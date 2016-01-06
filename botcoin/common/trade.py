@@ -12,14 +12,14 @@ class Trade(object):
 
         self.estimated_cost = order.estimated_cost
 
-        self.open_filled_quantity = 0
-        self.open_cost = 0
-        self.open_commission = 0
+        self.open_filled_quantity = 0.0
+        self.open_cost = 0.0
+        self.open_commission = 0.0
         self.open_order = order
 
-        self.close_filled_quantity = 0
-        self.close_cost = 0
-        self.close_commission = 0
+        self.close_filled_quantity = 0.0
+        self.close_cost = 0.0
+        self.close_commission = 0.0
         self.close_order = None
 
     @property

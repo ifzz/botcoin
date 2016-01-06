@@ -19,9 +19,7 @@ class Portfolio(object):
     """
     def __init__(self, market, strategy):
 
-        self.all_positions = []
         self.all_holdings = []
-        self.positions = None
         self.holdings = None
 
         # Current open positions
@@ -30,7 +28,7 @@ class Portfolio(object):
         self.all_trades = []
 
 
-        # check for symbol names that would conflict with columns used in holdings and positions
+        # check for symbol names that would conflict with columns used in holdings
         for symbol in market.symbol_list:
             if symbol in ('cash', 'commission', 'total', 'returns', 'equity_curve', 'datetime'):
                 raise ValueError("A symbol has an invalid name. Invalid names are 'cash', 'commission','total', 'returns', 'equity_curve', 'datetime'.")
@@ -114,25 +112,17 @@ class Portfolio(object):
     def market_opened(self):
         cur_datetime = self.market.updated_at
 
-        # If there is no current position and holding, meaning execution just started
-        if not self.positions and not self.holdings:
-            self.positions = self.construct_position(cur_datetime)
-
+        # If there is no current holding, meaning execution just started
+        if not self.holdings:
             self.holdings = self.construct_holding(cur_datetime, self.INITIAL_CAPITAL, 0.00, self.INITIAL_CAPITAL)
 
         else:
-            if ((cur_datetime <= self.positions['datetime']) or
-                (cur_datetime <= self.holdings['datetime'])):
-                raise ValueError("New bar arrived with same datetime as previous holding and position. Aborting!")
+            if (cur_datetime <= self.holdings['datetime']):
+                raise ValueError("New bar arrived with same datetime as previous holding. Aborting!")
 
-            # Add current positions/holdings to all_positions/all_holdings lists
-            self.all_positions.append(self.positions)
+            # Add current holdings to all_holdings lists
             self.all_holdings.append(self.holdings)
 
-            self.positions = self.construct_position(
-                cur_datetime,
-                self.positions,
-            )
             self.holdings = self.construct_holding(
                 cur_datetime,
                 self.holdings['cash'],
@@ -146,22 +136,21 @@ class Portfolio(object):
         if not all([t.open_is_fully_filled for t in self.open_trades.values()]):
             logging.warning("Market closed while there are pending orders. Shouldn't happen in backtesting.")
 
-        # open_positions used for keeping track of open positions over time
-        self.positions['open_trades'] = len(self.open_trades)
+        # open_trades used for keeping track of open trades over time
+        self.holdings['open_trades'] = len(self.open_trades)
         # subscribed_symbols used for keeping track of how many
         # symbols were subscribed to each day
         if self.strategy.unsubscribe_all:
-            self.positions['subscribed_symbols'] = 0
+            self.holdings['subscribed_symbols'] = 0
         else:
             if self.strategy.subscribed_symbols:
-                self.positions['subscribed_symbols'] = len(self.strategy.subscribed_symbols)
+                self.holdings['subscribed_symbols'] = len(self.strategy.subscribed_symbols)
             else:
-                self.positions['subscribed_symbols'] = len(self.market.symbol_list)
+                self.holdings['subscribed_symbols'] = len(self.market.symbol_list)
 
         # Restarts holdings 'total' and s based on this_close price and current_position[s]
         self.holdings['total'] = self.net_liquidation()
-        for s in self.market.symbol_list:
-            self.holdings[s] = self.positions[s] * self.market.last_price(s)
+
 
         self.verify_portfolio_consistency()
 
@@ -180,7 +169,7 @@ class Portfolio(object):
         # Adjusted execution price for slippage
         adj_price = self.risk.adjust_price_for_slippage(direction, exec_price)
 
-        cur_quantity = self.positions[symbol]
+        cur_quantity = self.open_trades[symbol].quantity if symbol in self.open_trades else 0
         quantity = 0
 
         if direction in ('BUY', 'SHORT') and cur_quantity == 0:
@@ -212,7 +201,6 @@ class Portfolio(object):
         trade = self.open_trades[fill.symbol]
 
         if trade.fill_is_relevant_to_portfolio(fill):
-            self.positions[fill.symbol] += fill.quantity
             self.holdings['commission'] += fill.commission
             self.holdings['cash'] -= (fill.quantity * fill.price + fill.commission)
 
@@ -248,25 +236,6 @@ class Portfolio(object):
                 self.MAX_SHORT_POSITIONS,
             ))
 
-
-    def construct_position(self, cur_datetime, positions={}):
-        """
-        Positions held at a point in time.
-        Parameters:
-            cur_datetime -- date of the point in time in question
-            s -- dictionary with symbols as key and ammount owned as value
-        """
-        if not isinstance(cur_datetime, datetime.datetime) or not isinstance(positions, dict):
-            raise TypeError("Improprer parameter type on Portfolio.construct_position()")
-
-        if positions:
-            position = dict((k,v) for k, v in [(s, positions[s]) for s in self.market.symbol_list])
-        else:
-            position = dict((k,v) for k, v in [(s, 0.0) for s in self.market.symbol_list])
-
-        position['datetime'] = cur_datetime
-
-        return position
 
     def construct_holding(self, cur_datetime, cash, commission, total):
         """
@@ -333,11 +302,6 @@ class Portfolio(object):
             sum(results['all_trades']['pnl'])*self.THRESHOLD_DANGEROUS_TRADE
         ]
 
-        # Saving portfolio.all_positions in performance
-        curve = pd.DataFrame(self.all_positions)
-        curve.set_index('datetime', inplace=True)
-        results['all_positions'] = curve
-
         # Saving portfolio.all_holdings in performance
         curve = pd.DataFrame(self.all_holdings)
         curve.set_index('datetime', inplace=True)
@@ -377,8 +341,8 @@ class Portfolio(object):
         results['dd_max'], results['dd_duration'] = drawdown(results['equity_curve'])
 
         # Subscribed symbols
-        results['subscribed_symbols'] = results['all_positions']['subscribed_symbols']
-        results['avg_subscribed_symbols'] = results['all_positions']['subscribed_symbols'].mean()
+        results['subscribed_symbols'] = results['all_holdings']['subscribed_symbols']
+        results['avg_subscribed_symbols'] = results['all_holdings']['subscribed_symbols'].mean()
 
         self.performance = results
         return results

@@ -7,6 +7,12 @@ class MovingAverage(botcoin.Strategy):
         self.DATE_FROM = '2014'
         self.DATE_TO = '2015'
 
+        self.MAX_LONG_POSITIONS = 5
+        self.MAX_SHORT_POSITIONS = 0
+        self.COMMISSION_FIXED = 0.0
+        self.COMMISSION_PCT = 0.0008
+        self.COMMISSION_MIN = 6.0
+
         self.fast = self.get_arg(0, 5)
         self.slow = self.get_arg(1, 15)
 
