@@ -24,7 +24,7 @@ class DonchianStrategy(botcoin.Strategy):
                 assert(y.datetime < self.market.updated_at)
                 if y.close < 2:
                     self.unsubscribe(s)
-            except botcoin.BarValidationError as e:
+            except botcoin.BarError as e:
                 pass
 
 

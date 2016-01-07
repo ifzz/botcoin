@@ -4,7 +4,6 @@ import numpy as np
 import os
 import pandas as pd
 
-from botcoin.common.errors import NoBarsError, NotEnoughBarsError, EmptyBarsError
 from botcoin.common.events import MarketEvent
 from botcoin.utils import _round
 
@@ -154,14 +153,14 @@ class MarketData(object):
     def last_price(self, symbol):
         """ Returns last recorded price """
         if not 'last_price' in self._data[symbol]:
-            raise NoBarsError
+            raise BarError("Not enough bars yet.")
         return self._data[symbol]['last_price']
 
     def change(self, symbol):
         """ Returns change between last close and last recorded price """
         # In case execution just started and there is no current price
         if not 'last_price' in self._data[symbol]:
-            raise NoBarsError
+            raise BarError("Not enough bars yet.")
         last_close = self.yesterday(symbol).close
         return self._data[symbol]['last_price']/last_close - 1
 
@@ -198,13 +197,13 @@ class MarketData(object):
             # bars = self._data[symbol]['latest_bars'][-(N+1):-1]  # old implementation
 
         if not bars:
-            raise NoBarsError("Something wrong with latest_bars")
+            raise BarError("Something wrong with latest_bars")
 
         if len(bars) != N:
-            raise NotEnoughBarsError("Not enough bars yet")
+            raise BarError("Not enough bars yet.")
 
         if len([bar for bar in bars if bar[4] > 0.0]) != len(bars):
-            raise EmptyBarsError("Latest_bars for {} has one or more 0.0 close prices, and will be disconsidered.".format(symbol))
+            raise BarError("Empty bars found. Latest_bars for {} has one or more 0.0 close prices, and will be disconsidered.".format(symbol))
 
         result = Bars(bars, True) if option in ('today', 'yesterday') else Bars(bars)
         return result
@@ -244,3 +243,7 @@ class Bars(object):
 
     def __len__(self):
         return self.length
+
+class BarError(Exception):
+    """ Required for a specific type of Error that is catched on portfolio. """
+    pass

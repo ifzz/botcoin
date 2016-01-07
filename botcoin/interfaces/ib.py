@@ -100,7 +100,7 @@ class IbHandler(EWrapperVerbose):
         # IBKR, 100, market_price 41.420002, market_value 4142.0, unrealized_pnl -0.5, realized_pnl -58.0
         # IBKR, 0, market_price 41.420002, market_value 0.0, unrealized_pnl 0.0, realized_pnl -62.0
         # IBKR, 0, market_price 41.43999865, market_value 0.0, unrealized_pnl 0.0, realized_pnl -62.0
-        print("{} {} price {}, value {}, avg_cost {}, unrealized_pnl {}, realized_pnl {}, currency {}".format(contract.symbol, position, avg_market_price, market_value, average_cost, unrealized_pnl, realized_pnl, contract.currency))
+        # print("{} {} price {}, value {}, avg_cost {}, unrealized_pnl {}, realized_pnl {}, currency {}".format(contract.symbol, position, avg_market_price, market_value, average_cost, unrealized_pnl, realized_pnl, contract.currency))
         pass
 
     def updateAccountTime(self, timestamp):

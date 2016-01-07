@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 
 from botcoin import settings, utils
-from botcoin.common.data import MarketData
-from botcoin.common.errors import BarValidationError, NegativeExecutionPriceError, ExecutionPriceOutOfBandError
+from botcoin.common.data import MarketData, BarError
 from botcoin.common.events import MarketEvent, SignalEvent, OrderEvent, FillEvent
 from botcoin.common.risk import RiskAnalysis
 from botcoin.common.strategy import Strategy
@@ -103,8 +102,8 @@ class Portfolio(object):
                     elif event.sub_type == 'close':
                         self.strategy._call_strategy_method('close', event.symbol)
 
-                except BarValidationError as e:
-                    # Problems in market bars or past_bars would raise BarValidationError
+                except BarError as e:
+                    # Problems in market bars or past_bars would raise BarError
                     # e.g. nonexisting bars, bars with 0.0 or bars smaller than length
                     # requested should be disconsidered
                     pass

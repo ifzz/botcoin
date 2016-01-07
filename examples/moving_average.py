@@ -20,7 +20,7 @@ class MovingAverage(botcoin.Strategy):
                     self.buy(symbol)
                 if fast < slow:
                     self.sell(symbol)
-            except botcoin.BarValidationError as e:
+            except botcoin.BarError as e:
                 pass
 
 

@@ -1,7 +1,6 @@
 from math import fsum
 import numpy as np
 
-from botcoin.common.errors import ExecutionPriceOutOfBandError, NegativeExecutionPriceError
 from botcoin.common.events import FillEvent
 from botcoin.common.portfolio import Portfolio
 from botcoin.common.trade import Trade
@@ -26,15 +25,16 @@ class BacktestPortfolio(Portfolio):
         # Checks for execution prices above today.high or below today.low
         # Should stop execution during backtesting, but not on live exec
         if not (exec_price <= today.high and exec_price >= today.low):
-            raise ExecutionPriceOutOfBandError(
-                self.strategy, self.market.updated_at, symbol, direction,
-                exec_price, today.high, today.low,
-            )
+            raise ValueError("You're trying to execute with a price that is out of band today. Strategy {}, date {}, symbol {}, direction {}, exec_price {}, high {}, low {}".format(
+                self.strategy, self.market.updated_at, symbol, direction, exec_price, today.high, today.low,
+            ))
 
         # Check for negative or null execution price
         # Should stop execution during backtesting, but not on live exec
         if exec_price <= 0:
-            raise NegativeExecutionPriceError(self.strategy, self.market.updated_at, symbol, exec_price)
+            raise ValueError("Can't execute Signal with negative price. Strategy {}, date {}, symbol {}, price {}.".format(
+                self.strategy, self.market.updated_at, symbol, exec_price
+            ))
 
     def execute_order(self, order):
         if order.direction in ('BUY', 'SHORT'):

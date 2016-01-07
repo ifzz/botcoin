@@ -3,7 +3,6 @@ import logging
 import time
 
 from botcoin import settings
-from botcoin.common.errors import DataIsTooOldError
 from botcoin.live.data import LiveMarketData
 from botcoin.live.portfolio import LivePortfolio
 from botcoin.interfaces.ib import IbHandler, IbSocket
@@ -77,6 +76,6 @@ class LiveEngine(object):
         else:
             if delta >= datetime.timedelta(days=2):
                 old_data = True
-        if old_data: raise DataIsTooOldError
+        if old_data: raise ValueError("Local historical data is too old, you need to run download_symbols script. This will be automated in the future.")
 
         return True
